@@ -2,66 +2,115 @@
 
 ## Project Overview
 
-The owl2-reasoner project is a **high-performance Rust implementation** of an OWL2 reasoning engine that demonstrates significant performance improvements over traditional Java-based reasoners. The project claims **53.8x faster performance than HermiT** and includes comprehensive benchmarking against established reasoners.
+The Tableauxx project is a research prototype for hybrid ontology reasoning, implementing a framework that combines multiple reasoning paradigms. The codebase is a mixed Rust/Python implementation focused on exploring novel approaches to ontology reasoning.
+
+**Important Note**: This is a research prototype, not a production-ready system. Many components are framework/stub implementations with simulated functionality.
 
 ## Current Architecture
 
 ### Core Components
 
-**Language and Performance**: The project is implemented in Rust, leveraging zero-cost abstractions and memory safety for high performance. It includes extensive benchmarking infrastructure with Criterion benchmarks and external comparisons against Java reasoners (ELK, HermiT, JFact, Pellet).
+**Language and Performance**: 
+- Mixed Rust and Python implementation
+- Rust provides the framework structure and meta-reasoner
+- Python provides a working ALC tableau implementation
 
-**Reasoning Engine Architecture**: The system implements a multi-tier reasoning approach with both simple rule-based reasoning and advanced tableaux-based reasoning. The tableaux implementation follows SROIQ(D) description logic with sophisticated optimization techniques including dependency-directed backtracking, advanced blocking strategies, and arena-based memory allocation.
+**Reasoning Engine Architecture**: 
+- Meta-reasoner with decision tree for strategy selection
+- Framework for tableaux-based reasoning (stub implementation)
+- Framework for saturation-based reasoning (stub implementation)
+- Framework for transformation-based reasoning (stub implementation)
 
-**Memory Optimization**: The codebase demonstrates advanced memory optimization techniques including arena allocation with bumpalo (claiming 56x memory efficiency improvement), three-tier caching system (LRU primary, hot DashMap, compressed cache layers), and lock-free concurrent access patterns using DashMap for thread-safe operations.
+**Memory Management**: 
+- Basic structures in place
+- Advanced optimizations (arena allocation, tiered caching) are planned but not fully implemented
 
-**Parser Support**: Comprehensive format support including Turtle, RDF/XML (with streaming backend), OWL/XML, N-Triples, and OWL Functional Syntax with approximately 95% coverage. The streaming RDF/XML parser is particularly notable for handling large ontologies efficiently.
+**Parser Support**: 
+- Parser dependencies declared in Cargo.toml
+- Full implementation is planned
 
-### Key Technical Innovations
+### Key Technical Components
 
-**Advanced Blocking Strategies**: The tableaux implementation includes multiple blocking strategies (subset, equality, cardinality, dynamic, and nominal blocking) which are crucial for termination and performance in description logic reasoning.
+**Meta-Reasoner**: 
+- Decision tree implementation for strategy selection
+- Performance history tracking
+- Configurable thresholds
 
-**Profile-Optimized Reasoning**: Specialized algorithms for OWL2 profiles (EL, QL, RL) with dedicated optimization paths and caching strategies. This is particularly relevant for our goal of beating existing algorithms.
+**Blocking Strategies**: 
+- Framework defined
+- Full implementation planned for tableaux engine
 
-**Dependency-Directed Backtracking**: Smart choice selection and conflict resolution mechanisms that can significantly improve performance on complex reasoning tasks.
+**Profile-Optimized Reasoning**: 
+- Design for OWL2 profiles (EL, QL, RL)
+- Implementation is ongoing
 
-**Three-Tier Caching System**: Sophisticated caching with LRU primary cache, hot DashMap for concurrent access, and compressed cache layers with TTL-based expiration and priority-based eviction.
+## Code Statistics
 
-## Performance Characteristics
+**Actual Code Size**: ~5,500 lines (not 30,000+ as previously claimed)
 
-**Benchmark Results**: The project includes comprehensive benchmarking showing significant performance improvements over established reasoners. The 53.8x speedup over HermiT is particularly impressive and suggests the architecture has fundamental advantages.
+| Component | Lines | Language | Status |
+|-----------|-------|----------|--------|
+| Core Framework | ~2,500 | Rust | Framework complete |
+| ALC Tableau | ~625 | Python | Working |
+| Tests & Benchmarks | ~1,500 | Mixed | Partial |
+| Documentation | ~1,000 | Markdown | Various |
 
-**Test Coverage**: Extensive test suite with 241 tests achieving 97.9% success rate, indicating robust implementation. The project includes stress testing, concurrency testing, and comprehensive validation suites.
+## Implementation Status
 
-**Scalability**: Tested with ontologies up to 10,000+ entities with scientific-grade analysis, suggesting good scalability characteristics for real-world applications.
+| Feature | Status | Notes |
+|---------|--------|-------|
+| ALC Tableau (Python) | ✅ Working | Full implementation |
+| Meta-Reasoner | ✅ Implemented | Decision tree working |
+| Evolutionary Optimizer | ✅ Structure | Basic GA implemented |
+| SROIQ(D) Tableaux | 🚧 Stub | Framework only |
+| Saturation Engine | 🚧 Stub | Framework only |
+| OWL Parsing | 🚧 Planned | Dependencies declared |
+| Real Benchmarks | 🚧 Planned | Simulation currently used |
 
-## Optimization Opportunities
+## Implementation Details
 
-### Current Limitations
+### What Works
 
-**Tableaux Algorithm Bottlenecks**: While the current implementation includes advanced optimizations, tableaux algorithms still face fundamental complexity issues with large, expressive ontologies. The dependency-directed backtracking and blocking strategies help but may not be sufficient for the most challenging cases.
+1. **Python ALC Tableau** (`tableau_reasoner.py`):
+   - Complete ALC concept satisfiability testing
+   - Tableau expansion rules (⊓, ⊔, ∃, ∀)
+   - Clash detection
+   - Subset blocking for termination
 
-**Memory Usage Patterns**: Despite the arena allocation optimizations, the three-tier caching system and concurrent data structures may still have room for improvement, particularly in memory locality and cache efficiency.
+2. **Meta-Reasoner** (`meta_reasoner.rs`):
+   - Decision tree for strategy selection
+   - Rule-based selection logic
+   - Performance history tracking
 
-**Algorithmic Approach**: The current approach, while highly optimized, still follows traditional tableaux reasoning patterns. There may be opportunities for more fundamental algorithmic innovations.
+3. **Evolutionary Optimizer** (`evolutionary.rs`):
+   - Genetic algorithm structure
+   - Population management
+   - Fitness evaluation
+   - Crossover and mutation
 
-### Potential Improvements
+### What's Simulated
 
-**Hybrid Reasoning Strategies**: The codebase already shows some hybrid approaches (combining simple and tableaux reasoning), but there's potential for more sophisticated combinations of different reasoning paradigms.
+The enhanced reasoner (`lib.rs`, `simple_demo.py`) uses simulation:
+- `time.sleep()` / `thread::sleep()` for artificial delays
+- Random success rates
+- Artificial cache counters
 
-**Machine Learning Integration**: The existing caching and optimization infrastructure could potentially be enhanced with machine learning-based prediction and optimization strategies.
+This is a **framework demonstration**, not real reasoning.
 
-**Evolutionary Algorithm Integration**: The modular architecture would support integration with evolutionary approaches for algorithm discovery and optimization.
+## Next Steps for Real Implementation
 
-## Integration Points for New Algorithms
+1. **Implement Real Tableaux**: Replace simulation with actual SROIQ(D) tableaux
+2. **Implement Saturation**: Build working saturation-based reasoner
+3. **Add OWL Parser**: Implement full parsing for OWL formats
+4. **Real Benchmarks**: Test against HermiT, Pellet, ELK on standard ontologies
+5. **Standard Test Suite**: ORE benchmarks, BioPortal ontologies
 
-**Modular Reasoning Interface**: The `Reasoner` trait provides a clean interface for implementing new reasoning algorithms while maintaining compatibility with existing infrastructure.
+## Research Value
 
-**Benchmarking Infrastructure**: The comprehensive benchmarking framework would allow rigorous evaluation of new algorithms against both the current implementation and established reasoners.
+Despite being a prototype, the project demonstrates:
+- Novel hybrid architecture design
+- Meta-reasoning approach for strategy selection
+- Evolutionary optimization for parameter tuning
+- Working educational ALC tableau implementation
 
-**Caching and Memory Management**: New algorithms could leverage the existing three-tier caching system and arena allocation infrastructure for performance benefits.
-
-**Profile-Specific Optimization**: The existing profile-optimized reasoning infrastructure could be extended to support new algorithmic approaches tailored to specific OWL2 profiles.
-
-## Implications for New Algorithm Design
-
-The existing codebase provides an excellent foundation for developing new reasoning algorithms. The high-performance Rust implementation, comprehensive benchmarking infrastructure, and modular architecture create ideal conditions for algorithmic experimentation and optimization. The significant performance improvements already achieved suggest that further innovations in this direction could yield substantial benefits for the ontology reasoning community.
+The framework is sound; full implementation would validate the approach.

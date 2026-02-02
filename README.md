@@ -27,15 +27,15 @@ Tableauxx implements a hybrid reasoning engine that dynamically selects between 
 ```
 tableauxx/
 ├── Rust Implementation (Core Engine)
-│   ├── lib.rs                    # Library entry point
+│   ├── lib.rs                    # Library entry point (simulation framework)
 │   ├── main.rs                   # CLI executable
 │   ├── reasoning.rs              # Core reasoning engine trait
 │   ├── meta_reasoner.rs          # ML-based strategy selector
 │   ├── evolutionary.rs           # Genetic algorithm optimizer
 │   ├── benchmarking.rs           # Performance evaluation framework
-│   ├── tableaux.rs               # Tableaux algorithm implementation
-│   ├── transformation.rs         # EL++ transformation rules
-│   ├── saturation.rs             # Rule-based saturation engine
+│   ├── tableaux.rs               # Tableaux algorithm implementation (stub)
+│   ├── transformation.rs         # EL++ transformation rules (stub)
+│   ├── saturation.rs             # Rule-based saturation engine (stub)
 │   ├── simple_benchmark.rs       # Basic benchmark suite
 │   ├── benchmark_enhanced_reasoner.rs  # Enhanced reasoner benchmarks
 │   ├── enhanced_reasoning_bench.rs     # Reasoning benchmarks
@@ -43,7 +43,7 @@ tableauxx/
 │
 ├── Python Implementation (Prototyping)
 │   ├── tableau_reasoner.py       # Full ALC tableau with expansion rules
-│   ├── simple_demo.py            # Proof-of-concept demo
+│   ├── simple_demo.py            # **SIMULATED** proof-of-concept demo
 │   ├── enhanced_reasoner_standard_test.py  # Standard ontology tests
 │   ├── test_tableau_reasoner.py  # Unit tests
 │   └── benchmark_tableau.py      # Python benchmarking
@@ -57,13 +57,26 @@ tableauxx/
 │   └── รายงาน*.md               # Thai research reports
 │
 ├── Test Data & Results
-│   ├── univ-bench.owl            # Standard test ontology
+│   ├── univ-bench.owl            # Standard test ontology (small sample)
 │   ├── standard_ontology_test_results.json
 │   ├── enhanced_reasoner_benchmark.json
 │   └── *.png                     # Benchmark visualizations
 │
 └── Cargo.toml                    # Rust project configuration
 ```
+
+## ⚠️ Important Disclaimer
+
+**This is a research prototype, not a production-ready reasoner.**
+
+- The Python `simple_demo.py` uses **simulated reasoning** (`time.sleep()` and random success rates) to model expected performance
+- The Rust `lib.rs` enhanced reasoner uses **simulated reasoning components** (`simulate_*` functions with `thread::sleep()`)
+- **Real implementation status**: 
+  - ✅ Working ALC tableau in Python
+  - ✅ Meta-reasoner framework (rule-based strategy selection)
+  - ✅ Evolutionary optimizer structure
+  - 🚧 Full OWL2/SROIQ implementation is planned
+- Benchmark results shown in documentation are from **simulations**, not real reasoning performance
 
 ## 🚀 Quick Start
 
@@ -78,22 +91,22 @@ tableauxx/
 # Build the Rust project
 cargo build --release
 
-# Run the main executable
+# Run the main executable (runs simulations)
 cargo run --release
 
 # Run tests
 cargo test
 
-# Run Python tableau reasoner
+# Run Python tableau reasoner (REAL implementation)
 python tableau_reasoner.py
 
-# Run Python demo
+# Run Python demo (SIMULATED - for demonstration only)
 python simple_demo.py
 ```
 
 ## 🧪 Usage Examples
 
-### Rust - Enhanced Reasoner
+### Rust - Enhanced Reasoner Framework
 
 ```rust
 use enhanced_owl_reasoner::{EnhancedOwlReasoner, SimpleOntology};
@@ -104,23 +117,18 @@ fn main() -> anyhow::Result<()> {
     ontology.classes = vec!["Person".to_string(), "Student".to_string()];
     ontology.axioms = vec!["Student ⊑ Person".to_string()];
     
-    // Create reasoner with meta-reasoner
+    // Create reasoner with meta-reasoner (NOTE: uses simulated reasoning)
     let mut reasoner = EnhancedOwlReasoner::new(ontology)?;
     
-    // Check consistency
+    // Check consistency (SIMULATED - returns true with artificial delay)
     let is_consistent = reasoner.is_consistent()?;
     println!("Ontology is consistent: {}", is_consistent);
-    
-    // Get performance stats
-    let stats = reasoner.get_stats();
-    println!("Cache hit rate: {:.1}%", 
-        stats.cache_hits as f64 / (stats.cache_hits + stats.cache_misses) as f64 * 100.0);
     
     Ok(())
 }
 ```
 
-### Python - ALC Tableau
+### Python - ALC Tableau (REAL Implementation)
 
 ```python
 from tableau_reasoner import *
@@ -138,15 +146,18 @@ print(f"A ⊓ B is {'satisfiable' if satisfiable else 'unsatisfiable'}")
 print(f"Statistics: {reasoner.get_statistics()}")
 ```
 
-## 📊 Performance Characteristics
+## 📊 Current Implementation Status
 
-| Feature | Status |
-|---------|--------|
-| OWL2 Compliance | ~90% SROIQ(D) |
-| Test Success Rate | 97.9% (241/241 tests) |
-| Speed vs HermiT | 53.8x faster (simulated) |
-| Memory Efficiency | 56x improvement (arena allocation) |
-| Parser Coverage | Turtle, RDF/XML, OWL/XML, N-Triples |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| ALC Tableau (Python) | ✅ Working | Full implementation with expansion rules |
+| Meta-Reasoner | ✅ Framework | Decision tree for strategy selection |
+| Evolutionary Optimizer | ✅ Structure | Basic GA implementation |
+| OWL2/SROIQ | 🚧 Planned | Stubs exist, not fully implemented |
+| OWL Parsing | 🚧 Planned | Parser infrastructure in Cargo.toml |
+| Real Benchmarks | 🚧 Planned | Currently using simulation |
+
+**Code Size**: ~5,500 lines mixed Rust/Python (not 30,000+ as previously claimed)
 
 ## 🏗️ Architecture
 
@@ -191,10 +202,8 @@ High/Nominals? → Tableaux
 |--------|-------------|
 | `meta_reasoner.rs` | Decision tree + performance history for strategy selection |
 | `evolutionary.rs` | Genetic algorithm for parameter optimization |
-| `tableaux.rs` | Classical tableau with blocking for termination |
-| `saturation.rs` | Forward chaining for EL profiles |
-| `transformation.rs` | EL++ to datalog transformation |
-| `benchmarking.rs` | Comparative performance evaluation |
+| `tableau_reasoner.py` | **Working** classical tableau with blocking for termination |
+| `lib.rs` | Enhanced reasoner **framework** (simulated reasoning) |
 
 ## 🧪 Testing
 
@@ -203,38 +212,33 @@ High/Nominals? → Tableaux
 cargo test
 cargo test --release
 
-# Python tests
+# Python tests (real ALC tableau)
 python test_tableau_reasoner.py
 
-# Run benchmarks
-cargo run --release --bin enhanced_reasoning_bench
-python benchmark_tableau.py
-python enhanced_reasoner_standard_test.py
+# Run demos (simulated performance)
+python simple_demo.py
 ```
 
-## 📈 Benchmarks
+## 📈 Benchmarking
 
-The project includes multiple benchmark suites:
+**Current Status**: Benchmarks use simulated reasoning to demonstrate the framework.
 
-1. **Simple Benchmark** (`simple_benchmark.rs`): Basic performance tests
-2. **Enhanced Reasoner Benchmark** (`benchmark_enhanced_reasoner.rs`): Hybrid approach evaluation
-3. **Python Benchmarks** (`benchmark_tableau.py`): ALC tableau performance
-4. **Standard Ontology Tests** (`enhanced_reasoner_standard_test.py`): Real-world ontology validation
+Real benchmarking against established reasoners (HermiT, Pellet, ELK) is planned for future work.
 
 ## 📚 Documentation
 
 Key research documents:
 
-- **A Novel Hybrid and Evolutionary Approach to Ontology Reasoning.md**: Main research paper
-- **Tableau Algorithm Research Findings.md**: Tableaux algorithm analysis
+- **A Novel Hybrid and Evolutionary Approach to Ontology Reasoning.md**: Research proposal with simulation results
+- **Tableau Algorithm Research Findings.md**: Literature review (accurate)
 - **novel_algorithm_design.md**: Algorithm design details
 - **รายงานการพัฒนา Tableau Reasoner...**: Thai development report
 
 ## 🔬 Research Contributions
 
-1. **Hybrid Strategy Selection**: First to combine multiple reasoning paradigms with ML-based selection
-2. **Evolutionary Parameter Tuning**: Genetic algorithms optimize reasoning parameters dynamically
-3. **Profile-Aware Processing**: Specialized algorithms for different OWL2 profiles
+1. **Hybrid Strategy Selection Framework**: Architecture for combining multiple reasoning paradigms
+2. **Evolutionary Parameter Tuning**: GA structure for optimizing reasoning parameters
+3. **Profile-Aware Processing**: Design for specialized algorithms for different OWL2 profiles
 4. **Educational Implementation**: Complete Python ALC tableau for learning
 
 ## 🛠️ Development
@@ -256,22 +260,13 @@ cargo doc --no-deps
 ## 📦 Dependencies
 
 ### Rust
-- `rio_api`, `rio_turtle`, `rio_xml` - RDF parsing
+- `rio_api`, `rio_turtle`, `rio_xml` - RDF parsing (declared, not fully used)
 - `petgraph`, `indexmap`, `hashbrown` - Data structures
 - `serde`, `serde_json` - Serialization
-- `rayon`, `dashmap`, `bumpalo` - Performance
+- `rayon`, `dashmap`, `bumpalo` - Performance (declared, not fully used)
 
 ### Python
 - Standard library only (no external dependencies)
-
-## 🤝 Contributing
-
-This is a research project. Contributions welcome in:
-
-- Additional reasoning strategies
-- More comprehensive test ontologies
-- Performance optimizations
-- Documentation improvements
 
 ## 📝 License
 
@@ -288,4 +283,4 @@ at your option.
 
 ---
 
-*Built with ❤️ in Rust & Python for the Semantic Web research community*
+*Research prototype for hybrid ontology reasoning. The ALC tableau implementation is functional; other components are framework/stub implementations.*
