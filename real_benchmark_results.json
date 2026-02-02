@@ -1,0 +1,118 @@
+{
+  "benchmark_date": "2026-02-02T16:42:18.598688",
+  "reasoner": "ALC Tableau (Python)",
+  "description": "Real benchmark results from actual ALC tableau implementation",
+  "tests": [
+    {
+      "name": "Atomic Concept",
+      "concept": "A",
+      "description": "Single atomic concept",
+      "satisfiable": true,
+      "execution_time_ms": 0.019,
+      "nodes_created": 1,
+      "rules_applied": 0,
+      "max_depth": 0
+    },
+    {
+      "name": "Conjunction",
+      "concept": "(A \u2293 B)",
+      "description": "A \u2293 B",
+      "satisfiable": true,
+      "execution_time_ms": 0.137,
+      "nodes_created": 2,
+      "rules_applied": 1,
+      "max_depth": 1
+    },
+    {
+      "name": "Contradiction",
+      "concept": "(A \u2293 \u00acA)",
+      "description": "A \u2293 \u00acA (unsatisfiable)",
+      "satisfiable": false,
+      "execution_time_ms": 0.091,
+      "nodes_created": 2,
+      "rules_applied": 1,
+      "max_depth": 1
+    },
+    {
+      "name": "Disjunction",
+      "concept": "(A \u2294 B)",
+      "description": "A \u2294 B",
+      "satisfiable": true,
+      "execution_time_ms": 0.117,
+      "nodes_created": 2,
+      "rules_applied": 1,
+      "max_depth": 1
+    },
+    {
+      "name": "Existential",
+      "concept": "\u2203R.A",
+      "description": "\u2203R.A",
+      "satisfiable": true,
+      "execution_time_ms": 0.073,
+      "nodes_created": 2,
+      "rules_applied": 1,
+      "max_depth": 1
+    },
+    {
+      "name": "Universal",
+      "concept": "\u2200R.A",
+      "description": "\u2200R.A",
+      "satisfiable": true,
+      "execution_time_ms": 0.011,
+      "nodes_created": 1,
+      "rules_applied": 0,
+      "max_depth": 0
+    },
+    {
+      "name": "Existential Conjunction",
+      "concept": "\u2203R.(A \u2293 B)",
+      "description": "\u2203R.(A \u2293 B)",
+      "satisfiable": true,
+      "execution_time_ms": 0.424,
+      "nodes_created": 3,
+      "rules_applied": 2,
+      "max_depth": 2
+    },
+    {
+      "name": "Mixed Quantifiers",
+      "concept": "(\u2203R.A \u2293 \u2200R.B)",
+      "description": "\u2203R.A \u2293 \u2200R.B",
+      "satisfiable": true,
+      "execution_time_ms": 0.407,
+      "nodes_created": 4,
+      "rules_applied": 3,
+      "max_depth": 3
+    },
+    {
+      "name": "Nested Existentials",
+      "concept": "\u2203R.\u2203S.A",
+      "description": "\u2203R.\u2203S.A",
+      "satisfiable": true,
+      "execution_time_ms": 0.201,
+      "nodes_created": 3,
+      "rules_applied": 2,
+      "max_depth": 2
+    },
+    {
+      "name": "Complex Unsatisfiable",
+      "concept": "(\u2203R.A \u2293 \u2200R.\u00acA)",
+      "description": "\u2203R.A \u2293 \u2200R.\u00acA",
+      "satisfiable": false,
+      "execution_time_ms": 0.397,
+      "nodes_created": 4,
+      "rules_applied": 3,
+      "max_depth": 3
+    }
+  ],
+  "summary": {
+    "total_tests": 10,
+    "passed": 10,
+    "success_rate": 100.0,
+    "total_time_ms": 1.876,
+    "avg_time_ms": 0.188,
+    "total_nodes": 24,
+    "total_rules": 14,
+    "avg_nodes": 2.4,
+    "avg_rules": 1.4
+  }
+}

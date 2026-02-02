@@ -1,8 +1,12 @@
 //! Enhanced OWL2 Reasoner with Hybrid and Evolutionary Optimization
 //!
-//! This crate implements a novel hybrid reasoning approach that combines
-//! multiple reasoning paradigms and uses evolutionary algorithms to optimize
-//! performance beyond traditional tableaux methods.
+//! This crate implements a framework for a novel hybrid reasoning approach.
+//! 
+//! CURRENT STATUS:
+//! - ✅ Framework structures (meta-reasoner, evolutionary optimizer)
+//! - 🚧 Actual reasoning implementations are stubs/planned
+//! 
+//! For real ALC tableau implementation, see `tableau_reasoner.py` (Python).
 
 pub mod reasoning;
 pub mod meta_reasoner;
@@ -16,7 +20,7 @@ pub use evolutionary::*;
 
 use std::time::Instant;
 
-/// Simplified ontology representation for proof of concept
+/// Simplified ontology representation for framework development
 #[derive(Debug, Clone)]
 pub struct SimpleOntology {
     pub classes: Vec<String>,
@@ -36,11 +40,14 @@ impl SimpleOntology {
     }
 }
 
-/// Enhanced OWL2 reasoner with hybrid approach and evolutionary optimization
+/// Enhanced OWL2 reasoner framework
+/// 
+/// NOTE: This is a framework implementation. The actual reasoning algorithms
+/// are not yet fully implemented. For real ALC tableau, use `tableau_reasoner.py`.
 pub struct EnhancedOwlReasoner {
     /// Meta-reasoner for intelligent component selection
     meta_reasoner: MetaReasoner,
-    /// Simple ontology for proof of concept
+    /// Simple ontology for framework development
     ontology: SimpleOntology,
     /// Performance statistics
     stats: ReasoningStats,
@@ -59,7 +66,7 @@ pub struct ReasoningStats {
 }
 
 impl EnhancedOwlReasoner {
-    /// Create a new enhanced reasoner
+    /// Create a new enhanced reasoner framework
     pub fn new(ontology: SimpleOntology) -> anyhow::Result<Self> {
         let meta_reasoner = MetaReasoner::new()?;
         
@@ -71,6 +78,9 @@ impl EnhancedOwlReasoner {
     }
 
     /// Perform consistency checking with intelligent component selection
+    /// 
+    /// NOTE: This is a framework stub. Returns placeholder result.
+    /// For real reasoning, use `tableau_reasoner.py`.
     pub fn is_consistent(&mut self) -> anyhow::Result<bool> {
         let start_time = Instant::now();
         
@@ -82,65 +92,27 @@ impl EnhancedOwlReasoner {
         )?;
         self.stats.meta_reasoner_overhead_ms += meta_start.elapsed().as_millis() as u64;
         
-        // Simulate reasoning based on selected strategy
-        let result = match strategy {
-            ReasoningStrategy::Tableaux => {
-                self.stats.tableaux_calls += 1;
-                self.simulate_tableaux_reasoning()
-            },
-            ReasoningStrategy::Saturation => {
-                self.stats.saturation_calls += 1;
-                self.simulate_saturation_reasoning()
-            },
-            ReasoningStrategy::Transformation => {
-                self.stats.transformation_calls += 1;
-                self.simulate_transformation_reasoning()
-            },
+        // NOTE: Actual reasoning not yet implemented
+        // This is where the real algorithm would be called
+        log::info!("Selected strategy: {:?}", strategy);
+        log::info!("NOTE: Actual reasoning not yet implemented in Rust");
+        
+        // Placeholder: Assume consistent
+        match strategy {
+            ReasoningStrategy::Tableaux => self.stats.tableaux_calls += 1,
+            ReasoningStrategy::Saturation => self.stats.saturation_calls += 1,
+            ReasoningStrategy::Transformation => self.stats.transformation_calls += 1,
             ReasoningStrategy::Hybrid => {
                 self.stats.saturation_calls += 1;
                 self.stats.tableaux_calls += 1;
-                self.simulate_hybrid_reasoning()
             }
-        };
+        }
         
         self.stats.total_reasoning_time_ms += start_time.elapsed().as_millis() as u64;
-        Ok(result)
-    }
-    
-    /// Simulate tableaux reasoning
-    fn simulate_tableaux_reasoning(&mut self) -> bool {
-        // Simulate tableaux algorithm performance
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        self.stats.cache_hits += 5;
-        self.stats.cache_misses += 2;
-        true // Assume consistent for demo
-    }
-    
-    /// Simulate saturation reasoning
-    fn simulate_saturation_reasoning(&mut self) -> bool {
-        // Simulate saturation algorithm performance
-        std::thread::sleep(std::time::Duration::from_millis(20));
-        self.stats.cache_hits += 8;
-        self.stats.cache_misses += 1;
-        true // Assume consistent for demo
-    }
-    
-    /// Simulate transformation reasoning
-    fn simulate_transformation_reasoning(&mut self) -> bool {
-        // Simulate transformation algorithm performance
-        std::thread::sleep(std::time::Duration::from_millis(30));
-        self.stats.cache_hits += 6;
-        self.stats.cache_misses += 1;
-        true // Assume consistent for demo
-    }
-    
-    /// Simulate hybrid reasoning
-    fn simulate_hybrid_reasoning(&mut self) -> bool {
-        // Simulate hybrid approach
-        std::thread::sleep(std::time::Duration::from_millis(35));
-        self.stats.cache_hits += 10;
-        self.stats.cache_misses += 2;
-        true // Assume consistent for demo
+        
+        // Return placeholder result
+        // In full implementation, this would run actual reasoning
+        Ok(true)
     }
 
     /// Get ontology features for meta-reasoner
@@ -249,9 +221,8 @@ mod tests {
         let ontology = SimpleOntology::new();
         let mut reasoner = EnhancedOwlReasoner::new(ontology).unwrap();
         
-        // Empty ontology should be consistent
+        // Empty ontology should be consistent (placeholder result)
         let result = reasoner.is_consistent();
         assert!(result.is_ok());
-        assert!(result.unwrap());
     }
 }

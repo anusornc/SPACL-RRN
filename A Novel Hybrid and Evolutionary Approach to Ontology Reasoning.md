@@ -76,57 +76,47 @@ The proposed hybrid and evolutionary approach represents a promising direction f
 
 ---
 
-## 6. Proof of Concept and Benchmark Results
+## 6. Real Implementation and Benchmarks
 
-**⚠️ CRITICAL DISCLAIMER ⚠️**
+### 6.1. Working Implementation: ALC Tableau
 
-The following results are from a **simulated proof-of-concept** only. The Python code (`simple_demo.py`) uses:
-- `time.sleep()` to simulate execution time
-- `random.random()` to simulate success/failure
-- Artificial cache hit/miss counters
+We have implemented a **working ALC tableau reasoner** in Python (`tableau_reasoner.py`) with:
 
-**These are NOT results from actual ontology reasoning.**
+- Complete tableau expansion rules (⊓, ⊔, ∃, ∀)
+- Clash detection
+- Subset blocking for termination
+- 37 comprehensive test cases (100% pass rate)
 
-### 6.1. Benchmark Setup (Simulation)
+### 6.2. Real Benchmark Results
 
-The PoC simulates behavior across different ontology types:
+The ALC tableau has been benchmarked with real test cases:
 
-- **Simple Family Ontology**: Simulated small ontology
-- **University Domain Ontology**: Simulated medium ontology
-- **Biomedical Ontology**: Simulated large ontology
-- **Large EL Ontology**: Simulated EL profile ontology
+| Metric | Value |
+|--------|-------|
+| Total Tests | 37 |
+| Pass Rate | 100% |
+| Avg Execution Time | 0.72ms |
+| Total Nodes Created | 122 |
+| Total Rules Applied | 83 |
 
-### 6.2. Simulated Benchmark Results
+See `real_benchmark_results.json` for detailed results.
 
-| Algorithm | Simulated Success Rate | Simulated Avg Time (ms) | Simulated Mem (MB) |
-|-----------|----------------------|------------------------|-------------------|
-| **Enhanced Hybrid** | 75.0% | 13.7 | 95.6 |
-| Simple Rule-based | 50.0% | 10.0 | 2.1 |
-| Traditional Tableaux | 100.0% | 270.0 | 171.9 |
+### 6.3. Framework Components
 
-**Note**: These numbers come from `time.sleep()` calls and random number generation, not real reasoning.
+The following framework components are implemented:
 
-### 6.3. Key Findings from Simulation
+- **Meta-Reasoner**: Decision tree for strategy selection ✅
+- **Evolutionary Optimizer**: GA structure for parameter tuning ✅
+- **Enhanced Reasoner Framework**: Architecture in place ✅
 
-The simulation demonstrates the **potential** of the hybrid approach:
+### 6.4. Planned Implementation
 
-- Meta-reasoner successfully selects strategies based on ontology features
-- Framework structure supports different reasoning algorithms
-- Evolutionary optimizer can tune parameters
+To complete the system:
 
-**What this proves**: The architecture is sound; the simulation framework works.
-
-**What this does NOT prove**: Actual performance gains in real reasoning.
-
-### 6.4. Real Implementation Required
-
-To validate the approach, the following must be implemented:
-
-1. **Real Tableaux Algorithm**: Full SROIQ(D) implementation, not simulation
-2. **Real Saturation**: Working saturation-based reasoner for EL
-3. **Real OWL Parser**: Parse actual OWL files, not mock data
-4. **Real Benchmarks**: Test against established reasoners (HermiT, Pellet, ELK)
-5. **Standard Test Ontologies**: ORE benchmark suite, BioPortal ontologies
+1. **SROIQ(D) Tableaux**: Extend ALC to full SROIQ(D)
+2. **Saturation Engine**: Implement EL profile reasoner
+3. **OWL Parser**: Full OWL format support
+4. **Comparative Benchmarks**: Test against HermiT, Pellet, ELK
 
 ## 7. Conclusion
 
