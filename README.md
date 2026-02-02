@@ -1,190 +1,291 @@
-      "avg_time_ms": 305.39,
-      "min_time_ms": 289.81,
-      "max_time_ms": 345.40
-    }
-  }
+# Tableauxx - Hybrid OWL2 Reasoner
+
+A novel hybrid and evolutionary approach to ontology reasoning, combining tableaux-based algorithms with machine learning-driven strategy selection and evolutionary optimization.
+
+[![Rust](https://img.shields.io/badge/Rust-1.70+-orange.svg)](https://www.rust-lang.org)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org)
+[![License](https://img.shields.io/badge/License-MIT%2FApache--2.0-blue.svg)](LICENSE)
+
+## 🌟 Overview
+
+Tableauxx implements a hybrid reasoning engine that dynamically selects between multiple reasoning strategies based on ontology characteristics:
+
+- **Tableaux Reasoning**: For expressive SROIQ(D) ontologies with nominals and cardinality restrictions
+- **Saturation**: Optimized for EL profile ontologies (polynomial time)
+- **Transformation**: Lightweight approach for simple ontologies
+- **Hybrid**: Combines strategies with intelligent fallback
+
+### Key Innovations
+
+1. **Meta-Reasoner**: ML-based decision tree for automatic strategy selection
+2. **Evolutionary Optimization**: Genetic algorithms for tuning reasoning parameters
+3. **Multi-Profile Support**: Specialized handling for EL, QL, RL, and SROIQ fragments
+4. **ALC Tableau Implementation**: Complete Python implementation with blocking strategies
+
+## 📁 Project Structure
+
+```
+tableauxx/
+├── Rust Implementation (Core Engine)
+│   ├── lib.rs                    # Library entry point
+│   ├── main.rs                   # CLI executable
+│   ├── reasoning.rs              # Core reasoning engine trait
+│   ├── meta_reasoner.rs          # ML-based strategy selector
+│   ├── evolutionary.rs           # Genetic algorithm optimizer
+│   ├── benchmarking.rs           # Performance evaluation framework
+│   ├── tableaux.rs               # Tableaux algorithm implementation
+│   ├── transformation.rs         # EL++ transformation rules
+│   ├── saturation.rs             # Rule-based saturation engine
+│   ├── simple_benchmark.rs       # Basic benchmark suite
+│   ├── benchmark_enhanced_reasoner.rs  # Enhanced reasoner benchmarks
+│   ├── enhanced_reasoning_bench.rs     # Reasoning benchmarks
+│   └── mod.rs                    # Module declarations
+│
+├── Python Implementation (Prototyping)
+│   ├── tableau_reasoner.py       # Full ALC tableau with expansion rules
+│   ├── simple_demo.py            # Proof-of-concept demo
+│   ├── enhanced_reasoner_standard_test.py  # Standard ontology tests
+│   ├── test_tableau_reasoner.py  # Unit tests
+│   └── benchmark_tableau.py      # Python benchmarking
+│
+├── Documentation
+│   ├── A Novel Hybrid and Evolutionary Approach to Ontology Reasoning.md
+│   ├── Tableau Algorithm Research Findings.md
+│   ├── novel_algorithm_design.md
+│   ├── research_findings.md
+│   ├── codebase_analysis.md
+│   └── รายงาน*.md               # Thai research reports
+│
+├── Test Data & Results
+│   ├── univ-bench.owl            # Standard test ontology
+│   ├── standard_ontology_test_results.json
+│   ├── enhanced_reasoner_benchmark.json
+│   └── *.png                     # Benchmark visualizations
+│
+└── Cargo.toml                    # Rust project configuration
+```
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Rust 1.70+ (install via [rustup](https://rustup.rs))
+- Python 3.8+ (for Python components)
+
+### Build & Run
+
+```bash
+# Build the Rust project
+cargo build --release
+
+# Run the main executable
+cargo run --release
+
+# Run tests
+cargo test
+
+# Run Python tableau reasoner
+python tableau_reasoner.py
+
+# Run Python demo
+python simple_demo.py
+```
+
+## 🧪 Usage Examples
+
+### Rust - Enhanced Reasoner
+
+```rust
+use enhanced_owl_reasoner::{EnhancedOwlReasoner, SimpleOntology};
+
+fn main() -> anyhow::Result<()> {
+    // Create ontology
+    let mut ontology = SimpleOntology::new();
+    ontology.classes = vec!["Person".to_string(), "Student".to_string()];
+    ontology.axioms = vec!["Student ⊑ Person".to_string()];
+    
+    // Create reasoner with meta-reasoner
+    let mut reasoner = EnhancedOwlReasoner::new(ontology)?;
+    
+    // Check consistency
+    let is_consistent = reasoner.is_consistent()?;
+    println!("Ontology is consistent: {}", is_consistent);
+    
+    // Get performance stats
+    let stats = reasoner.get_stats();
+    println!("Cache hit rate: {:.1}%", 
+        stats.cache_hits as f64 / (stats.cache_hits + stats.cache_misses) as f64 * 100.0);
+    
+    Ok(())
 }
 ```
 
-## 🛠️ Development
+### Python - ALC Tableau
 
-### Code Quality
+```python
+from tableau_reasoner import *
+
+# Create concepts
+A = atomic_concept("A")
+B = atomic_concept("B")
+
+# Test satisfiability of A ⊓ B
+conj = conjunction(A, B)
+reasoner = TableauReasoner()
+satisfiable, model = reasoner.is_satisfiable(conj)
+
+print(f"A ⊓ B is {'satisfiable' if satisfiable else 'unsatisfiable'}")
+print(f"Statistics: {reasoner.get_statistics()}")
+```
+
+## 📊 Performance Characteristics
+
+| Feature | Status |
+|---------|--------|
+| OWL2 Compliance | ~90% SROIQ(D) |
+| Test Success Rate | 97.9% (241/241 tests) |
+| Speed vs HermiT | 53.8x faster (simulated) |
+| Memory Efficiency | 56x improvement (arena allocation) |
+| Parser Coverage | Turtle, RDF/XML, OWL/XML, N-Triples |
+
+## 🏗️ Architecture
+
+### Meta-Reasoner Decision Tree
+
+```
+Ontology Features
+       ↓
+  ┌────┴────┐
+  ↓         ↓
+EL Profile? → Saturation
+  └────┬────┘
+       ↓ No
+  ┌────┴────┐
+  ↓         ↓
+Low Complexity? → Transformation
+  └────┬────┘
+       ↓ No
+  ┌────┴────┐
+  ↓         ↓
+Medium Complexity? → Hybrid
+  └────┬────┘
+       ↓ No
+  ┌────┴────┐
+  ↓         ↓
+High/Nominals? → Tableaux
+  └────┬────┘
+       ↓
+    Default → Hybrid
+```
+
+### Evolutionary Optimization
+
+- **Population Size**: 20 strategies
+- **Mutation Rate**: 10%
+- **Crossover Rate**: 70%
+- **Evolves**: Feature weights, selection thresholds, cache config, timeouts
+
+## 🧬 Core Components
+
+| Module | Description |
+|--------|-------------|
+| `meta_reasoner.rs` | Decision tree + performance history for strategy selection |
+| `evolutionary.rs` | Genetic algorithm for parameter optimization |
+| `tableaux.rs` | Classical tableau with blocking for termination |
+| `saturation.rs` | Forward chaining for EL profiles |
+| `transformation.rs` | EL++ to datalog transformation |
+| `benchmarking.rs` | Comparative performance evaluation |
+
+## 🧪 Testing
+
+```bash
+# Rust tests
+cargo test
+cargo test --release
+
+# Python tests
+python test_tableau_reasoner.py
+
+# Run benchmarks
+cargo run --release --bin enhanced_reasoning_bench
+python benchmark_tableau.py
+python enhanced_reasoner_standard_test.py
+```
+
+## 📈 Benchmarks
+
+The project includes multiple benchmark suites:
+
+1. **Simple Benchmark** (`simple_benchmark.rs`): Basic performance tests
+2. **Enhanced Reasoner Benchmark** (`benchmark_enhanced_reasoner.rs`): Hybrid approach evaluation
+3. **Python Benchmarks** (`benchmark_tableau.py`): ALC tableau performance
+4. **Standard Ontology Tests** (`enhanced_reasoner_standard_test.py`): Real-world ontology validation
+
+## 📚 Documentation
+
+Key research documents:
+
+- **A Novel Hybrid and Evolutionary Approach to Ontology Reasoning.md**: Main research paper
+- **Tableau Algorithm Research Findings.md**: Tableaux algorithm analysis
+- **novel_algorithm_design.md**: Algorithm design details
+- **รายงานการพัฒนา Tableau Reasoner...**: Thai development report
+
+## 🔬 Research Contributions
+
+1. **Hybrid Strategy Selection**: First to combine multiple reasoning paradigms with ML-based selection
+2. **Evolutionary Parameter Tuning**: Genetic algorithms optimize reasoning parameters dynamically
+3. **Profile-Aware Processing**: Specialized algorithms for different OWL2 profiles
+4. **Educational Implementation**: Complete Python ALC tableau for learning
+
+## 🛠️ Development
 
 ```bash
 # Format code
 cargo fmt
 
-# Run clippy lints
+# Run clippy
 cargo clippy -- -D warnings
 
 # Check compilation
 cargo check
 
-# Build documentation
+# Build docs
 cargo doc --no-deps
 ```
 
-### Updating Documentation
+## 📦 Dependencies
 
-```bash
-# Update all documentation
-./scripts/update_docs.sh "Description of changes"
+### Rust
+- `rio_api`, `rio_turtle`, `rio_xml` - RDF parsing
+- `petgraph`, `indexmap`, `hashbrown` - Data structures
+- `serde`, `serde_json` - Serialization
+- `rayon`, `dashmap`, `bumpalo` - Performance
 
-# This script updates:
-# - Rustdoc API documentation
-# - mdbook documentation
-# - Technical documentation (if Typst available)
-# - Example documentation
-# - Test validation
-```
-
-### Project Scripts
-
-- `scripts/validate_system.sh`
-  - Builds, runs unit/integration tests, and exercises key examples.
-  - Usage: from `owl2-reasoner/`: `./scripts/validate_system.sh`
-
-- `scripts/run_benchmarks.sh`
-  - Runs the release build, targeted Criterion benches, then the Python framework and report generator (if available).
-  - Usage: `./scripts/run_benchmarks.sh`
-
-- `scripts/update_docs.sh`
-  - Builds Rustdoc, checks core examples, builds mdBook in `docs/`, and optionally builds Typst technical docs.
-  - Usage: `./scripts/update_docs.sh "Description of changes"`
-  - Requirements: `mdbook` installed; optional `typst` for technical PDF.
-
-- `scripts/build-technical-docs.sh`
-  - Directly builds the Typst technical documentation to `docs/technical-documentation/output/`.
-  - Usage: `./scripts/build-technical-docs.sh`
-
-## 📈 Performance Characteristics
-
-### Notes on Performance
-- Prefer `--release` for measurements and benches.
-- Treat README numbers as informative; rely on local Criterion results.
-
-### Real-World Applications
-- **Interactive Tools**: Real-time ontology editing and validation
-- **Web Applications**: Backend reasoning for semantic web apps
-- **Edge Computing**: Efficient reasoning on resource-constrained devices
-- **Research Systems**: Fast prototyping and experimentation
-
-## 🔬 Research Contributions
-
-### Academic/Research Use
-- External comparisons (ELK, HermiT, JFact, Pellet) are supported via the `benchmarking/` folder; Java/Maven required.
-- Use results as informative baselines; rerun locally for current measurements.
-
-## 🏗️ Architecture Details
-
-### Core Components
-- **IRI Management**: Efficient internationalized resource identifier handling
-- **Entity Store**: Type-safe representation of OWL2 entities
-- **Axiom Index**: Optimized storage for logical statements
-- **Tableaux Engine**: Complete SROIQ(D) reasoning implementation
-- **Rule System**: Forward chaining with conflict resolution
-- **Query Engine**: SPARQL-like pattern matching
-
-### Performance Optimizations
-- **Memory Pooling**: Reused allocations for common structures
-- **Three-Tier Caching System**: LRU primary, hot DashMap, and compressed cache layers
-- **Profile-Optimized Caching**: Specialized caching for EL, QL, and RL profile validation
-- **Lock-Free Concurrent Access**: DashMap-based caching for thread-safe operations
-- **Priority-Based Cache Eviction**: Intelligent eviction based on result validity and violation count
-- **Memory Pool Allocation**: Bump allocator for efficient validation result storage
-- **Arc-Based Sharing**: Memory-efficient entity representation
-- **Zero-Copy Parsing**: Direct ontology loading where possible
-- **TTL-Based Cache Expiration**: Configurable time-to-live for cached results
+### Python
+- Standard library only (no external dependencies)
 
 ## 🤝 Contributing
 
-We welcome contributions that advance:
+This is a research project. Contributions welcome in:
 
-### High Priority
-- **OWL Format Parser**: Complete full format support
-- **Advanced Reasoning**: Enhanced tableaux optimizations
-- **SPARQL Compliance**: Full SPARQL 1.1 implementation
-- **Enterprise Testing**: Large-scale ontology validation
+- Additional reasoning strategies
+- More comprehensive test ontologies
+- Performance optimizations
+- Documentation improvements
 
-### Development Setup
-```bash
-# Install development tools
-rustup component add clippy rustfmt
+## 📝 License
 
-# Code quality checks
-cargo clippy -- -D warnings
-cargo fmt --check
+This project is licensed under either:
 
-# Run comprehensive test suite
-cargo test --release
-
-# Build documentation
-cargo doc --no-deps --open
-```
-
-## 📊 Current Status
-
-### ✅ **Current Capabilities**
-- Complete OWL2 reasoning engine with advanced SROIQ(D) tableaux algorithm (~90% compliance)
-- Full parser suite: Turtle, RDF/XML (streaming), OWL/XML, N-Triples, and OWL Functional Syntax (~95% coverage)
-- Sophisticated blocking strategies: subset, equality, cardinality, dynamic, and nominal blocking
-- Dependency-directed backtracking with smart choice selection and conflict resolution
-- Arena allocation memory optimization: 56x memory efficiency improvement with bumpalo
-- **Advanced Three-Tier Caching System**: LRU primary, hot DashMap, and compressed cache layers
-- **Profile-Optimized Reasoning**: Specialized algorithms for EL, QL, and RL profiles
-- **Memory Pool Allocation**: Bump allocator for efficient validation result storage
-- **Lock-Free Concurrent Caching**: DashMap-based caching for thread-safe operations
-- **Priority-Based Cache Eviction**: Intelligent eviction based on result validity and violation count
-- **TTL-Based Cache Expiration**: Configurable time-to-live for cached results
-- Complete OWL2 profile validation: EL, QL, and RL profile compliance testing with optimization
-- Comprehensive performance profiling: 15+ Criterion benches, memory analysis, and optimization tools
-- Large-scale ontology optimization: Tested up to 10,000+ entities with scientific-grade analysis
-- Complete test suite compliance: 241/241 tests (97.9% success rate)
-- Production-ready: 30,841+ LOC, zero compilation warnings, 53.8x faster than HermiT
-- Complete ObjectOneOf parsing and nominal reasoning support with comprehensive test coverage
-- **Advanced Performance Validation**: Profile validation benchmarks and optimization analysis
-
-### ✅ **Recently Completed**
-- **Advanced OWL2 Profile Compliance Optimization**: Complete 12-phase optimization project
-  - Three-tier caching system with intelligent eviction
-  - Profile-specific pre-computation indexes
-  - Memory pool allocation for validation results
-  - Lock-free concurrent caching with DashMap
-  - Performance benchmarks and validation tools
-  - Comprehensive testing and validation
-
-### 📋 **Next Steps**
-1. Ecosystem integration examples and language bindings documentation
-2. Real-world application case studies and deployment guides
-3. Enterprise-scale validation and production deployment optimization
-
-## 📄 License
-
-This project is licensed under either of:
-
-- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or
-  https://www.apache.org/licenses/LICENSE-2.0)
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or
-  https://opensource.org/licenses/MIT)
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
+- MIT license ([LICENSE-MIT](LICENSE-MIT))
 
 at your option.
 
-## 🙏 Acknowledgments
+## 👤 Author
 
-- The W3C OWL2 Working Group for the excellent specification
-- The Rust community for outstanding tooling and libraries
-- Research contributions from semantic web and knowledge representation communities
-- Open source reasoner developers (HermiT, ELK, JFact, Pellet teams)
-
-## 📞 Contact
-
-- **Project Lead**: Anusorn Chaikaew
-- **Issues**: [GitHub Issues](https://github.com/anusornc/owl2-reasoner/issues)
-- **Performance Data**: Available in `benchmarking/results/` directory
-- **Documentation**: [API Docs](https://anusornc.github.io/owl2-reasoner/)
+**Anusorn Chaikaew** - Research on hybrid ontology reasoning approaches
 
 ---
 
-**Built with ❤️ in Rust for the Future of Semantic Web**
-
-*This project demonstrates that native implementations can dramatically outperform traditional JVM-based semantic web reasoners, opening new possibilities for real-time semantic applications.*
+*Built with ❤️ in Rust & Python for the Semantic Web research community*
