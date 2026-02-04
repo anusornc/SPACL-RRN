@@ -102,7 +102,7 @@ We confirm that this work is original and has not been published elsewhere.
 
 Sincerely,
 Anusorn Chaikaew
-PhD Candidate, Mahidol University
+<Institution>
 ```
 
 ---

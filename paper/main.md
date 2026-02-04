@@ -1,8 +1,8 @@
 # SPACL: Speculative Parallel Tableaux with Adaptive Conflict Learning for Scalable OWL2 DL Reasoning
 
 **Authors**: Anusorn Chaikaew  
-**Affiliation**: PhD Candidate in Computer Science  
-**Contact**: anusorn.chaikaew@student.mahidol.ac.th
+**Affiliation**: <Institution>  
+**Contact**: <author.email@institution.edu>
 
 ---
 

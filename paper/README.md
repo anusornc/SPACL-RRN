@@ -180,8 +180,8 @@ Tables use `booktabs` for professional formatting.
 ## Author Information
 
 **Authors**: Anusorn Chaikaew  
-**Affiliation**: PhD Candidate in Computer Science, Mahidol University  
-**Email**: anusorn.chaikaew@student.mahidol.ac.th  
+**Affiliation**: <Institution>  
+**Email**: <author.email@institution.edu>  
 **GitHub**: [Your GitHub]
 
 **Corresponding Author**: Anusorn Chaikaew  

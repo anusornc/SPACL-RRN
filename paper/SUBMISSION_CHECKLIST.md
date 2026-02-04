@@ -160,7 +160,7 @@
 ## Contact Information
 
 **Corresponding Author**: Anusorn Chaikaew
-**Email**: anusorn.chaikaew@student.mahidol.ac.th
+**Email**: <author.email@institution.edu>
 **Institution**: Mahidol University
 **GitHub**: [Your GitHub]
 
