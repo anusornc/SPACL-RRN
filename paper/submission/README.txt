@@ -3,8 +3,8 @@ JOURNAL OF WEB SEMANTICS - SUBMISSION PACKAGE
 ================================================================================
 
 Paper Title:
-  SPACL: Speculative Parallel Tableaux with Adaptive Conflict Learning 
-  for Scalable OWL2 DL Reasoning
+  SPACL: Speculative Parallelism and Conflict Learning 
+  for Scalable OWL Ontology Reasoning
 
 Authors:
   1. Anusorn Chaikaew (First Author)
