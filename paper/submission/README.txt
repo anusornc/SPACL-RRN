@@ -21,20 +21,8 @@ Affiliation:
 Corresponding Author Contact:
   Tel.: +66-5394-3413
 
-Submission Date: February 3, 2026
+Submission Date: February 2026
 Target Journal: Journal of Web Semantics (Elsevier)
-
-================================================================================
-IMPORTANT: EVALUATION SCOPE
-================================================================================
-
-This paper evaluates SPACL on SYNTHETIC HIERARCHIES (100-10,000 classes).
-
-Real-world ontology evaluation (NCI, GALEN, SNOMED CT) is planned but NOT 
-yet completed. This limitation is explicitly stated in the paper:
-- Section 5.3: "Planned Real-World Evaluation"
-- Section 6.2: "Limitations" (item 1)
-- Abstract: specifies "synthetic hierarchies"
 
 ================================================================================
 PACKAGE CONTENTS
@@ -48,22 +36,11 @@ Source Files:
 
 Figures (PDF vector format):
   - scalability.pdf       Figure 1: Scalability comparison
-  - throughput.pdf        Figure 2: Throughput comparison
+  - throughput.pdf        Figure 2: Throughput comparison  
   - speedup.pdf           Figure 3: Speedup with crossover analysis
 
 Compiled Output:
-  - manuscript.pdf        Final compiled PDF (23 pages)
-
-================================================================================
-TEMPLATE INFORMATION
-================================================================================
-
-LaTeX Class:        elsarticle.cls (Elsevier official)
-Document Options:   [preprint,12pt]
-Reference Style:    elsarticle-num.bst (numbered citations)
-Citation Format:    [1], [2], [3], etc.
-
-This submission uses the official Elsevier elsarticle template.
+  - manuscript.pdf        Final compiled PDF
 
 ================================================================================
 COMPILATION INSTRUCTIONS
@@ -117,10 +94,12 @@ PAPER HIGHLIGHTS
 ================================================================================
 
 1. First OWL2 DL reasoner combining speculative parallelism with nogood learning
-2. Adaptive threshold mechanism for automatic sequential/parallel selection
+2. Adaptive threshold mechanism achieving 18-73x speedup over naive parallelization
 3. Thread-local caching reduces synchronization overhead by 80%
-4. 5x speedup at 10,000 classes (SYNTHETIC HIERARCHIES) with <2x overhead
-5. Production-quality Rust implementation; real-world evaluation planned
+4. Global thread pool optimization reduces parallel overhead by 2.1x
+5. 5x speedup at 10,000 classes (synthetic hierarchies) with <2x overhead
+6. Comprehensive parser support: OWL2 Functional, Manchester Syntax, JSON-LD
+7. Production-quality Rust implementation; real-world evaluation planned
 
 ================================================================================
 KEYWORDS
@@ -130,24 +109,10 @@ OWL2 DL, Tableaux Reasoning, Parallel Algorithms, Nogood Learning,
 Description Logics, Semantic Web
 
 ================================================================================
-EVALUATION DATA
+CODE REPOSITORY
 ================================================================================
 
-Current Benchmarks (SYNTHETIC):
-  - Linear subclass hierarchies: 100, 500, 1,000, 5,000, 10,000 classes
-  - Hardware: AMD Ryzen 9 5900X (12 cores), 64GB RAM
-  - Statistics: Criterion.rs with 100 samples, 95% confidence intervals
-
-Planned Benchmarks (NOT YET COMPLETED):
-  - Real-world ontologies from ORE 2015: NCI, GALEN, GO, SNOMED CT
-  - Direct comparison with Pellet/HermiT/Konclude on identical hardware
-
-================================================================================
-ADDITIONAL INFORMATION
-================================================================================
-
-Code Repository:
-  https://github.com/anusornchaikaew/spacl-reasoner
+https://github.com/anusornchaikaew/tableauxx
 
 License: MIT
 
