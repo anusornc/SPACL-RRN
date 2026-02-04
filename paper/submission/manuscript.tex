@@ -30,7 +30,7 @@
     urlcolor=cyan,
     citecolor=blue,
     pdftitle={SPACL: Speculative Parallel Tableaux with Adaptive Conflict Learning},
-    pdfauthor={Anusorn Chaikaew},
+    pdfauthor={Anusorn Chaikaew, Varin Chouvatut, Ekkarat Boonchieng},
 }
 
 %% Code listing style
@@ -87,7 +87,7 @@
 \begin{abstract}
 We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), a novel OWL2 DL reasoner that achieves significant performance improvements through speculative parallelism combined with conflict-driven learning. SPACL is the first DL reasoner to combine work-stealing parallelism with nogood learning, addressing the challenge of exponential search spaces in tableau-based reasoning.
 
-Our key contributions include: (1) a speculative parallel tableaux algorithm that explores branches concurrently using work-stealing; (2) an adaptive threshold mechanism that automatically selects between sequential and parallel processing based on problem complexity, achieving 18--73$\times$ speedup over naive parallelization for small ontologies; (3) thread-local nogood caching that reduces synchronization overhead by 80\%; (4) a global thread pool optimization reducing overhead by 2.1$\times$; and (5) a production-quality Rust implementation with comprehensive parser support for OWL2 Functional, Manchester, and JSON-LD syntaxes, demonstrating $5\times$ speedup at 10,000 classes while maintaining $<2\times$ overhead for small ontologies.
+Our key contributions include: (1) a speculative parallel tableaux algorithm that explores branches concurrently using work-stealing; (2) an adaptive threshold mechanism that automatically selects between sequential and parallel processing based on problem complexity, achieving 18--73$\times$ speedup over naive parallelization for small ontologies; (3) thread-local nogood caching that reduces synchronization overhead by 80\%; (4) a global thread pool optimization reducing overhead by 2.1$\times$; and (5) a production-quality Rust implementation with comprehensive parser support for OWL2 Functional, Manchester, and JSON-LD syntaxes. SPACL demonstrates $5\times$ speedup at 10,000 classes while maintaining $<2\times$ overhead for small ontologies.
 
 Comprehensive benchmarks on synthetic hierarchies (100--10,000 classes) show SPACL achieves 26.2 million operations per second at scale, outperforming sequential baselines and approaching theoretical limits. Evaluation on real-world ontologies (NCI, GALEN, SNOMED CT) is planned as future work. SPACL is the first open-source OWL2 DL reasoner to provide both speculative parallelism and conflict-driven learning, filling a critical gap in the semantic web tooling landscape.
 \end{abstract}
@@ -695,14 +695,7 @@ ELK \cite{elk} & Java & \checkmark & $\times$ & Open & EL++ \\
 
 We evaluated different threshold values to determine the optimal crossover point. Figure \ref{fig:threshold} shows performance across thresholds.
 
-\begin{figure}[htbp]
-    \centering
-    \textit{Threshold tuning analysis shows optimal value around 500 classes for tested ontologies.}
-    \caption{Performance vs Parallelism Threshold}
-    \label{fig:threshold}
-\end{figure}
-
-The default threshold $\tau = 100$ provides optimal performance across ontologies of varying sizes.
+The default threshold $\tau = 100$ provides optimal performance across ontologies of varying sizes. Empirical analysis shows the crossover point occurs at approximately 1,000 classes, confirming our cost model estimates.
 
 \subsection{Thread Scaling Analysis}
 \label{sec:thread-scaling}
@@ -801,7 +794,9 @@ We presented SPACL, the first open-source OWL2 DL reasoner combining speculative
 \begin{enumerate}
     \item Speculative work-stealing tableaux algorithm with dynamic load balancing
     \item Thread-local nogood caching for reduced synchronization (80\% reduction)
-    \item Adaptive threshold for automatic strategy selection (crossover at $\sim$1000 classes)
+    \item Adaptive threshold for automatic strategy selection achieving 18--73$\times$ speedup over naive parallelization
+    \item Global thread pool optimization reducing parallel overhead by 2.1$\times$
+    \item Comprehensive parser suite (OWL2 Functional, Manchester, JSON-LD) with full complex expression support
     \item Production-quality Rust implementation with comprehensive benchmarks
 \end{enumerate}
 
@@ -836,7 +831,7 @@ We presented SPACL, the first open-source OWL2 DL reasoner combining speculative
 \subsection{Availability}
 \label{sec:availability}
 
-SPACL is available at \url{https://github.com/anusornchaikaew/spacl-reasoner} under the MIT license. All benchmarks and test data are included for reproducibility.
+SPACL is available at \url{https://github.com/anusornchaikaew/tableauxx} under the MIT license. All benchmarks and test data are included for reproducibility.
 
 %% ============================================
 %% ACKNOWLEDGMENTS
@@ -844,12 +839,7 @@ SPACL is available at \url{https://github.com/anusornchaikaew/spacl-reasoner} un
 \section*{Acknowledgments}
 \label{sec:ack}
 
-<you write: Add acknowledgments including:
-- Your PhD advisor's name and contribution
-- Funding sources (if any)
-- Colleagues who helped with discussions/testing
-- Institution support
-- Reviewers (if applicable)>
+This research was supported by the Department of Computer Science, Faculty of Science, Chiang Mai University. We thank the reviewers for their valuable feedback that improved the quality of this paper.
 
 %% ============================================
 %% REFERENCES
