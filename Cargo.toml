@@ -176,6 +176,14 @@ harness = false
 name = "spacl_vs_sequential"
 harness = false
 
+[[bench]]
+name = "real_world_benchmark"
+harness = false
+
+[[bench]]
+name = "real_world_ontologies"
+harness = false
+
 # Build OpenSSL from source to avoid system dependency
 [dependencies.openssl-sys]
 version = "0.9"
