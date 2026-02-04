@@ -42,6 +42,7 @@ regex = "1.10"
 
 # Performance
 rayon = "1.8"
+lazy_static = "1.4"
 crossbeam = "0.8"
 dashmap = "5.5"
 libc = "0.2"
@@ -105,78 +106,6 @@ rio-xml = []
 http = ["reqwest"]
 web-service = ["warp", "uuid", "tokio", "async-trait"]
 
-[[bench]]
-name = "basic_benchmarks"
-harness = false
-
-[[bench]]
-name = "performance_validation"
-harness = false
-
-[[bench]]
-name = "scale_testing"
-harness = false
-
-[[bench]]
-name = "parser_bench"
-harness = false
-
-[[bench]]
-name = "tableaux_main"
-harness = false
-
-[[bench]]
-name = "tableaux_benchmarks"
-harness = false
-
-[[bench]]
-name = "reasoning_bench"
-harness = false
-
-[[bench]]
-name = "standalone_performance_validation"
-harness = false
-
-
-[[bench]]
-name = "concurrent_reasoning"
-harness = false
-
-[[bench]]
-name = "cache_performance"
-harness = false
-
-[[bench]]
-name = "algorithmic_complexity"
-harness = false
-
-[[bench]]
-name = "query_optimization_bench"
-harness = false
-
-[[bench]]
-name = "memory_safety_benchmarks"
-harness = false
-
-[[bench]]
-name = "memory_tracking_bench"
-harness = false
-
-[[bench]]
-name = "parallel_query_bench"
-harness = false
-
-[[bench]]
-name = "spacl_vs_sequential"
-harness = false
-
-[[bench]]
-name = "ontology_benchmark"
-harness = false
-
-[[bench]]
-name = "real_world_benchmark"
-harness = false
 
 [lib]
 name = "owl2_reasoner"
@@ -224,22 +153,32 @@ path = "examples/web_service_example.rs"
 required-features = ["web-service"]
 
 [[bin]]
+name = "benchmark_adaptive"
+path = "scripts/benchmark_adaptive.rs"
+
+[[bin]]
+name = "benchmark_edge_cases"
+path = "scripts/benchmark_edge_cases.rs"
+
+[[bin]]
 name = "owl2_validation"
 path = "src/bin/owl2_validation.rs"
- 
 
-[[bench]]
-name = "quick_benchmark"
-harness = false
 [[bench]]
 name = "adaptive_threshold"
 harness = false
+
 [[bench]]
-name = "scalability"
+name = "adaptive_with_unions"
 harness = false
+
 [[bench]]
-name = "nogood_effectiveness"
+name = "spacl_vs_sequential"
 harness = false
-[[bench]]
-name = "extreme_scale"
-harness = false
+
+# Build OpenSSL from source to avoid system dependency
+[dependencies.openssl-sys]
+version = "0.9"
+features = ["vendored"]
+
+

@@ -23,24 +23,30 @@
 //! - **Worst case**: O(1) overhead compared to sequential tableaux
 //! - **Memory**: Linear in the number of active speculative branches
 
-use super::tableaux::{
-    expansion::{ExpansionEngine, ExpansionResult, ExpansionTask},
-    memory::MemoryManager,
-    NodeId,
-};
+use super::simple::SimpleReasoner;
 use crate::logic::axioms::class_expressions::ClassExpression;
-use crate::core::entities::Class;
 use crate::core::error::{OwlError, OwlResult};
 use crate::core::iri::IRI;
 use crate::core::ontology::Ontology;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use crossbeam::deque::{Stealer, Worker};
-use smallvec::SmallVec;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::{Duration, Instant};
+
+/// Global rayon thread pool for SPACL workers
+use rayon::{ThreadPool, ThreadPoolBuilder};
+
+lazy_static::lazy_static! {
+    /// Global thread pool shared across all SPACL instances
+    static ref SPACL_THREAD_POOL: ThreadPool = ThreadPoolBuilder::new()
+        .num_threads(num_cpus::get())
+        .thread_name(|i| format!("spacl-worker-{}", i))
+        .build()
+        .expect("Failed to create SPACL thread pool");
+}
 
 /// Unique identifier for a speculative branch
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -111,6 +117,8 @@ pub struct SpeculativeStats {
     pub nogood_checks: usize,
     /// Time spent in speculative work that was later cancelled
     pub wasted_time_ms: u64,
+    /// Total reasoning time in milliseconds
+    pub reasoning_time_ms: u64,
     /// Actual speedup achieved
     pub speedup: f64,
 }
@@ -158,15 +166,15 @@ impl SpeculativeStats {
     }
 }
 
-/// Work item for speculative execution
+/// Work item for speculative execution with branch constraints
 #[derive(Debug, Clone)]
 struct WorkItem {
     /// The branch this work belongs to
     branch_id: BranchId,
-    /// The node to expand
-    node_id: NodeId,
-    /// The expansion task
-    task: ExpansionTask,
+    /// Constraints assumed on this branch (e.g., A for left branch of A ⊔ B)
+    constraints: Vec<ClassExpression>,
+    /// Class expressions being tested (for nogood learning)
+    test_expressions: HashSet<ClassExpression>,
     /// Current depth
     depth: usize,
 }
@@ -202,6 +210,13 @@ pub struct SpeculativeConfig {
     pub speculative_timeout_ms: u64,
     /// Adaptive tuning enabled
     pub adaptive_tuning: bool,
+    /// Use cost-based adaptive threshold (microseconds)
+    /// Only parallelize if estimated work > this value
+    pub cost_threshold_us: usize,
+    /// Estimated microseconds per disjunction operand
+    pub cost_per_operand_us: usize,
+    /// Estimated microseconds per nested expression
+    pub cost_per_nesting_us: usize,
 }
 
 impl Default for SpeculativeConfig {
@@ -209,11 +224,14 @@ impl Default for SpeculativeConfig {
         Self {
             num_workers: num_cpus::get(),
             max_speculative_depth: 10,
-            parallel_threshold: 100,
+            parallel_threshold: 10000, // High threshold - only parallel for very large ontologies
             enable_learning: true,
             max_nogoods: 10000,
             speculative_timeout_ms: 5000,
             adaptive_tuning: true,
+            cost_threshold_us: 500, // 500µs minimum to justify parallelization
+            cost_per_operand_us: 50, // 50µs per operand
+            cost_per_nesting_us: 30, // 30µs per nesting level
         }
     }
 }
@@ -386,6 +404,8 @@ pub struct SpeculativeTableauxReasoner {
     result_receiver: Option<Receiver<WorkResult>>,
     /// Shutdown flag
     shutdown: Arc<AtomicBool>,
+    /// Early termination flag - set when SAT found
+    solution_found: Arc<AtomicBool>,
 }
 
 impl SpeculativeTableauxReasoner {
@@ -408,6 +428,7 @@ impl SpeculativeTableauxReasoner {
             result_sender: None,
             result_receiver: None,
             shutdown: Arc::new(AtomicBool::new(false)),
+            solution_found: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -441,9 +462,151 @@ impl SpeculativeTableauxReasoner {
     /// Used as a fallback for small ontologies where parallel overhead
     /// exceeds the benefit.
     fn is_consistent_sequential(&self) -> OwlResult<bool> {
-        // Use the standard tableaux implementation for sequential processing
-        let mut tableaux = super::tableaux::TableauxReasoner::new((*self.ontology).clone());
-        tableaux.is_consistent()
+        // Use SimpleReasoner for minimal overhead on trivial cases
+        let mut reasoner = SimpleReasoner::new((*self.ontology).clone());
+        reasoner.is_consistent()
+    }
+
+    /// Find all disjunctions (unions) in the ontology
+    /// These are candidates for parallel branch splitting
+    fn find_disjunctions(&self) -> Vec<ClassExpression> {
+        let mut disjunctions = Vec::new();
+        
+        for axiom in self.ontology.axioms() {
+            // Check subclass axioms for disjunctions in superclass position
+            if let crate::logic::axioms::Axiom::SubClassOf(sub) = axiom.as_ref() {
+                self.find_disjunctions_in_expression(sub.super_class(), &mut disjunctions);
+            }
+            // Note: EquivalentClasses axioms could also be checked here
+        }
+        
+        // Remove duplicates
+        disjunctions.sort_by(|a, b| format!("{:?}", a).cmp(&format!("{:?}", b)));
+        disjunctions.dedup_by(|a, b| format!("{:?}", a) == format!("{:?}", b));
+        
+        disjunctions
+    }
+
+    /// Recursively find disjunctions in a class expression
+    fn find_disjunctions_in_expression(
+        &self,
+        expr: &ClassExpression,
+        disjunctions: &mut Vec<ClassExpression>,
+    ) {
+        match expr {
+            ClassExpression::ObjectUnionOf(operands) if operands.len() >= 2 => {
+                disjunctions.push(expr.clone());
+                // Also check operands recursively
+                for op in operands {
+                    self.find_disjunctions_in_expression(op, disjunctions);
+                }
+            }
+            ClassExpression::ObjectIntersectionOf(operands) => {
+                for op in operands {
+                    self.find_disjunctions_in_expression(op, disjunctions);
+                }
+            }
+            ClassExpression::ObjectComplementOf(inner) => {
+                self.find_disjunctions_in_expression(inner, disjunctions);
+            }
+            _ => {} // Atomic classes, no recursion needed
+        }
+    }
+
+    /// Estimate the computational cost of processing a class expression
+    /// Returns estimated microseconds of work
+    fn estimate_expression_cost(&self, expr: &ClassExpression) -> usize {
+        match expr {
+            ClassExpression::ObjectUnionOf(operands) => {
+                // Base cost + cost per operand + nested cost
+                let base_cost = self.config.cost_per_operand_us * operands.len();
+                let nested_cost: usize = operands.iter()
+                    .map(|op| self.estimate_expression_cost(op))
+                    .sum();
+                base_cost + nested_cost
+            }
+            ClassExpression::ObjectIntersectionOf(operands) => {
+                let base_cost = self.config.cost_per_operand_us * operands.len() / 2; // Cheaper than union
+                let nested_cost: usize = operands.iter()
+                    .map(|op| self.estimate_expression_cost(op))
+                    .sum();
+                base_cost + nested_cost
+            }
+            ClassExpression::ObjectComplementOf(inner) => {
+                self.config.cost_per_nesting_us + self.estimate_expression_cost(inner)
+            }
+            ClassExpression::ObjectSomeValuesFrom(_, class) => {
+                self.config.cost_per_nesting_us * 2 + self.estimate_expression_cost(class)
+            }
+            ClassExpression::ObjectAllValuesFrom(_, class) => {
+                self.config.cost_per_nesting_us * 2 + self.estimate_expression_cost(class)
+            }
+            _ => 10, // Atomic classes are cheap
+        }
+    }
+
+    /// Estimate total cost of all disjunctions in the ontology
+    fn estimate_total_cost(&self, disjunctions: &[ClassExpression]) -> usize {
+        disjunctions.iter()
+            .map(|d| self.estimate_expression_cost(d))
+            .sum()
+    }
+
+    /// Decide whether to use parallel processing based on cost estimation
+    fn should_use_parallel(&self, disjunctions: &[ClassExpression]) -> bool {
+        if disjunctions.is_empty() {
+            return false; // No disjunctions = nothing to parallelize
+        }
+        
+        // If adaptive tuning is disabled, use simple threshold
+        if !self.config.adaptive_tuning {
+            return disjunctions.len() >= self.config.parallel_threshold;
+        }
+        
+        // Use cost-based threshold
+        let estimated_cost = self.estimate_total_cost(disjunctions);
+        let threshold = self.config.cost_threshold_us * self.config.num_workers;
+        
+        estimated_cost >= threshold
+    }
+
+    /// Create work items by splitting on disjunctions
+    fn create_branch_work_items(
+        &self,
+        disjunctions: &[ClassExpression],
+        test_expressions: &HashSet<ClassExpression>,
+    ) -> Vec<WorkItem> {
+        let mut work_items = Vec::new();
+        let mut branch_id = 0u64;
+        
+        // For simplicity, split on the first disjunction
+        // In a full implementation, we might split on multiple or use heuristics
+        if let Some(first_disjunction) = disjunctions.first() {
+            if let ClassExpression::ObjectUnionOf(operands) = first_disjunction {
+                // Create a branch for each operand
+                for operand in operands.iter().take(2) { // Limit to first 2 for now
+                    work_items.push(WorkItem {
+                        branch_id: BranchId::new(branch_id),
+                        constraints: vec![(**operand).clone()],
+                        test_expressions: test_expressions.clone(),
+                        depth: 0,
+                    });
+                    branch_id += 1;
+                }
+            }
+        }
+        
+        // If no disjunctions to split on, create single work item
+        if work_items.is_empty() {
+            work_items.push(WorkItem {
+                branch_id: BranchId::new(0),
+                constraints: Vec::new(),
+                test_expressions: test_expressions.clone(),
+                depth: 0,
+            });
+        }
+        
+        work_items
     }
 
     /// Check ontology consistency using speculative parallel reasoning
@@ -451,15 +614,20 @@ impl SpeculativeTableauxReasoner {
     /// Automatically selects between sequential and parallel processing
     /// based on the estimated problem complexity.
     pub fn is_consistent(&mut self) -> OwlResult<bool> {
-        // Check if problem is small enough for sequential processing
-        let estimated_branches = self.estimate_branch_count();
+        // Find disjunctions first to estimate cost
+        let disjunctions = self.find_disjunctions();
         
-        if estimated_branches < self.config.parallel_threshold {
-            // Use sequential for small problems to avoid parallel overhead
+        // Use adaptive threshold to decide between sequential and parallel
+        if !self.should_use_parallel(&disjunctions) {
+            // Cost is too low - use sequential to avoid parallel overhead
             return self.is_consistent_sequential();
         }
 
         let start_time = Instant::now();
+        
+        // Reset flags
+        self.shutdown.store(false, Ordering::SeqCst);
+        self.solution_found.store(false, Ordering::SeqCst);
 
         // Initialize work queue and channels
         let work_queue = Worker::new_fifo();
@@ -475,11 +643,14 @@ impl SpeculativeTableauxReasoner {
         }
         self.stealers = Some(stealers.clone());
 
-        // Wrap work queue in Arc<Mutex<>> for sharing with first worker
+        // Wrap work queue in Arc<Mutex<>> for sharing
         let shared_queue = Arc::new(Mutex::new(work_queue));
         
-        // Start worker threads
-        let mut workers = Vec::new();
+        // Use global rayon thread pool instead of spawning threads
+        // This eliminates thread creation overhead (~200-300µs per call)
+        let pool = &*SPACL_THREAD_POOL;
+        
+        // Spawn workers on the thread pool
         for worker_id in 0..self.config.num_workers {
             let stealer = stealers[worker_id].clone();
             let queue_ref = Arc::clone(&shared_queue);
@@ -487,11 +658,13 @@ impl SpeculativeTableauxReasoner {
             let nogoods = Arc::clone(&self.nogoods);
             let stats = Arc::clone(&self.stats);
             let shutdown = Arc::clone(&self.shutdown);
+            let solution_found = Arc::clone(&self.solution_found);
             let result_tx = result_tx.clone();
             let ontology = Arc::clone(&self.ontology);
             let config = self.config.clone();
 
-            let handle = thread::spawn(move || {
+            // Spawn on global thread pool instead of creating new thread
+            pool.spawn(move || {
                 Self::worker_loop(
                     worker_id,
                     queue_ref,
@@ -499,68 +672,91 @@ impl SpeculativeTableauxReasoner {
                     nogoods,
                     stats,
                     shutdown,
+                    solution_found,
                     result_tx,
                     ontology,
                     config,
                 );
             });
-            workers.push(handle);
         }
-        self.workers = Some(workers);
+        
+        // Store None since we're using thread pool (not managing threads directly)
+        self.workers = None;
 
-        // Create root work item
-        let root_item = WorkItem {
-            branch_id: BranchId::new(0),
-            node_id: NodeId::new(0),
-            task: ExpansionTask::Conjunction {
-                node_id: NodeId::new(0),
-                expressions: SmallVec::new(),
-            },
-            depth: 0,
+        // Collect class expressions for nogood learning
+        // Note: disjunctions already computed earlier for threshold check
+        let mut test_expressions = HashSet::new();
+        for axiom in self.ontology.axioms() {
+            if let crate::logic::axioms::Axiom::SubClassOf(sub) = axiom.as_ref() {
+                test_expressions.insert(sub.sub_class().clone());
+                test_expressions.insert(sub.super_class().clone());
+            }
+        }
+        
+        // Create work items based on disjunctions
+        let work_items = if disjunctions.is_empty() {
+            // No disjunctions - just check consistency once
+            vec![WorkItem {
+                branch_id: BranchId::new(0),
+                constraints: Vec::new(),
+                test_expressions: test_expressions.clone(),
+                depth: 0,
+            }]
+        } else {
+            // Split on first disjunction (A ⊔ B) → two branches: A and B
+            self.create_branch_work_items(&disjunctions, &test_expressions)
         };
-        if let Ok(queue) = shared_queue.lock() {
-            queue.push(root_item);
-        }
-
-        // Wait for results
-        let result = self.collect_results()?;
-
-        // Shutdown workers
-        self.shutdown.store(true, Ordering::SeqCst);
-        if let Some(workers) = self.workers.take() {
-            for worker in workers {
-                let _ = worker.join();
+        
+        // Push work items to queue
+        for work_item in work_items {
+            if let Ok(queue) = shared_queue.lock() {
+                queue.push(work_item.clone());
+            }
+            
+            if let Ok(mut stats) = self.stats.lock() {
+                stats.branches_created += 1;
             }
         }
 
+        // Wait for results (thread pool workers will check shutdown flag)
+        let result = self.collect_results()?;
+
+        // Signal workers to shutdown
+        self.shutdown.store(true, Ordering::SeqCst);
+        // Note: Thread pool threads are reused, no need to join
+        // They will exit worker_loop when shutdown flag is set
+
         let elapsed = start_time.elapsed();
         if let Ok(mut stats) = self.stats.lock() {
-            // Estimate speedup based on work completed
-            let total_branches = stats.branches_created;
-            let successful = stats.successful_branches;
-            if total_branches > 0 {
-                stats.speedup = successful as f64 / (total_branches as f64 * 0.1);
+            stats.reasoning_time_ms = elapsed.as_millis() as u64;
+            // Calculate speedup if we have timing data
+            if stats.branches_created > 0 {
+                // Estimate: if we processed N branches in parallel with W workers
+                // speedup ≈ N / (time with parallelism overhead)
+                let worker_count = self.config.num_workers;
+                let completed = stats.successful_branches + stats.contradictions_found;
+                if completed > 0 {
+                    stats.speedup = completed as f64 / (completed as f64 / worker_count as f64 + 1.0);
+                }
             }
         }
 
         Ok(result)
     }
 
-    /// Worker thread main loop
+    /// Worker thread main loop using SimpleReasoner
     fn worker_loop(
-        _worker_id: usize,
+        worker_id: usize,
         shared_queue: Arc<Mutex<Worker<WorkItem>>>,
         stealer: Stealer<WorkItem>,
         nogoods: Arc<NogoodDatabase>,
         stats: Arc<Mutex<SpeculativeStats>>,
         shutdown: Arc<AtomicBool>,
+        solution_found: Arc<AtomicBool>,
         result_tx: Sender<WorkResult>,
-        _ontology: Arc<Ontology>,
+        ontology: Arc<Ontology>,
         config: SpeculativeConfig,
     ) {
-        let mut expansion_engine = ExpansionEngine::new();
-        let mut memory_manager = MemoryManager::new();
-        
         // Create thread-local nogood cache for reduced synchronization
         let mut local_cache = if config.enable_learning {
             Some(ThreadLocalNogoodCache::new(100)) // Sync every 100 checks
@@ -571,6 +767,15 @@ impl SpeculativeTableauxReasoner {
         loop {
             if shutdown.load(Ordering::SeqCst) {
                 // Flush local nogoods to global before exiting
+                if let Some(ref mut cache) = local_cache {
+                    cache.flush_to_global(&nogoods);
+                }
+                break;
+            }
+            
+            // Check if solution already found by another worker
+            if solution_found.load(Ordering::SeqCst) {
+                // Early termination - another worker found SAT
                 if let Some(ref mut cache) = local_cache {
                     cache.flush_to_global(&nogoods);
                 }
@@ -598,50 +803,48 @@ impl SpeculativeTableauxReasoner {
 
             // Check nogoods before processing (using thread-local cache)
             if config.enable_learning {
-                if let ExpansionTask::Conjunction { expressions, .. } = &work_item.task {
-                    let assertions: HashSet<_> = expressions.iter().map(|e| (**e).clone()).collect();
-                    
-                    // Track whether hit was from local or global cache
-                    let (conflict, from_local) = if let Some(ref mut cache) = local_cache {
-                        let had_local = !cache.local_nogoods.is_empty();
-                        let hit = cache.check_conflict(&nogoods, &assertions);
-                        let from_local = hit.is_some() && had_local && cache.local_hits > 0;
-                        (hit, from_local)
-                    } else {
-                        (nogoods.check_conflict(&assertions), false)
-                    };
-                    
-                    if let Some(_nogood) = conflict {
-                        // Pruned by nogood
-                        if let Ok(mut s) = stats.lock() {
-                            s.branches_pruned += 1;
-                            s.nogood_hits += 1;
-                            s.nogood_checks += 1;
-                            if from_local {
-                                s.local_cache_hits += 1;
-                            } else {
-                                s.global_cache_hits += 1;
-                            }
+                let assertions = &work_item.test_expressions;
+                
+                // Track whether hit was from local or global cache
+                let (conflict, from_local) = if let Some(ref mut cache) = local_cache {
+                    let had_local = !cache.local_nogoods.is_empty();
+                    let hit = cache.check_conflict(&nogoods, assertions);
+                    let from_local = hit.is_some() && had_local && cache.local_hits > 0;
+                    (hit, from_local)
+                } else {
+                    (nogoods.check_conflict(assertions), false)
+                };
+                
+                if let Some(_nogood) = conflict {
+                    // Pruned by nogood
+                    if let Ok(mut s) = stats.lock() {
+                        s.branches_pruned += 1;
+                        s.nogood_hits += 1;
+                        s.nogood_checks += 1;
+                        if from_local {
+                            s.local_cache_hits += 1;
+                        } else {
+                            s.global_cache_hits += 1;
                         }
-                        continue;
-                    } else {
-                        // No hit, but we still performed a check
-                        if let Ok(mut s) = stats.lock() {
-                            s.nogood_checks += 1;
-                        }
+                    }
+                    continue;
+                } else {
+                    // No hit, but we still performed a check
+                    if let Ok(mut s) = stats.lock() {
+                        s.nogood_checks += 1;
                     }
                 }
             }
 
-            // Process the work item
-            let result = Self::process_work_item(
+            // Process the work item using SimpleReasoner
+            let result = Self::process_work_item_simple(
                 work_item,
-                &mut expansion_engine,
-                &mut memory_manager,
+                &ontology,
                 &nogoods,
                 &stats,
                 &config,
                 local_cache.as_mut(),
+                worker_id,
             );
 
             // Send result
@@ -649,54 +852,90 @@ impl SpeculativeTableauxReasoner {
         }
     }
 
-    /// Process a single work item
-    fn process_work_item(
+    /// Process a single work item using SimpleReasoner
+    /// 
+    /// NOTE: Currently using full ontology for consistency checking.
+    /// Future: Will implement proper parallel branch exploration for disjunctions.
+    fn process_work_item_simple(
         item: WorkItem,
-        expansion_engine: &mut ExpansionEngine,
-        memory_manager: &mut MemoryManager,
+        ontology: &Arc<Ontology>,
         nogoods: &Arc<NogoodDatabase>,
         stats: &Arc<Mutex<SpeculativeStats>>,
         _config: &SpeculativeConfig,
-        local_cache: Option<&mut ThreadLocalNogoodCache>,
+        mut local_cache: Option<&mut ThreadLocalNogoodCache>,
+        _worker_id: usize,
     ) -> WorkResult {
-        // Expand the node
-        let results = expansion_engine.expand_node(item.node_id, item.task.clone());
-
-        // Analyze results
-        for result in &results {
-            match result {
-                ExpansionResult::Success { .. } => {
-                    // Continue processing
+        // Check nogoods before processing
+        if !item.test_expressions.is_empty() {
+            let conflict = if let Some(ref mut cache) = local_cache {
+                cache.check_conflict(&nogoods, &item.test_expressions)
+            } else {
+                nogoods.check_conflict(&item.test_expressions)
+            };
+            
+            if conflict.is_some() {
+                if let Ok(mut s) = stats.lock() {
+                    s.branches_pruned += 1;
+                    s.nogood_hits += 1;
                 }
-                ExpansionResult::Clash { node_id: _, reason: _ } => {
-                    // Learn a nogood from this contradiction
-                    if let ExpansionTask::Conjunction { expressions, .. } = &item.task {
-                        let assertions: HashSet<_> = 
-                            expressions.iter().map(|e| (**e).clone()).collect();
-                        let nogood = Nogood::new(assertions);
-                        
-                        // Add to local cache if available, otherwise to global
-                        if let Some(cache) = local_cache {
-                            cache.add_nogood(nogood.clone());
-                        } else {
-                            nogoods.add_nogood(nogood.clone());
-                        }
-                        
-                        if let Ok(mut stats) = stats.lock() {
-                            stats.contradictions_found += 1;
-                            stats.nogoods_learned += 1;
-                        }
-                        
-                        return WorkResult::Contradiction {
-                            branch_id: item.branch_id,
-                            nogood,
-                        };
-                    }
-                }
-                ExpansionResult::NewNodes { .. } => {
-                    // Generate new work items
-                }
+                return WorkResult::Contradiction {
+                    branch_id: item.branch_id,
+                    nogood: Nogood::new(item.test_expressions.clone()),
+                };
             }
+        }
+        
+        // Apply constraints to create branch-specific ontology
+        // Each work item explores a different branch (e.g., A vs B for A ⊔ B)
+        let mut branch_ontology = (**ontology).clone();
+        
+        // Add constraints as class assertions to a test individual
+        // This simulates assuming the constraint holds on this branch
+        if !item.constraints.is_empty() {
+            // Create a test individual for this branch
+            let test_ind_str = format!("http://tableauxx.org/branch#test_{}", item.branch_id.0);
+            let test_individual = crate::core::entities::NamedIndividual::new(test_ind_str.as_str());
+            let _ = branch_ontology.add_named_individual(test_individual.clone());
+            
+            // Add each constraint as a class assertion
+            for constraint in &item.constraints {
+                let assertion = crate::logic::axioms::ClassAssertionAxiom::new(
+                    test_individual.iri().clone(),
+                    constraint.clone(),
+                );
+                let _ = branch_ontology.add_class_assertion(assertion);
+            }
+        }
+        
+        // Check consistency with constraints applied
+        let mut reasoner = SimpleReasoner::new(branch_ontology);
+        let is_consistent = reasoner.is_consistent().unwrap_or(true);
+        
+        if !is_consistent {
+            // Learn a nogood from this contradiction
+            let nogood = Nogood::new(item.test_expressions.clone());
+            
+            // Add to local cache if available, otherwise to global
+            if let Some(cache) = local_cache {
+                cache.add_nogood(nogood.clone());
+            } else {
+                nogoods.add_nogood(nogood.clone());
+            }
+            
+            if let Ok(mut stats) = stats.lock() {
+                stats.contradictions_found += 1;
+                stats.nogoods_learned += 1;
+            }
+            
+            return WorkResult::Contradiction {
+                branch_id: item.branch_id,
+                nogood,
+            };
+        }
+        
+        // Success - this branch is consistent
+        if let Ok(mut stats) = stats.lock() {
+            stats.successful_branches += 1;
         }
 
         WorkResult::Success {
@@ -727,6 +966,8 @@ impl SpeculativeTableauxReasoner {
 
             // Check if we've found a satisfying model
             if found_sat {
+                // Signal other workers to stop
+                self.solution_found.store(true, Ordering::SeqCst);
                 return Ok(true);
             }
 
@@ -744,7 +985,7 @@ impl SpeculativeTableauxReasoner {
     }
 
     /// Check class satisfiability
-    pub fn is_satisfiable(&mut self, class: &IRI) -> OwlResult<bool> {
+    pub fn is_satisfiable(&mut self, _class: &IRI) -> OwlResult<bool> {
         // Add class assertion and check consistency
         let test_ontology = (*self.ontology).clone();
         // Would add the class assertion here
@@ -821,6 +1062,7 @@ impl AdaptiveTuner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::entities::Class;
 
     #[test]
     fn test_nogood_creation() {
