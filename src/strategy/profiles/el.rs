@@ -44,7 +44,7 @@ impl ProfileValidator for ELProfileValidator {
         let mut stats = ValidationStatistics::default();
 
         // Check class expressions
-        for class in ontology.classes() {
+        for _class in ontology.classes() {
             stats.class_expressions_checked += 1;
             // EL allows atomic classes
             // More complex checks would be done here

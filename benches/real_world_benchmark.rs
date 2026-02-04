@@ -36,8 +36,8 @@ const ONTOLOGIES: &[OntologyBenchmark] = &[
     OntologyBenchmark {
         name: "LUBM",
         path: "tests/data/univ-bench.owl",
-        description: "Lehigh University Benchmark (13 classes)",
-        expected_classes: 13,
+        description: "Lehigh University Benchmark (43 classes)",
+        expected_classes: 43,
     },
     OntologyBenchmark {
         name: "GO_Basic",
@@ -45,7 +45,30 @@ const ONTOLOGIES: &[OntologyBenchmark] = &[
         description: "Gene Ontology basic (45k+ classes)",
         expected_classes: 45000,
     },
-    // Add more ontologies as they become available
+    OntologyBenchmark {
+        name: "ChEBI",
+        path: "benchmarks/ontologies/other/chebi.owl",
+        description: "Chemical Entities of Biological Interest (200k+ classes)",
+        expected_classes: 200000,
+    },
+    OntologyBenchmark {
+        name: "UBERON",
+        path: "benchmarks/ontologies/other/uberon.owl",
+        description: "Uberon Anatomy Ontology (15k+ classes)",
+        expected_classes: 15000,
+    },
+    OntologyBenchmark {
+        name: "DOID",
+        path: "benchmarks/ontologies/other/doid.owl",
+        description: "Disease Ontology (15k+ classes)",
+        expected_classes: 15000,
+    },
+    OntologyBenchmark {
+        name: "PATO",
+        path: "benchmarks/ontologies/other/pato.owl",
+        description: "Phenotype And Trait Ontology (3k+ classes)",
+        expected_classes: 3000,
+    },
 ];
 
 /// Load an ontology from file
@@ -57,12 +80,12 @@ fn load_ontology(path: &str) -> Option<Ontology> {
         return None;
     }
     
-    // Determine parser from extension
-    let ext = path.extension()?.to_str()?;
-    let parser = ParserFactory::for_file_extension(ext)?;
+    // Read file content and auto-detect format
+    let content = std::fs::read_to_string(path).ok()?;
+    let parser = ParserFactory::auto_detect(&content)?;
     
     // Parse the ontology
-    match parser.parse_file(path) {
+    match parser.parse_str(&content) {
         Ok(ontology) => {
             println!("Loaded {}: {} classes", path.display(), ontology.classes().len());
             Some(ontology)

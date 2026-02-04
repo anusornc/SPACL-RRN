@@ -50,7 +50,7 @@ impl ProfileValidator for QLProfileValidator {
         let mut stats = ValidationStatistics::default();
 
         // Check class expressions
-        for class in ontology.classes() {
+        for _class in ontology.classes() {
             stats.class_expressions_checked += 1;
             // QL allows specific constructs
         }

@@ -471,6 +471,14 @@ impl ObjectPropertyDomainAxiom {
     pub fn new(property: Arc<IRI>, domain: Arc<IRI>) -> Self {
         Self { property, domain }
     }
+
+    pub fn property(&self) -> &Arc<IRI> {
+        &self.property
+    }
+
+    pub fn domain(&self) -> &Arc<IRI> {
+        &self.domain
+    }
 }
 
 /// ObjectPropertyRange axiom
@@ -483,6 +491,14 @@ pub struct ObjectPropertyRangeAxiom {
 impl ObjectPropertyRangeAxiom {
     pub fn new(property: Arc<IRI>, range: Arc<IRI>) -> Self {
         Self { property, range }
+    }
+
+    pub fn property(&self) -> &Arc<IRI> {
+        &self.property
+    }
+
+    pub fn range(&self) -> &Arc<IRI> {
+        &self.range
     }
 }
 

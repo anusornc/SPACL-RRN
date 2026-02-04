@@ -54,7 +54,7 @@ impl ProfileValidator for RLProfileValidator {
         let mut stats = ValidationStatistics::default();
 
         // Check class expressions
-        for class in ontology.classes() {
+        for _class in ontology.classes() {
             stats.class_expressions_checked += 1;
             // RL allows specific constructs
         }

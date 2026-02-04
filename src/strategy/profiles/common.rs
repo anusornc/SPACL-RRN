@@ -377,7 +377,7 @@ impl Owl2ProfileValidator {
 }
 
 impl ProfileValidator for Owl2ProfileValidator {
-    fn validate(&self, ontology: &Ontology) -> OwlResult<ProfileValidationResult> {
+    fn validate(&self, _ontology: &Ontology) -> OwlResult<ProfileValidationResult> {
         // Default to validating against all profiles
         let results = self.validate_all_profiles()?;
         // Return the most restrictive valid profile, or Full if none

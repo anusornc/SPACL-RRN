@@ -858,8 +858,8 @@ impl TurtleParser {
     fn process_rdf_collection(
         &self,
         ontology: &mut Ontology,
-        subject: &IRI,
-        predicate: IRI,
+        _subject: &IRI,
+        _predicate: IRI,
         nested: &NestedObject,
     ) -> OwlResult<()> {
         let mut items = Vec::new();

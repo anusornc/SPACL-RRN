@@ -93,6 +93,20 @@ impl ParserFactory {
         {
             Some(Box::new(JsonLdParser::new()))
         }
+        // Check for XML-based formats first (RDF/XML, OWL/XML) to avoid false positives
+        else if content_trimmed.starts_with("<?xml") || content_trimmed.starts_with("<rdf:RDF") {
+            // RDF/XML has rdf:RDF root and uses XML namespaces
+            if content.contains("<rdf:RDF") || content.contains("<rdf:Description") {
+                Some(Box::new(RdfXmlParser::new()))
+            } else if content.contains("<Ontology") || content.contains("<owl:Ontology") {
+                // Could be OWL/XML or RDF/XML with Ontology element
+                Some(Box::new(RdfXmlParser::new()))
+            } else {
+                Some(Box::new(OwlXmlParser::new()))
+            }
+        } else if content_trimmed.starts_with("<rdf:Description") {
+            Some(Box::new(RdfXmlParser::new()))
+        }
         // Check for Manchester Syntax (high priority for readability)
         else if content_trimmed.starts_with("Prefix:")
             || content_trimmed.contains("Class:")
@@ -101,18 +115,14 @@ impl ParserFactory {
         {
             Some(Box::new(ManchesterParser::new()))
         }
-        // Check for OWL Functional Syntax (priority for .owl files)
+        // Check for OWL Functional Syntax - must NOT be XML, starts with Prefix(
         else if content_trimmed.starts_with("Prefix(")
-            || content_trimmed.contains("Ontology(")
+            || (content_trimmed.starts_with("Ontology(") && !content_trimmed.starts_with("<"))
             || (content_trimmed.starts_with("Document(") && content_trimmed.contains("Prefix("))
         {
             Some(Box::new(OwlFunctionalSyntaxParser::new()))
         } else if content_trimmed.starts_with("@prefix") || content_trimmed.starts_with("PREFIX") {
             Some(Box::new(TurtleParser::new()))
-        } else if content_trimmed.starts_with("<rdf:RDF") || content.contains("<rdf:Description") {
-            Some(Box::new(RdfXmlParser::new()))
-        } else if content_trimmed.starts_with("<?xml") && content.contains("Ontology") {
-            Some(Box::new(OwlXmlParser::new()))
         } else if content
             .lines()
             .next()

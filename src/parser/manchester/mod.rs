@@ -1,38 +1,28 @@
-//! Manchester Syntax Parser (stub implementation)
-use crate::core::error::{OwlError, OwlResult};
-use crate::core::ontology::Ontology;
-use crate::parser::OntologyParser;
-use std::path::Path;
+//! Manchester Syntax Parser for OWL2 Ontologies
+//!
+//! This module implements a comprehensive parser for the Manchester Syntax,
+//! a human-readable text-based syntax for OWL2 ontologies. The parser is
+//! modularized into separate components for better maintainability.
+//!
+//! ## Module Structure
+//!
+//! - **tokenizer**: Lexical analysis and tokenization
+//! - **grammar**: Grammar rules and production handling
+//! - **parser**: Main parsing logic and AST construction
+//! - **syntax**: Syntax tree definitions and utilities
+//! - **error**: Error handling and recovery
+//! - **validator**: Semantic validation
 
-pub struct ManchesterParser;
-pub struct ManchesterAST;
+pub mod error;
+pub mod grammar;
+pub mod parser;
+pub mod syntax;
+pub mod tokenizer;
+pub mod validator;
 
-impl ManchesterParser {
-    pub fn new() -> Self {
-        Self
-    }
-}
-
-impl OntologyParser for ManchesterParser {
-    fn parse_str(&self, _content: &str) -> OwlResult<Ontology> {
-        Err(OwlError::ParseError(
-            "Manchester Syntax parser not yet implemented".to_string(),
-        ))
-    }
-
-    fn parse_file(&self, _path: &Path) -> OwlResult<Ontology> {
-        Err(OwlError::ParseError(
-            "Manchester Syntax parser not yet implemented".to_string(),
-        ))
-    }
-
-    fn format_name(&self) -> &'static str {
-        "Manchester OWL Syntax"
-    }
-}
-
-impl Default for ManchesterParser {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+// Re-export main types for backward compatibility
+pub use error::{ParseError, ParseResult};
+pub use parser::ManchesterParser;
+pub use syntax::{ClassExpression, ManchesterAST, ObjectPropertyExpression};
+pub use tokenizer::{ManchesterTokenizer, Token, TokenType};
+pub use validator::SyntaxValidator;

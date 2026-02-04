@@ -1,37 +1,26 @@
-//! JSON-LD Parser (stub implementation)
-use crate::core::error::{OwlError, OwlResult};
-use crate::core::ontology::Ontology;
-use crate::parser::OntologyParser;
-use std::path::Path;
+//! Enhanced JSON-LD 1.1 Parser for OWL2 Ontologies
+//!
+//! This module provides comprehensive JSON-LD 1.1 standard compliance including:
+//! - Full context processing with remote fetching
+//! - Value expansion with typing and language tagging
+//! - Container processing (@language, @index, @set, @list)
+//! - JSON-LD expansion algorithm implementation
+//! - @reverse processing and nested contexts
+//! - Integration with OWL2 ontology structures
 
-pub struct JsonLdParser;
+pub mod algorithm;
+pub mod container;
+pub mod context;
+pub mod parser;
+pub mod value;
 
-impl JsonLdParser {
-    pub fn new() -> Self {
-        Self
-    }
-}
+// Re-export the main parser
+pub use parser::JsonLdParser;
 
-impl OntologyParser for JsonLdParser {
-    fn parse_str(&self, _content: &str) -> OwlResult<Ontology> {
-        Err(OwlError::ParseError(
-            "JSON-LD parser not yet implemented".to_string(),
-        ))
-    }
-
-    fn parse_file(&self, _path: &Path) -> OwlResult<Ontology> {
-        Err(OwlError::ParseError(
-            "JSON-LD parser not yet implemented".to_string(),
-        ))
-    }
-
-    fn format_name(&self) -> &'static str {
-        "JSON-LD"
-    }
-}
-
-impl Default for JsonLdParser {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+// Re-export other types for backward compatibility
+pub use algorithm::{
+    ExpandedNode, ExpandedValue, ExpansionConfig, JsonLdExpansionAlgorithm, Owl2Node, Owl2Value,
+};
+pub use container::{ContainerProcessor, ProcessedContainer, RdfObject, RdfTriple};
+pub use context::{Container, Context, ContextManager, TermDefinition};
+pub use value::ProcessedValue as JsonLdValue;

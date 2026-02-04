@@ -82,7 +82,8 @@ pub use core::{
 pub use logic::axioms::*;
 
 pub use parser::{
-    ImportResolver, ImportResolverConfig, OntologyParser, ParserFactory,
+    ImportResolver, ImportResolverConfig, JsonLdParser, ManchesterParser, OntologyParser,
+    OwlFunctionalSyntaxParser, ParserFactory,
 };
 
 pub use reasoner::{

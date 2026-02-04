@@ -247,11 +247,13 @@ impl ImportSource for FileSystemImportSource {
 }
 
 /// HTTP import source
+#[cfg(feature = "http")]
 pub struct HttpImportSource {
     /// HTTP client
     client: reqwest::blocking::Client,
 }
 
+#[cfg(feature = "http")]
 impl HttpImportSource {
     /// Create a new HTTP import source
     pub fn new() -> OwlResult<Self> {
@@ -285,6 +287,7 @@ impl HttpImportSource {
     }
 }
 
+#[cfg(feature = "http")]
 impl Default for HttpImportSource {
     fn default() -> Self {
         Self::new().unwrap_or_else(|_| {
@@ -299,6 +302,7 @@ impl Default for HttpImportSource {
     }
 }
 
+#[cfg(feature = "http")]
 impl ImportSource for HttpImportSource {
     fn can_resolve(&self, iri: &IRI) -> bool {
         let iri_str = iri.as_str();

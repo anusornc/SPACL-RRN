@@ -47,7 +47,7 @@ impl ExpansionEngine {
     }
 
     /// Expand a single node with the given task
-    pub fn expand_node(&mut self, node_id: NodeId, task: ExpansionTask) -> Vec<ExpansionResult> {
+    pub fn expand_node(&mut self, node_id: NodeId, _task: ExpansionTask) -> Vec<ExpansionResult> {
         // Simplified expansion - would apply actual tableaux rules
         vec![ExpansionResult::Success { node_id }]
     }
