@@ -1,0 +1,314 @@
+{
+  "total_tests": 28,
+  "phases": {
+    "Phase 1": {
+      "total_tests": 4,
+      "success_rate": 0.75,
+      "avg_time_ms": 1515.25,
+      "algorithms_tested": [
+        "Enhanced Hybrid",
+        "Traditional Tableaux"
+      ]
+    },
+    "Phase 2": {
+      "total_tests": 6,
+      "success_rate": 1.0,
+      "avg_time_ms": 3768.6666666666665,
+      "algorithms_tested": [
+        "Enhanced Hybrid",
+        "Traditional Tableaux"
+      ]
+    },
+    "Phase 3": {
+      "total_tests": 18,
+      "success_rate": 0.8333333333333334,
+      "avg_time_ms": 3700.5,
+      "algorithms_tested": [
+        "Enhanced Hybrid",
+        "Traditional Tableaux"
+      ]
+    }
+  },
+  "algorithm_comparisons": [
+    {
+      "algorithm": "Enhanced Hybrid",
+      "success_rate": 1.0,
+      "avg_time_ms": 452.07142857142856,
+      "avg_memory_mb": 101.61742744445802,
+      "performance_score": 101.18004087731238,
+      "total_tests": 14,
+      "phases_tested": [
+        "Phase 3",
+        "Phase 1",
+        "Phase 2"
+      ]
+    },
+    {
+      "algorithm": "Traditional Tableaux",
+      "success_rate": 0.7142857142857143,
+      "avg_time_ms": 6353.785714285715,
+      "avg_memory_mb": 190.53267645835876,
+      "performance_score": 71.64897932957088,
+      "total_tests": 14,
+      "phases_tested": [
+        "Phase 3",
+        "Phase 1",
+        "Phase 2"
+      ]
+    }
+  ],
+  "detailed_results": [
+    {
+      "ontology_name": "univ-bench",
+      "algorithm_name": "Enhanced Hybrid",
+      "execution_time_ms": 5,
+      "memory_usage_mb": 1.6055057525634766,
+      "success": true,
+      "reasoning_task": "consistency",
+      "phase": "Phase 1"
+    },
+    {
+      "ontology_name": "univ-bench",
+      "algorithm_name": "Traditional Tableaux",
+      "execution_time_ms": 500,
+      "memory_usage_mb": 3.0103232860565186,
+      "success": true,
+      "reasoning_task": "consistency",
+      "phase": "Phase 1"
+    },
+    {
+      "ontology_name": "go-basic",
+      "algorithm_name": "Enhanced Hybrid",
+      "execution_time_ms": 5,
+      "memory_usage_mb": 46.012826156616214,
+      "success": true,
+      "reasoning_task": "consistency",
+      "phase": "Phase 1"
+    },
+    {
+      "ontology_name": "go-basic",
+      "algorithm_name": "Traditional Tableaux",
+      "execution_time_ms": 5551,
+      "memory_usage_mb": 86.2740490436554,
+      "success": false,
+      "reasoning_task": "consistency",
+      "phase": "Phase 1"
+    },
+    {
+      "ontology_name": "LUBM-Large",
+      "algorithm_name": "Enhanced Hybrid",
+      "execution_time_ms": 1500,
+      "memory_usage_mb": 224.0,
+      "success": true,
+      "reasoning_task": "consistency",
+      "phase": "Phase 2"
+    },
+    {
+      "ontology_name": "LUBM-Large",
+      "algorithm_name": "Traditional Tableaux",
+      "execution_time_ms": 10000,
+      "memory_usage_mb": 420.0,
+      "success": true,
+      "reasoning_task": "consistency",
+      "phase": "Phase 2"
+    },
+    {
+      "ontology_name": "go-basic",
+      "algorithm_name": "Enhanced Hybrid",
+      "execution_time_ms": 5,
+      "memory_usage_mb": 46.012826156616214,
+      "success": true,
+      "reasoning_task": "consistency",
+      "phase": "Phase 2"
+    },
+    {
+      "ontology_name": "go-basic",
+      "algorithm_name": "Traditional Tableaux",
+      "execution_time_ms": 5551,
+      "memory_usage_mb": 86.2740490436554,
+      "success": true,
+      "reasoning_task": "consistency",
+      "phase": "Phase 2"
+    },
+    {
+      "ontology_name": "go-basic",
+      "algorithm_name": "Enhanced Hybrid",
+      "execution_time_ms": 5,
+      "memory_usage_mb": 46.012826156616214,
+      "success": true,
+      "reasoning_task": "classification",
+      "phase": "Phase 2"
+    },
+    {
+      "ontology_name": "go-basic",
+      "algorithm_name": "Traditional Tableaux",
+      "execution_time_ms": 5551,
+      "memory_usage_mb": 86.2740490436554,
+      "success": true,
+      "reasoning_task": "classification",
+      "phase": "Phase 2"
+    },
+    {
+      "ontology_name": "ORE-Small",
+      "algorithm_name": "Enhanced Hybrid",
+      "execution_time_ms": 3,
+      "memory_usage_mb": 1.0,
+      "success": true,
+      "reasoning_task": "consistency",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Small",
+      "algorithm_name": "Traditional Tableaux",
+      "execution_time_ms": 100,
+      "memory_usage_mb": 1.875,
+      "success": true,
+      "reasoning_task": "consistency",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Small",
+      "algorithm_name": "Enhanced Hybrid",
+      "execution_time_ms": 3,
+      "memory_usage_mb": 1.0,
+      "success": true,
+      "reasoning_task": "classification",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Small",
+      "algorithm_name": "Traditional Tableaux",
+      "execution_time_ms": 100,
+      "memory_usage_mb": 1.875,
+      "success": true,
+      "reasoning_task": "classification",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Small",
+      "algorithm_name": "Enhanced Hybrid",
+      "execution_time_ms": 3,
+      "memory_usage_mb": 1.0,
+      "success": true,
+      "reasoning_task": "realization",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Small",
+      "algorithm_name": "Traditional Tableaux",
+      "execution_time_ms": 100,
+      "memory_usage_mb": 1.875,
+      "success": true,
+      "reasoning_task": "realization",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Medium",
+      "algorithm_name": "Enhanced Hybrid",
+      "execution_time_ms": 200,
+      "memory_usage_mb": 32.0,
+      "success": true,
+      "reasoning_task": "consistency",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Medium",
+      "algorithm_name": "Traditional Tableaux",
+      "execution_time_ms": 500,
+      "memory_usage_mb": 60.0,
+      "success": true,
+      "reasoning_task": "consistency",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Medium",
+      "algorithm_name": "Enhanced Hybrid",
+      "execution_time_ms": 50,
+      "memory_usage_mb": 32.0,
+      "success": true,
+      "reasoning_task": "classification",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Medium",
+      "algorithm_name": "Traditional Tableaux",
+      "execution_time_ms": 500,
+      "memory_usage_mb": 60.0,
+      "success": false,
+      "reasoning_task": "classification",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Medium",
+      "algorithm_name": "Enhanced Hybrid",
+      "execution_time_ms": 50,
+      "memory_usage_mb": 32.0,
+      "success": true,
+      "reasoning_task": "realization",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Medium",
+      "algorithm_name": "Traditional Tableaux",
+      "execution_time_ms": 500,
+      "memory_usage_mb": 60.0,
+      "success": true,
+      "reasoning_task": "realization",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Large",
+      "algorithm_name": "Enhanced Hybrid",
+      "execution_time_ms": 1500,
+      "memory_usage_mb": 320.0,
+      "success": true,
+      "reasoning_task": "consistency",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Large",
+      "algorithm_name": "Traditional Tableaux",
+      "execution_time_ms": 20000,
+      "memory_usage_mb": 600.0,
+      "success": false,
+      "reasoning_task": "consistency",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Large",
+      "algorithm_name": "Enhanced Hybrid",
+      "execution_time_ms": 1500,
+      "memory_usage_mb": 320.0,
+      "success": true,
+      "reasoning_task": "classification",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Large",
+      "algorithm_name": "Traditional Tableaux",
+      "execution_time_ms": 20000,
+      "memory_usage_mb": 600.0,
+      "success": false,
+      "reasoning_task": "classification",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Large",
+      "algorithm_name": "Enhanced Hybrid",
+      "execution_time_ms": 1500,
+      "memory_usage_mb": 320.0,
+      "success": true,
+      "reasoning_task": "realization",
+      "phase": "Phase 3"
+    },
+    {
+      "ontology_name": "ORE-Large",
+      "algorithm_name": "Traditional Tableaux",
+      "execution_time_ms": 20000,
+      "memory_usage_mb": 600.0,
+      "success": true,
+      "reasoning_task": "realization",
+      "phase": "Phase 3"
+    }
+  ]
+}
