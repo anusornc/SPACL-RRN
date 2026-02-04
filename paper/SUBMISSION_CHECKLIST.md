@@ -159,9 +159,9 @@
 
 ## Contact Information
 
-**Corresponding Author**: [Your Name]
-**Email**: [Your Email]
-**Institution**: [Your Institution]
+**Corresponding Author**: Anusorn Chaikaew
+**Email**: anusorn.chaikaew@student.mahidol.ac.th
+**Institution**: Mahidol University
 **GitHub**: [Your GitHub]
 
 **Co-authors**: [If applicable]

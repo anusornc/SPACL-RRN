@@ -1,0 +1,48 @@
+\begin{thebibliography}{1}
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{\texttt{#1}}\fi
+\expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+\expandafter\ifx\csname href\endcsname\relax
+  \def\href#1#2{#2} \def\path#1{#1}\fi
+
+\bibitem{owl2}
+B.~Motik, P.~F. Patel-Schneider, B.~Parsia, C.~Bock, A.~Fokoue, P.~Haase,
+  R.~Hoekstra, I.~Horrocks, A.~Ruttenberg, U.~Sattler, et~al.,
+  \href{https://www.w3.org/TR/owl2-overview/}{{OWL} 2 web ontology language
+  document overview}, W3C Recommendation 27 (2009) 61.
+\newline\urlprefix\url{https://www.w3.org/TR/owl2-overview/}
+
+\bibitem{dlhandbook}
+F.~Baader, D.~Calvanese, D.~L. McGuinness, D.~Nardi, P.~F. Patel-Schneider
+  (Eds.), The description logic handbook: Theory, implementation and
+  applications, 2nd Edition, Cambridge University Press, 2003.
+
+\bibitem{konclude}
+A.~Steigmiller, T.~Liebig, B.~Glimm, Konclude: System description, Journal of
+  Web Semantics 27 (2014) 78--85.
+\newblock \href {https://doi.org/10.1016/j.websem.2014.06.002}
+  {\path{doi:10.1016/j.websem.2014.06.002}}.
+
+\bibitem{pellet}
+E.~Sirin, B.~Parsia, B.~Cuenca~Grau, A.~Kalyanpur, Y.~Katz, Pellet: A practical
+  {OWL-DL} reasoner, Journal of Web Semantics 5~(2) (2007) 51--53.
+\newblock \href {https://doi.org/10.1016/j.websem.2007.03.004}
+  {\path{doi:10.1016/j.websem.2007.03.004}}.
+
+\bibitem{hermit}
+B.~Glimm, I.~Horrocks, B.~Motik, G.~Stoilos, Z.~Wang, Hermit: An {OWL} 2
+  reasoner, Journal of Automated Reasoning 53~(3) (2014) 245--269.
+\newblock \href {https://doi.org/10.1007/s10817-014-9305-1}
+  {\path{doi:10.1007/s10817-014-9305-1}}.
+
+\bibitem{marques1999grasp}
+J.~P. Marques-Silva, K.~A. Sakallah, Grasp: A search algorithm for
+  propositional satisfiability, IEEE Transactions on Computers 48~(5) (1999)
+  506--521.
+
+\bibitem{steigmiller2020parallelised}
+A.~Steigmiller, B.~Glimm, Parallelised abox reasoning and query answering with
+  expressive description logics (extended abstract), in: Description Logics
+  Workshop, 2020.
+
+\end{thebibliography}

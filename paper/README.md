@@ -179,12 +179,12 @@ Tables use `booktabs` for professional formatting.
 
 ## Author Information
 
-**Authors**: [Your Name]  
-**Affiliation**: [Your Institution]  
-**Email**: [Your Email]  
+**Authors**: Anusorn Chaikaew  
+**Affiliation**: PhD Candidate in Computer Science, Mahidol University  
+**Email**: anusorn.chaikaew@student.mahidol.ac.th  
 **GitHub**: [Your GitHub]
 
-**Corresponding Author**: [Your Name]  
+**Corresponding Author**: Anusorn Chaikaew  
 **Address**: [Your Address]
 
 ---

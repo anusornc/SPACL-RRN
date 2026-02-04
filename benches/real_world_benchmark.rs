@@ -1,0 +1,243 @@
+//! Real-World Ontology Benchmark
+//!
+//! Benchmarks SPACL against real-world ontologies from:
+//! - ORE 2015 competition
+//! - BioPortal
+//! - Other sources
+//!
+//! Usage: cargo bench --bench real_world_benchmark
+
+use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use std::path::Path;
+use std::time::Duration;
+
+// Import the reasoner crate
+use owl2_reasoner::{
+    Ontology, OwlReasoner,
+    ParserFactory,
+    SimpleReasoner,
+    SpeculativeTableauxReasoner,
+};
+
+/// Configuration for benchmark runs
+const SAMPLE_SIZE: usize = 10;
+const MEASUREMENT_TIME_SECS: u64 = 30;
+
+/// Ontology benchmark configuration
+struct OntologyBenchmark {
+    name: &'static str,
+    path: &'static str,
+    description: &'static str,
+    expected_classes: usize,
+}
+
+/// List of ontologies to benchmark
+const ONTOLOGIES: &[OntologyBenchmark] = &[
+    OntologyBenchmark {
+        name: "LUBM",
+        path: "tests/data/univ-bench.owl",
+        description: "Lehigh University Benchmark (13 classes)",
+        expected_classes: 13,
+    },
+    OntologyBenchmark {
+        name: "GO_Basic",
+        path: "benchmarks/ontologies/other/go-basic.owl",
+        description: "Gene Ontology basic (45k+ classes)",
+        expected_classes: 45000,
+    },
+    // Add more ontologies as they become available
+];
+
+/// Load an ontology from file
+fn load_ontology(path: &str) -> Option<Ontology> {
+    let path = Path::new(path);
+    
+    if !path.exists() {
+        eprintln!("Warning: Ontology file not found: {}", path.display());
+        return None;
+    }
+    
+    // Determine parser from extension
+    let ext = path.extension()?.to_str()?;
+    let parser = ParserFactory::for_file_extension(ext)?;
+    
+    // Parse the ontology
+    match parser.parse_file(path) {
+        Ok(ontology) => {
+            println!("Loaded {}: {} classes", path.display(), ontology.classes().len());
+            Some(ontology)
+        }
+        Err(e) => {
+            eprintln!("Error parsing {}: {:?}", path.display(), e);
+            None
+        }
+    }
+}
+
+/// Benchmark sequential classification
+fn bench_sequential_classification(c: &mut Criterion) {
+    let mut group = c.benchmark_group("sequential_classification");
+    group.sample_size(SAMPLE_SIZE);
+    group.measurement_time(Duration::from_secs(MEASUREMENT_TIME_SECS));
+    
+    for ont_config in ONTOLOGIES {
+        let Some(ontology) = load_ontology(ont_config.path) else {
+            println!("Skipping {} (file not found)", ont_config.name);
+            continue;
+        };
+        
+        let class_count = ontology.classes().len();
+        
+        group.bench_with_input(
+            BenchmarkId::new("sequential", ont_config.name),
+            &ontology,
+            |b, ontology| {
+                b.iter(|| {
+                    let mut reasoner = SimpleReasoner::new(ontology.clone());
+                    // Run consistency check as basic reasoning task
+                    let _ = reasoner.is_consistent();
+                    black_box(reasoner);
+                });
+            },
+        );
+        
+        println!("Benchmarked {} ({} classes) - Sequential", ont_config.name, class_count);
+    }
+    
+    group.finish();
+}
+
+/// Benchmark SPACL speculative classification
+fn bench_speculative_classification(c: &mut Criterion) {
+    
+    let mut group = c.benchmark_group("speculative_classification");
+    group.sample_size(SAMPLE_SIZE);
+    group.measurement_time(Duration::from_secs(MEASUREMENT_TIME_SECS));
+    
+    for ont_config in ONTOLOGIES {
+        let Some(ontology) = load_ontology(ont_config.path) else {
+            continue;
+        };
+        
+        let class_count = ontology.classes().len();
+        
+        group.bench_with_input(
+            BenchmarkId::new("speculative", ont_config.name),
+            &ontology,
+            |b, ontology| {
+                b.iter(|| {
+                    let mut reasoner = SpeculativeTableauxReasoner::new(ontology.clone());
+                    let _ = reasoner.is_consistent();
+                    black_box(reasoner);
+                });
+            },
+        );
+        
+        println!("Benchmarked {} ({} classes) - SPACL", ont_config.name, class_count);
+    }
+    
+    group.finish();
+}
+
+/// Benchmark comparison: Sequential vs SPACL
+fn bench_comparison(c: &mut Criterion) {
+    
+    let mut group = c.benchmark_group("comparison");
+    group.sample_size(SAMPLE_SIZE);
+    group.measurement_time(Duration::from_secs(MEASUREMENT_TIME_SECS));
+    
+    for ont_config in ONTOLOGIES {
+        let Some(ontology) = load_ontology(ont_config.path) else {
+            continue;
+        };
+        
+        // Sequential benchmark
+        group.bench_with_input(
+            BenchmarkId::new("seq", ont_config.name),
+            &ontology,
+            |b, ontology| {
+                b.iter(|| {
+                    let mut reasoner = SimpleReasoner::new(ontology.clone());
+                    let _ = reasoner.is_consistent();
+                });
+            },
+        );
+        
+        // SPACL benchmark
+        group.bench_with_input(
+            BenchmarkId::new("spacl", ont_config.name),
+            &ontology,
+            |b, ontology| {
+                b.iter(|| {
+                    let mut reasoner = SpeculativeTableauxReasoner::new(ontology.clone());
+                    let _ = reasoner.is_consistent();
+                });
+            },
+        );
+    }
+    
+    group.finish();
+}
+
+/// Collect detailed statistics for a single ontology
+fn collect_statistics(ontology: &Ontology, name: &str) {
+    use std::time::Instant;
+    
+    println!("\n========================================");
+    println!("Statistics for: {}", name);
+    println!("========================================");
+    
+    let class_count = ontology.classes().len();
+    let axiom_count = ontology.axioms().len();
+    
+    println!("Classes: {}", class_count);
+    println!("Axioms: {}", axiom_count);
+    
+    // Sequential run
+    println!("\n--- Sequential Reasoner ---");
+    let start = Instant::now();
+    let mut seq_reasoner = SimpleReasoner::new(ontology.clone());
+    let seq_consistent = seq_reasoner.is_consistent().unwrap_or(false);
+    let seq_time = start.elapsed();
+    println!("Consistency check: {} (time: {:?})", seq_consistent, seq_time);
+    
+    // SPACL run
+    println!("\n--- SPACL Reasoner ---");
+    let start = Instant::now();
+    let mut spacl_reasoner = SpeculativeTableauxReasoner::new(ontology.clone());
+    let spacl_consistent = spacl_reasoner.is_consistent().unwrap_or(false);
+    let spacl_time = start.elapsed();
+    println!("Consistency check: {} (time: {:?})", spacl_consistent, spacl_time);
+    
+    // Speedup
+    if seq_time.as_micros() > 0 && spacl_time.as_micros() > 0 {
+        let speedup = seq_time.as_micros() as f64 / spacl_time.as_micros() as f64;
+        println!("\nSpeedup: {:.2}x", speedup);
+    }
+    
+    println!("========================================\n");
+}
+
+/// Main benchmark runner
+criterion_group!(
+    benches,
+    bench_sequential_classification,
+    bench_speculative_classification,
+    bench_comparison
+);
+
+criterion_main!(benches);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_load_lubm() {
+        let ontology = load_ontology("tests/data/univ-bench.owl");
+        assert!(ontology.is_some(), "Should load LUBM ontology");
+        
+        let ont = ontology.unwrap();
+        assert!(ont.classes().len() > 0, "Should have classes");
+    }
+}

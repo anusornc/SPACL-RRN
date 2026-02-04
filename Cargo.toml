@@ -170,6 +170,14 @@ harness = false
 name = "spacl_vs_sequential"
 harness = false
 
+[[bench]]
+name = "ontology_benchmark"
+harness = false
+
+[[bench]]
+name = "real_world_benchmark"
+harness = false
+
 [lib]
 name = "owl2_reasoner"
 path = "src/lib.rs"

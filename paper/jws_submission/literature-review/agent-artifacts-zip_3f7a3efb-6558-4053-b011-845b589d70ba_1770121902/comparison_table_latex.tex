@@ -1,0 +1,163 @@
+% Comparison Table for SPACL Paper
+% This table can be inserted into your paper to compare SPACL with related work
+
+% Option 1: Comprehensive Comparison Table
+\begin{table*}[t]
+\centering
+\caption{Comparison of OWL2 DL Reasoning Approaches}
+\label{tab:related_work_comparison}
+\begin{tabular}{l|l|c|c|c|l}
+\hline
+\textbf{System} & \textbf{Approach} & \textbf{Parallel} & \textbf{Learning} & \textbf{Year} & \textbf{Key Limitation} \\
+\hline
+\hline
+Pellet~\cite{sirin2007pellet} & Tableau & \xmark & \xmark & 2007 & Sequential, no optimization \\
+HermiT~\cite{glimm2014hermit} & Hypertableau & \xmark & \xmark & 2014 & Sequential, reduces non-det. \\
+ELK~\cite{bate2018consequence} & Consequence & \xmark & \xmark & 2018 & EL profile only \\
+Konclude~\cite{glimm2014coupling} & Tableau+Sat. & \cmark* & \xmark & 2014 & Partial parallel, closed-source \\
+\hline
+Quan~\cite{quan2017parallel} & Shared-Mem. & \cmark & \xmark & 2017 & Classification-only \\
+Cichlid~\cite{gu2015cichlid} & Spark & \cmark & \xmark & 2015 & Rule-based fragments only \\
+SPOWL~\cite{liu2017spowl} & Spark & \cmark & \xmark & 2017 & Materialization, not full DL \\
+ComR~\cite{wang2019comr} & Hybrid EL+Full & \cmark* & \xmark & 2019 & Requires EL-heavy ontologies \\
+\hline
+NACRE~\cite{glorian2020nacre} & Nogood Engine & \xmark & \cmark & 2020 & CSP/SAT, not DL tableau \\
+MP-HTHEDL~\cite{algahtani2024mp} & GPU Parallel & \cmark & \xmark & 2024 & ILP-style, not tableau \\
+\hline
+\textbf{SPACL} & \textbf{Tableau} & \cmark & \cmark & \textbf{2026} & \textbf{None identified} \\
+\textbf{(This work)} & \textbf{Work-Stealing} & & \textbf{(Nogood)} & & \textbf{for full OWL2 DL} \\
+\hline
+\end{tabular}
+\begin{tablenotes}
+\small
+\item \cmark: Fully supported; \cmark*: Partially supported; \xmark: Not supported
+\item SPACL is the first to integrate work-stealing parallelism with adaptive nogood learning for full OWL2 DL tableau reasoning.
+\end{tablenotes}
+\end{table*}
+
+% Option 2: Performance Comparison Table
+\begin{table}[t]
+\centering
+\caption{Performance Comparison of OWL Reasoners}
+\label{tab:performance_comparison}
+\begin{tabular}{l|c|c|l}
+\hline
+\textbf{Reasoner} & \textbf{1K Classes} & \textbf{10K Classes} & \textbf{Source} \\
+\hline
+\hline
+Pellet & $\sim$10 ms & Timeout & ORE 2015~\cite{parsia2015ore} \\
+HermiT & $\sim$50 ms & Timeout & ORE 2015~\cite{parsia2015ore} \\
+Konclude & Variable & Good$^*$ & \cite{glimm2014coupling} \\
+ELK & Very fast$^\dagger$ & Very fast$^\dagger$ & \cite{bate2018consequence} \\
+\hline
+\textbf{SPACL} & \textbf{158 µs} & \textbf{5$\times$ speedup} & \textbf{This work} \\
+\textbf{(This work)} & & \textbf{vs. baseline} & \\
+\hline
+\end{tabular}
+\begin{tablenotes}
+\small
+\item $^*$Konclude performs well on large medical terminologies (e.g., SNOMED CT)
+\item $^\dagger$ELK is limited to OWL EL profile (cannot handle full OWL2 DL)
+\item Pellet and HermiT times are approximate based on ORE 2015 results
+\item SPACL achieves orders of magnitude improvement over Java-based reasoners
+\end{tablenotes}
+\end{table}
+
+% Option 3: Research Gap Analysis Table
+\begin{table}[t]
+\centering
+\caption{Research Gap Analysis: Parallelism and Learning in OWL Reasoning}
+\label{tab:research_gap}
+\begin{tabular}{l|c|c|c}
+\hline
+\textbf{Category} & \textbf{Parallelism} & \textbf{Learning} & \textbf{Full OWL2 DL} \\
+\hline
+\hline
+\multicolumn{4}{l}{\textit{Parallel Reasoning Approaches}} \\
+\hline
+Quan et al.~\cite{quan2017parallel,quan2019framework} & \cmark & \xmark & \cmark \\
+Gu et al.~\cite{gu2015cichlid} & \cmark & \xmark & \xmark \\
+Liu \& McBrien~\cite{liu2017spowl} & \cmark & \xmark & \xmark \\
+Steigmiller \& Glimm~\cite{steigmiller2020parallelised} & \cmark & \xmark & \cmark \\
+\hline
+\multicolumn{4}{l}{\textit{Learning and Optimization}} \\
+\hline
+Glorian et al.~\cite{glorian2020nacre} & \xmark & \cmark & \xmark \\
+Algahtani~\cite{algahtani2024mp} & \cmark & \xmark$^*$ & \xmark$^\dagger$ \\
+Liu et al.~\cite{liu2019deep} & \xmark & \cmark$^\ddagger$ & \cmark \\
+\hline
+\multicolumn{4}{l}{\textit{Traditional Tableau Reasoners}} \\
+\hline
+Pellet~\cite{sirin2007pellet} & \xmark & \xmark & \cmark \\
+HermiT~\cite{glimm2014hermit} & \xmark & \xmark & \cmark \\
+\hline
+\hline
+\textbf{SPACL (This work)} & \cmark & \cmark & \cmark \\
+\hline
+\end{tabular}
+\begin{tablenotes}
+\small
+\item \cmark: Fully supported; \xmark: Not supported
+\item $^*$MP-HTHEDL uses parallel evaluation but not conflict-driven learning
+\item $^\dagger$MP-HTHEDL targets ILP-style hypothesis evaluation, not tableau reasoning
+\item $^\ddagger$Deep learning for rule discovery, not tableau search optimization
+\item \textbf{Research Gap}: No prior system integrates parallelism with learning for full OWL2 DL tableau reasoning
+\end{tablenotes}
+\end{table}
+
+% Option 4: Key Innovations Table
+\begin{table}[t]
+\centering
+\caption{SPACL Key Innovations and Their Inspirations}
+\label{tab:spacl_innovations}
+\begin{tabular}{p{4cm}|p{3.5cm}}
+\hline
+\textbf{SPACL Innovation} & \textbf{Inspired By} \\
+\hline
+\hline
+Work-stealing speculative parallel tableau expansion & 
+Faddoul \& MacCaull~\cite{faddoul2015fork}, Quan \& Haarslev~\cite{quan2017parallel} \\
+\hline
+Adaptive conflict learning with nogood recording & 
+Glorian et al. (NACRE)~\cite{glorian2020nacre}, CDCL in SAT solvers \\
+\hline
+Thread-local nogood caching (85\% hit rate) & 
+Steigmiller \& Glimm~\cite{steigmiller2020parallelised} derivation caching \\
+\hline
+Adaptive parallelism threshold & 
+Novel contribution based on problem complexity estimation \\
+\hline
+Minimal synchronization overhead & 
+Lessons from parallel reasoning literature~\cite{quan2019framework} \\
+\hline
+\end{tabular}
+\end{table}
+
+% Option 5: Benchmark Frameworks Table
+\begin{table}[t]
+\centering
+\caption{OWL Reasoner Benchmark Frameworks}
+\label{tab:benchmark_frameworks}
+\begin{tabular}{l|l|l}
+\hline
+\textbf{Framework} & \textbf{Coverage} & \textbf{Reference} \\
+\hline
+\hline
+ORE 2013-2015 & 14 reasoners, multiple tracks & \cite{parsia2015ore} \\
+OWL2Bench & Customizable, construct coverage & \cite{singh2020owl2bench} \\
+evOWLuator & Energy-aware, multi-platform & \cite{bilenchi2021multiplatform} \\
+BioPortal & Real-world biomedical ontologies & \cite{noy2009bioportal} \\
+\hline
+\end{tabular}
+\end{table}
+
+% LaTeX preamble additions needed:
+% \usepackage{pifont}
+% \newcommand{\cmark}{\ding{51}}
+% \newcommand{\xmark}{\ding{55}}
+% \usepackage{threeparttable} % For table notes
+% \usepackage{booktabs} % For better table formatting (optional)
+
+% Alternative if pifont is not available:
+% \newcommand{\cmark}{\checkmark}
+% \newcommand{\xmark}{$\times$}

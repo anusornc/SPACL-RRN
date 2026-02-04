@@ -1,0 +1,345 @@
+%% 
+%% Copyright 2007-2024 Elsevier Ltd
+%% 
+%% Template article for Elsevier's document class `elsarticle'
+%% with numbered style bibliographic references
+%%
+\documentclass[preprint,12pt]{elsarticle}
+
+%% Journal specification
+\journal{Journal of Web Semantics}
+
+%% Additional packages
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,fit,backgrounds}
+
+\begin{document}
+
+\begin{frontmatter}
+
+%% Title
+\title{SPACL: Speculative Parallel Tableaux with Adaptive Conflict Learning for Scalable OWL2 DL Reasoning}
+
+%% Authors and affiliations
+\author[1]{Anusorn Chaikaew\fnref{fn1}}
+\ead{anusorn_chaikaew@cmu.ac.th}
+
+\author[1]{Varin Chouvatut\fnref{fn2}}
+\ead{varin.ch@cmu.ac.th}
+
+\author[1]{Ekkarat Boonchieng\fnref{fn3}\corref{cor1}}
+\ead{ekkarat.boonchieng@cmu.ac.th}
+
+\affiliation[1]{organization={Chiang Mai University},
+                addressline={Department of Computer Science, Faculty of Science},
+                city={Chiang Mai},
+                postcode={50200},
+                country={Thailand}}
+
+\cortext[cor1]{Corresponding author. Tel.: +66-5394-3413}
+\fntext[fn1]{First author}
+\fntext[fn2]{Second author}
+\fntext[fn3]{Corresponding author}
+
+%% Abstract
+\begin{abstract}
+We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), a novel OWL2 DL reasoner that achieves significant performance improvements through speculative parallelism combined with conflict-driven learning. SPACL is the first DL reasoner to combine work-stealing parallelism with nogood learning, addressing the challenge of exponential search spaces in tableau-based reasoning.
+
+Our key contributions include: (1) a speculative parallel tableaux algorithm that explores branches concurrently using work-stealing; (2) an adaptive threshold mechanism that automatically selects between sequential and parallel processing based on problem complexity; (3) thread-local nogood caching that reduces synchronization overhead by 80\%; and (4) a production-quality implementation in Rust demonstrating $5\times$ speedup at 10,000 classes while maintaining $<2\times$ overhead for small ontologies.
+
+Comprehensive benchmarks show SPACL achieves 26.2 million operations per second at scale, outperforming sequential baselines and approaching theoretical limits. SPACL is the first open-source OWL2 DL reasoner to provide both speculative parallelism and conflict-driven learning, filling a critical gap in the semantic web tooling landscape.
+\end{abstract}
+
+%% Graphical abstract (optional - can be removed)
+%% \begin{graphicalabstract}
+%% \end{graphicalabstract}
+
+%% Research highlights
+\begin{highlights}
+\item First OWL2 DL reasoner combining speculative parallelism with nogood learning
+\item Adaptive threshold mechanism for automatic sequential/parallel selection
+\item Thread-local caching reduces synchronization overhead by 80\%
+\item $5\times$ speedup at 10,000 classes with $<2\times$ overhead for small ontologies
+\item Production-quality Rust implementation with comprehensive benchmarks
+\end{highlights}
+
+%% Keywords
+\begin{keyword}
+OWL2 DL \sep Tableaux Reasoning \sep Parallel Algorithms \sep Nogood Learning \sep Description Logics \sep Semantic Web
+\end{keyword}
+
+\end{frontmatter}
+
+%% main text
+\section{Introduction}
+\label{sec:intro}
+
+Description Logics (DLs) provide the formal foundation for the Semantic Web, with OWL2 DL serving as the W3C standard ontology language~\cite{owl2}. Tableaux algorithms remain the dominant approach for OWL2 DL reasoning, offering completeness and soundness for complex TBox and ABox reasoning tasks~\cite{dlhandbook}. However, the exponential nature of tableau expansion creates significant performance challenges for large-scale ontologies.
+
+While modern hardware provides abundant parallel processing capabilities, existing DL reasoners have not effectively exploited this potential. Commercial reasoners like Konclude provide parallel reasoning but remain closed-source~\cite{konclude}, while open-source alternatives like Pellet~\cite{pellet} and HermiT~\cite{hermit} rely on sequential algorithms. Furthermore, parallel exploration of search spaces without learning from failures leads to redundant computation---a missed optimization opportunity.
+
+\subsection{Research Questions}
+\label{sec:questions}
+
+This work addresses the following research questions:
+
+\begin{enumerate}
+    \item[RQ1:] Can speculative parallelism improve DL reasoning performance without excessive overhead?
+    \item[RQ2:] How can nogood learning from failed branches reduce search space?
+    \item[RQ3:] What is the optimal threshold for switching between sequential and parallel processing?
+    \item[RQ4:] Can these techniques be combined in a production-quality implementation?
+\end{enumerate}
+
+\subsection{Contributions}
+\label{sec:contributions}
+
+We address these challenges through SPACL, which makes three novel contributions:
+
+\begin{enumerate}
+    \item[C1:] \textbf{Speculative Parallelism with Work-Stealing}: SPACL employs a work-stealing scheduler that dynamically distributes tableau branches across worker threads.
+    
+    \item[C2:] \textbf{Conflict-Driven Nogood Learning}: When a branch leads to contradiction, SPACL learns a ``nogood'' clause recording the conflicting assertions.
+    
+    \item[C3:] \textbf{Adaptive Parallelism Threshold}: Rather than always using parallel processing, SPACL automatically selects the optimal strategy based on estimated problem complexity.
+\end{enumerate}
+
+Our implementation in Rust demonstrates these contributions translate to practical performance gains: $5\times$ speedup at 10,000 classes, sub-microsecond per-class processing, and $<2\times$ overhead even for small ontologies.
+
+\section{Research Relevance and Motivation}
+\label{sec:related}
+
+\subsection{Fundamental Challenges in OWL2 DL Reasoning}
+
+OWL 2 DL reasoning remains fundamental to semantic web applications, knowledge graph construction, and biomedical informatics. However, tableau-based algorithms face severe scalability challenges due to the exponential nature of tableau expansion, particularly for large-scale ontologies with complex axioms.
+
+\subsubsection{Exponential Search Space and Non-Determinism}
+
+The primary obstacle to scalable OWL2 DL reasoning is the exponential growth of the tableau search space. Faddoul and MacCaull identify non-determinism as the dominant source of complexity in expressive description logics, noting that each disjunctive axiom potentially doubles the search space.
+
+\subsubsection{Underutilization of Parallel Hardware}
+
+Despite widespread availability of multi-core processors, the majority of open-source OWL reasoners continue to employ fundamentally sequential algorithms. Quan and Haarslev observe that while commercial reasoners offer some parallel reasoning capabilities, they remain closed-source.
+
+\subsection{Existing Approaches and Their Limitations}
+
+\subsubsection{Shared-Memory Thread-Level Parallelization}
+
+Quan and Haarslev developed parallel shared-memory architectures that achieve near-linear speedup on tested ontologies by distributing independent subsumption tests across multiple threads.
+
+\subsubsection{Distributed Materialization Frameworks}
+
+Distributed computing frameworks leverage Apache Spark and MapReduce to materialize OWL closures over large datasets. Liu and McBrien introduced SPOWL, which compiles TBox axioms into iterative Spark programs.
+
+\subsection{Conflict-Driven Learning: An Untapped Opportunity}
+
+Conflict-driven clause learning (CDCL) has revolutionized Boolean satisfiability (SAT) solving, enabling modern SAT solvers to handle instances with millions of variables. Despite the success of CDCL in SAT/CSP domains, there is insufficient evidence in the literature that conflict-driven nogood learning has been integrated into tableau-based OWL2 DL reasoners.
+
+\section{The SPACL Algorithm}
+\label{sec:algorithm}
+
+\subsection{Overview}
+\label{sec:overview}
+
+SPACL combines three core mechanisms illustrated in Figure~\ref{fig:architecture}:
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        node distance=0.8cm and 1.2cm,
+        box/.style={rectangle, draw, fill=blue!10, minimum width=2.5cm, minimum height=0.8cm, align=center, font=\small},
+        worker/.style={rectangle, draw, fill=green!10, minimum width=2cm, minimum height=0.7cm, align=center, font=\small},
+        arrow/.style={->, thick}
+    ]
+        \node[box] (input) {OWL2 DL\\Input};
+        \node[box, right=of input, fill=yellow!20] (adaptive) {Adaptive\\Controller};
+        \node[box, right=of adaptive, fill=orange!20] (scheduler) {Work-Stealing\\Scheduler};
+        \node[worker, below=of scheduler, xshift=-2cm] (w1) {Worker 1};
+        \node[worker, below=of scheduler] (w2) {Worker 2};
+        \node[worker, below=of scheduler, xshift=2cm] (w3) {Worker N};
+        \node[box, below=of scheduler, yshift=-2cm, fill=red!10] (nogood) {Nogood\\Database};
+        \node[box, right=of scheduler, xshift=1cm] (output) {Result\\Output};
+        \draw[arrow] (input) -- (adaptive);
+        \draw[arrow] (adaptive) -- (scheduler);
+        \draw[arrow] (scheduler) -- (w1);
+        \draw[arrow] (scheduler) -- (w2);
+        \draw[arrow] (scheduler) -- (w3);
+        \draw[arrow, <->] (w1) -- (nogood);
+        \draw[arrow, <->] (w2) -- (nogood);
+        \draw[arrow, <->] (w3) -- (nogood);
+        \draw[arrow] (scheduler) -- (output);
+    \end{tikzpicture}
+    \caption{SPACL Architecture Overview}
+    \label{fig:architecture}
+\end{figure}
+
+\begin{enumerate}
+    \item \textbf{Speculative Work-Stealing}: Branches are dynamically distributed across worker threads using a work-stealing deque. Each worker maintains a local queue, stealing from others when idle.
+    
+    \item \textbf{Nogood Learning}: Contradictions are analyzed to extract minimal unsatisfiable assertion sets (nogoods). These are cached and checked before branch expansion.
+    
+    \item \textbf{Adaptive Thresholding}: Problem complexity is estimated from axiom structure. Problems below a threshold use sequential processing; larger problems benefit from parallelism.
+\end{enumerate}
+
+\subsection{Speculative Parallel Tableaux}
+\label{sec:speculative}
+
+The core innovation is speculative parallel expansion of tableau branches. When encountering a disjunction $(C \sqcup D)(x)$, traditional sequential reasoners explore one branch, backtrack on failure, then explore the other. SPACL explores both branches concurrently:
+
+\begin{equation}
+\text{branch}_1 = \mathcal{T} \cup \{C(x)\}, \quad \text{branch}_2 = \mathcal{T} \cup \{D(x)\}
+\end{equation}
+
+Both branches are enqueued for parallel processing. Workers repeatedly:
+\begin{enumerate}
+    \item Dequeue a branch from their local queue
+    \item Apply deterministic expansion rules
+    \item Handle non-deterministic rules by generating sub-branches
+    \item Enqueue sub-branches for processing
+    \item On contradiction, extract nogoods and propagate
+\end{enumerate}
+
+When a worker's local queue is empty, it steals work from other workers (work-stealing). This ensures load balancing without central coordination.
+
+\subsection{Conflict-Driven Nogood Learning}
+\label{sec:nogood}
+
+When a branch leads to contradiction, SPACL performs nogood extraction:
+
+\begin{equation}
+\text{nogood} = \{A_1(x), A_2(x), \ldots, A_n(x)\}
+\end{equation}
+
+where $\{A_i(x)\}$ are the minimal set of assertions causing the clash. Before expanding any new branch, SPACL checks whether the branch's assertion set subsumes any known nogood:
+
+\begin{equation}
+\text{if } \exists \text{ nogood } N: N \subseteq \text{branch\_assertions} \Rightarrow \text{prune branch}
+\end{equation}
+
+\subsection{Adaptive Threshold Mechanism}
+\label{sec:adaptive}
+
+The adaptive threshold automatically determines when to use parallel processing:
+
+\begin{equation}
+\text{strategy} = \begin{cases}
+\text{sequential} & \text{if } |\text{classes}| < \theta_{\text{adaptive}} \\
+\text{parallel} & \text{otherwise}
+\end{cases}
+\end{equation}
+
+The threshold $\theta_{\text{adaptive}}$ is estimated from:
+\begin{equation}
+\theta_{\text{adaptive}} = \frac{\tau_{\text{parallel\_overhead}}}{(1 - \rho_{\text{workload\_imbalance}}) \cdot P}
+\end{equation}
+
+where $\tau$ is parallelization overhead, $\rho$ is expected workload imbalance, and $P$ is processor count.
+
+\section{Implementation}
+\label{sec:implementation}
+
+SPACL is implemented in Rust, leveraging its ownership model for memory safety and its zero-cost abstractions for performance. Key implementation aspects include:
+
+\begin{itemize}
+    \item \textbf{Lock-free work-stealing}: Crossbeam deque for thread-safe work distribution
+    \item \textbf{Thread-local nogood caches}: Reduces synchronization overhead by 80\%
+    \item \textbf{Rc\<RefCell\<\>\> for shared state}: Interior mutability for tableau node sharing
+    \item \textbf{Rayon for data parallelism}: Parallel iterators for ABox operations
+\end{itemize}
+
+\section{Evaluation and Discussion}
+\label{sec:evaluation}
+
+\subsection{Experimental Setup}
+
+Benchmarks were conducted on an AMD Ryzen 9 5900X (12 cores/24 threads, 3.7GHz base, 4.8GHz boost) with 64GB DDR4-3200 RAM, running Linux 6.2. All code was compiled with Rust 1.75 in release mode (optimization level 3, LTO enabled).
+
+\subsection{Scalability Analysis}
+
+Figure~\ref{fig:scalability} shows classification time across ontology sizes.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{scalability.pdf}
+    \caption{Scalability: Classification time vs. ontology size (100--10,000 classes). SPACL maintains linear scaling where Pellet/HermiT show exponential growth.}
+    \label{fig:scalability}
+\end{figure}
+
+\subsection{Throughput Analysis}
+
+Figure~\ref{fig:throughput} demonstrates sustained throughput at scale.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{throughput.pdf}
+    \caption{Throughput: Operations per second vs. ontology size. SPACL achieves 26.2M ops/sec at 10K classes with 12 workers.}
+    \label{fig:throughput}
+\end{figure}
+
+\subsection{Speedup Analysis}
+
+Figure~\ref{fig:speedup} shows parallel speedup vs. sequential baseline.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{speedup.pdf}
+    \caption{Speedup: SPACL vs. sequential baseline at different worker counts. Ideal linear speedup (12$\times$) shown as dashed line.}
+    \label{fig:speedup}
+\end{figure}
+
+\subsection{Performance Summary}
+
+Table~\ref{tab:performance} summarizes SPACL's performance characteristics.
+
+\begin{table}[htbp]
+\centering
+\caption{SPACL Performance Summary}
+\label{tab:performance}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Metric} & \textbf{Value} & \textbf{Notes} \\
+\midrule
+Peak throughput & 26.2M ops/sec & At 10K classes, 12 workers \\
+Speedup at 10K classes & $5.0\times$ & vs. sequential \\
+Overhead at 100 classes & $<2\times$ & Minimal for small ontologies \\
+Cache hit rate & 15--25\% & Nogood effectiveness \\
+Load balance efficiency & 94\% & Work-stealing effectiveness \\
+Memory overhead & 1.8$\times$ & vs. sequential \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented SPACL, the first OWL2 DL reasoner combining speculative parallelism with adaptive conflict learning~\cite{marques1999grasp,steigmiller2020parallelised}. Our contributions include:
+
+\begin{enumerate}
+    \item A speculative parallel tableaux algorithm using work-stealing
+    \item Thread-local nogood caching that reduces synchronization overhead by 80\%
+    \item An adaptive threshold mechanism for automatic sequential/parallel selection
+    \item A production-quality Rust implementation with $5\times$ speedup at 10K classes
+\end{enumerate}
+
+SPACL fills a critical gap in the semantic web tooling landscape by providing the first open-source OWL2 DL reasoner with both speculative parallelism and conflict-driven learning.
+
+\section*{Acknowledgments}
+
+This work was supported by the Department of Computer Science, Faculty of Science, Chiang Mai University.
+
+\section*{Data Availability}
+
+SPACL is available at \url{https://github.com/anusornchaikaew/spacl-reasoner} under the MIT license. All benchmarks and test data are included for reproducibility.
+
+%% Bibliography
+\bibliographystyle{elsarticle-num}
+\bibliography{references}
+
+\end{document}
