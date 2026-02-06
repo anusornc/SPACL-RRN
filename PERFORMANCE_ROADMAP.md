@@ -49,43 +49,34 @@ owl2-reasoner check output.owlbin
 
 ---
 
-## Phase 2: Streaming Parser (Week 1-2)
+## Phase 2: Streaming Parser (Week 1-2) 🔄 IN PROGRESS
 
 ### Objective
 Parse OWL files incrementally without loading entire file into memory.
 
-### Implementation
-```rust
-// New module: src/parser/streaming.rs
+### Status
+- ✅ Module structure created (`src/parser/streaming/`)
+- ✅ Added quick-xml dependency
+- ⚠️ **Blocked**: Borrow checker issues with event-based parsing
 
-pub struct StreamingOntologyParser<R: Read> {
-    reader: R,
-    buffer: Vec<u8>,
-    // ...
-}
+### Challenge
+quick-xml's `read_event_into(&mut self.buf)` borrows buffer mutably, 
+preventing calls to helper methods on `self`. Need refactoring approach.
 
-impl<R: Read> StreamingOntologyParser<R> {
-    /// Create new streaming parser
-    pub fn new(reader: R) -> Self;
-    
-    /// Parse next axiom without loading entire file
-    pub fn next_axiom(&mut self) -> Result<Option<Axiom>>;
-    
-    /// Process axioms incrementally
-    pub fn parse_incremental<F>(&mut self, handler: F) -> Result<()>
-    where F: FnMut(Axiom) -> Result<()>;
-}
-```
+### Options
+1. **State Machine Parser**: Parse without helper methods (complex)
+2. **Simpler Line Parser**: Parse line-by-line for basic SubClassOf (limited)
+3. **Use Existing Parser**: Optimize current parser instead
 
-### Memory Optimization
-- Current: Load 5.5MB into String + parse to AST (~50MB+)
-- Streaming: Buffer 8KB chunks, parse axioms one at a time (~10MB max)
+### Memory Target
+- Current: Load 5.5MB into String (~50MB+ peak)
+- Target: Buffer 8KB chunks (~10MB max)
+- Reduction: **5x less memory**
 
-### Progress Reporting
-```bash
-Loading ontology: large.owl
-[====================>  ] 85% (85,000/100,000 classes)
-```
+### Recommendation
+**Skip Phase 2 for now**, use Phase 3 (Memory Profiling) instead to 
+optimize the current parser. Return to streaming if memory is still 
+problematic after optimization.
 
 ---
 
