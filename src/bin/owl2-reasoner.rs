@@ -25,6 +25,7 @@ use owl2_reasoner::{
     Ontology, SimpleReasoner, SpeculativeTableauxReasoner,
     parser::ParserFactory,
     serializer::BinaryOntologyFormat,
+    util::profiling::configure_iri_cache_for_large_ontology,
 };
 
 fn print_usage() {
@@ -56,6 +57,16 @@ fn load_ontology(path: &str) -> Result<Ontology, String> {
     let path = Path::new(path);
     if !path.exists() {
         return Err(format!("File not found: {}", path.display()));
+    }
+    
+    // Pre-configure IRI cache based on file size
+    if let Ok(metadata) = std::fs::metadata(path) {
+        let file_size = metadata.len();
+        // Estimate: ~50 bytes per class IRI in file
+        let estimated_classes = (file_size / 50) as usize;
+        if estimated_classes > 10_000 {
+            configure_iri_cache_for_large_ontology(estimated_classes);
+        }
     }
     
     println!("Loading ontology: {}", path.display());

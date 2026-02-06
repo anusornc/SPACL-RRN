@@ -13,6 +13,7 @@ pub mod config;
 pub mod constants;
 pub mod memory;
 pub mod memory_protection;
+pub mod profiling;
 pub mod utils;
 pub mod validation;
 
