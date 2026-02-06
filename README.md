@@ -15,9 +15,11 @@ cargo test --lib
 cargo bench
 ```
 
-## 🖥️ Command-Line Tool
+## 🖥️ Demo Applications
 
-A CLI demo application is included:
+### 1. OWL2 Reasoner CLI
+
+General-purpose ontology reasoning tool:
 
 ```bash
 # Check ontology consistency
@@ -29,6 +31,28 @@ cargo run --bin owl2-reasoner -- stats tests/data/univ-bench.owl
 # Compare Sequential vs SPACL performance
 cargo run --bin owl2-reasoner -- compare tests/data/univ-bench.owl
 ```
+
+### 2. EPCIS Supply Chain Reasoner
+
+Demo for GS1 EPCIS supply chain tracking:
+
+```bash
+# Generate and verify a demo supply chain
+cargo run --bin epcis-reasoner -- generate-demo
+
+# Check EPCIS ontology consistency
+cargo run --bin epcis-reasoner -- check-consistency
+
+# Show EPCIS statistics
+cargo run --bin epcis-reasoner -- stats
+```
+
+The EPCIS demo tracks a pharmaceutical product through the supply chain:
+- **Manufacturing** at Factory A
+- **Shipping** to Warehouse B  
+- **Receiving** at Hospital C
+
+Verifies logical consistency of the trace using OWL2 reasoning.
 
 ## 📁 Project Structure
 
