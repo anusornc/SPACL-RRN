@@ -1,4 +1,4 @@
-# SPACL Paper - Journal of Web Semantics Submission
+# SPACL Paper
 
 **Title**: SPACL: Speculative Parallelism and Conflict Learning for Scalable OWL Ontology Reasoning
 

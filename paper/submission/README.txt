@@ -1,5 +1,6 @@
 ================================================================================
-JOURNAL OF WEB SEMANTICS - SUBMISSION PACKAGE
+SPACL: SPECULATIVE PARALLELISM AND CONFLICT LEARNING
+                 FOR SCALABLE OWL ONTOLOGY REASONING
 ================================================================================
 
 Paper Title:
@@ -20,9 +21,6 @@ Affiliation:
 
 Corresponding Author Contact:
   Tel.: +66-5394-3413
-
-Submission Date: February 2026
-Target Journal: Journal of Web Semantics (Elsevier)
 
 ================================================================================
 PACKAGE CONTENTS

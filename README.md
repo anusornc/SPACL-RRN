@@ -100,20 +100,6 @@ This project is dual-licensed:
 - **Code** (Rust implementation): [MIT License](LICENSE) - See `LICENSE` file
 - **Paper** (LaTeX manuscript): [CC BY 4.0](paper/LICENSE) - See `paper/LICENSE` file
 
-### Citation
-
-If you use this work in your research, please cite:
-
-```bibtex
-@article{spacl2026,
-  title={SPACL: Speculative Parallelism and Conflict Learning for Scalable OWL Ontology Reasoning},
-  author={Chaikaew, Anusorn and Chouvatut, Varin and Boonchieng, Ekkarat},
-  journal={Journal of Web Semantics},
-  year={2026},
-  publisher={Elsevier}
-}
-```
-
 ## 🤝 Contributing
 
 [Add contribution guidelines]
