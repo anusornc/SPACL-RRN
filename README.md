@@ -15,6 +15,21 @@ cargo test --lib
 cargo bench
 ```
 
+## 🖥️ Command-Line Tool
+
+A CLI demo application is included:
+
+```bash
+# Check ontology consistency
+cargo run --bin owl2-reasoner -- check tests/data/univ-bench.owl
+
+# Show ontology statistics
+cargo run --bin owl2-reasoner -- stats tests/data/univ-bench.owl
+
+# Compare Sequential vs SPACL performance
+cargo run --bin owl2-reasoner -- compare tests/data/univ-bench.owl
+```
+
 ## 📁 Project Structure
 
 This project has been organized into a clean, modular structure:

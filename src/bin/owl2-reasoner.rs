@@ -21,7 +21,7 @@ use std::path::Path;
 use std::time::Instant;
 
 use owl2_reasoner::{
-    Ontology, SimpleReasoner, SpeculativeTableauxReasoner, OwlReasoner,
+    Ontology, SimpleReasoner, SpeculativeTableauxReasoner,
     parser::ParserFactory,
 };
 
