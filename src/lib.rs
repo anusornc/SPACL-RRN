@@ -62,6 +62,7 @@ pub mod core;
 pub mod logic;
 pub mod parser;
 pub mod reasoner;
+pub mod serializer;
 pub mod strategy;
 pub mod util;
 
