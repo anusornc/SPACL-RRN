@@ -161,6 +161,10 @@ name = "benchmark_edge_cases"
 path = "scripts/benchmark_edge_cases.rs"
 
 [[bin]]
+name = "owl2-reasoner"
+path = "src/bin/owl2-reasoner.rs"
+
+[[bin]]
 name = "owl2_validation"
 path = "src/bin/owl2_validation.rs"
 
