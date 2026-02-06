@@ -7,9 +7,10 @@
 //!
 //! Commands:
 //!   check       Check ontology consistency
+//!   check-auto  Check with automatic reasoner selection
+//!   convert     Convert OWL to binary format
 //!   stats       Show ontology statistics
 //!   compare     Compare Sequential vs SPACL performance
-//!   classify    Classify ontology (TBox reasoning)
 //!
 //! Examples:
 //!   cargo run --bin owl2-reasoner -- check tests/data/univ-bench.owl
@@ -23,6 +24,7 @@ use std::time::Instant;
 use owl2_reasoner::{
     Ontology, SimpleReasoner, SpeculativeTableauxReasoner,
     parser::ParserFactory,
+    serializer::BinaryOntologyFormat,
 };
 
 fn print_usage() {
@@ -33,6 +35,7 @@ fn print_usage() {
     println!("Commands:");
     println!("  check <file>       Check ontology consistency");
     println!("  check-auto <file>  Check with automatic reasoner selection");
+    println!("  convert <in> <out> Convert OWL to binary format (.owlbin)");
     println!("  stats <file>       Show ontology statistics");
     println!("  compare <file>     Compare Sequential vs SPACL performance");
     println!("  help               Show this help message");
@@ -42,7 +45,9 @@ fn print_usage() {
     println!();
     println!("Examples:");
     println!("  owl2-reasoner check tests/data/univ-bench.owl");
-    println!("  owl2-reasoner check-auto benchmarks/ontologies/other/pato.owl");
+    println!("  owl2-reasoner check-auto large.owl");
+    println!("  owl2-reasoner convert large.owl large.owlbin");
+    println!("  owl2-reasoner check large.owlbin");
     println!("  owl2-reasoner stats tests/data/univ-bench.owl");
     println!("  owl2-reasoner compare tests/data/univ-bench.owl");
 }
@@ -56,6 +61,22 @@ fn load_ontology(path: &str) -> Result<Ontology, String> {
     println!("Loading ontology: {}", path.display());
     let start = Instant::now();
     
+    // Check if it's a binary file
+    if path.extension().map(|e| e == "owlbin").unwrap_or(false) {
+        // Load binary format
+        let mut file = std::fs::File::open(path)
+            .map_err(|e| format!("Failed to open file: {}", e))?;
+        
+        let ontology = BinaryOntologyFormat::deserialize(&mut file)
+            .map_err(|e| format!("Failed to deserialize binary: {}", e))?;
+        
+        let load_time = start.elapsed();
+        println!("✓ Loaded binary in {:?}", load_time);
+        
+        return Ok(ontology);
+    }
+    
+    // Load text format (OWL/XML, RDF/XML, etc.)
     let content = std::fs::read_to_string(path)
         .map_err(|e| format!("Failed to read file: {}", e))?;
     
@@ -211,6 +232,67 @@ fn cmd_check_auto(args: &[String]) {
         }
         Err(e) => {
             eprintln!("Error during reasoning: {:?}", e);
+        }
+    }
+}
+
+fn cmd_convert(args: &[String]) {
+    if args.len() < 2 {
+        eprintln!("Error: Need input and output files");
+        println!("Usage: owl2-reasoner convert <input.owl> <output.owlbin>");
+        return;
+    }
+    
+    let input_path = &args[0];
+    let output_path = &args[1];
+    
+    // Load ontology from OWL
+    let ontology = match load_ontology(input_path) {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            return;
+        }
+    };
+    
+    // Serialize to binary
+    println!("\nConverting to binary format...");
+    let start = Instant::now();
+    
+    let mut file = match std::fs::File::create(output_path) {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("Error creating output file: {}", e);
+            return;
+        }
+    };
+    
+    match BinaryOntologyFormat::serialize(&ontology, &mut file) {
+        Ok(()) => {
+            let convert_time = start.elapsed();
+            println!("✓ Conversion complete in {:?}", convert_time);
+            
+            // Show file size comparison
+            let input_meta = std::fs::metadata(input_path).ok();
+            let output_meta = std::fs::metadata(output_path).ok();
+            
+            if let (Some(in_meta), Some(out_meta)) = (input_meta, output_meta) {
+                let in_size = in_meta.len();
+                let out_size = out_meta.len();
+                let ratio = out_size as f64 / in_size as f64;
+                
+                println!();
+                println!("File sizes:");
+                println!("  Input:  {} bytes ({:.2} MB)", in_size, in_size as f64 / 1_048_576.0);
+                println!("  Output: {} bytes ({:.2} MB)", out_size, out_size as f64 / 1_048_576.0);
+                println!("  Ratio:  {:.1}%", ratio * 100.0);
+            }
+            
+            println!();
+            println!("Usage: owl2-reasoner check {}", output_path);
+        }
+        Err(e) => {
+            eprintln!("Error during conversion: {}", e);
         }
     }
 }
@@ -373,6 +455,7 @@ fn main() {
     match command.as_str() {
         "check" => cmd_check(command_args),
         "check-auto" => cmd_check_auto(command_args),
+        "convert" => cmd_convert(command_args),
         "stats" => cmd_stats(command_args),
         "compare" => cmd_compare(command_args),
         "help" | "--help" | "-h" => print_usage(),

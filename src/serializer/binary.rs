@@ -9,9 +9,10 @@
 //!   - magic: [u8; 4] = b"OWLB"
 //!   - version: u32 = 1
 //!   - class_count: u64
-//!   - property_count: u64
+//!   - object_property_count: u64
+//!   - data_property_count: u64
+//!   - individual_count: u64
 //!   - axiom_count: u64
-//!   - reserved: [u8; 8]
 //!
 //! [String Table]
 //!   - string_count: u64
@@ -23,20 +24,56 @@
 //! [Object Properties Section]
 //!   - property_iris: [string_id: u64]*
 //!
+//! [Data Properties Section]
+//!   - property_iris: [string_id: u64]*
+//!
+//! [Individuals Section]
+//!   - individual_iris: [string_id: u64]*
+//!
 //! [Axioms Section]
 //!   - axioms: [type: u8, data: ...]*
 //! ```
 
 use std::io::{Read, Write, Result as IoResult};
 
-
+use crate::core::entities::{Class, NamedIndividual, ObjectProperty, DataProperty};
 use crate::core::iri::IRI;
 use crate::core::ontology::Ontology;
-use crate::logic::axioms::Axiom;
+use crate::logic::axioms::{
+    Axiom, SubClassOfAxiom, ClassAssertionAxiom,
+    class_expressions::ClassExpression,
+};
+use smallvec::SmallVec;
 
 const MAGIC: &[u8; 4] = b"OWLB";
 const VERSION: u32 = 1;
-const HEADER_SIZE: usize = 32;
+
+/// Axiom type identifiers for binary format
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AxiomType {
+    SubClassOf = 1,
+    EquivalentClasses = 2,
+    DisjointClasses = 3,
+    ClassAssertion = 4,
+    PropertyAssertion = 5,
+    SubObjectProperty = 6,
+    // Add more as needed
+}
+
+impl AxiomType {
+    fn from_u8(v: u8) -> Option<Self> {
+        match v {
+            1 => Some(AxiomType::SubClassOf),
+            2 => Some(AxiomType::EquivalentClasses),
+            3 => Some(AxiomType::DisjointClasses),
+            4 => Some(AxiomType::ClassAssertion),
+            5 => Some(AxiomType::PropertyAssertion),
+            6 => Some(AxiomType::SubObjectProperty),
+            _ => None,
+        }
+    }
+}
 
 /// Binary ontology format for fast serialization
 pub struct BinaryOntologyFormat;
@@ -44,38 +81,47 @@ pub struct BinaryOntologyFormat;
 impl BinaryOntologyFormat {
     /// Serialize an ontology to binary format
     pub fn serialize<W: Write>(ontology: &Ontology, writer: &mut W) -> IoResult<()> {
-        // Collect all strings for string table
+        // Build string table from all IRIs in the ontology
         let mut string_table = StringTable::new();
         
-        // Build string table from classes
+        // Collect all IRIs
         for class in ontology.classes() {
             string_table.add(class.iri().as_str());
         }
-        
-        // Build string table from properties
         for prop in ontology.object_properties() {
             string_table.add(prop.iri().as_str());
         }
+        for prop in ontology.data_properties() {
+            string_table.add(prop.iri().as_str());
+        }
+        for ind in ontology.named_individuals() {
+            string_table.add(ind.iri().as_str());
+        }
+        
+        // Also add IRIs from axioms (for complex class expressions)
+        Self::collect_axiom_strings(ontology, &mut string_table);
         
         // Write header
         Self::write_header(
             writer,
             ontology.classes().len() as u64,
             ontology.object_properties().len() as u64,
+            ontology.data_properties().len() as u64,
+            ontology.named_individuals().len() as u64,
             ontology.axioms().len() as u64,
         )?;
         
         // Write string table
         string_table.write(writer)?;
         
-        // Write classes
+        // Write entity sections
         Self::write_classes(writer, ontology, &string_table)?;
+        Self::write_object_properties(writer, ontology, &string_table)?;
+        Self::write_data_properties(writer, ontology, &string_table)?;
+        Self::write_individuals(writer, ontology, &string_table)?;
         
-        // Write properties
-        Self::write_properties(writer, ontology, &string_table)?;
-        
-        // Write axioms (simplified - just count for now)
-        Self::write_axioms_placeholder(writer, ontology)?;
+        // Write axioms
+        Self::write_axioms(writer, ontology, &string_table)?;
         
         Ok(())
     }
@@ -105,32 +151,78 @@ impl BinaryOntologyFormat {
         // Create new ontology
         let mut ontology = Ontology::new();
         
-        // Read classes
+        // Read entities
         Self::read_classes(reader, &mut ontology, &string_table, header.class_count)?;
+        Self::read_object_properties(reader, &mut ontology, &string_table, header.object_property_count)?;
+        Self::read_data_properties(reader, &mut ontology, &string_table, header.data_property_count)?;
+        Self::read_individuals(reader, &mut ontology, &string_table, header.individual_count)?;
         
-        // Read properties
-        Self::read_properties(reader, &mut ontology, &string_table, header.property_count)?;
-        
-        // Read axioms (placeholder for now)
-        Self::read_axioms_placeholder(reader, &mut ontology, header.axiom_count)?;
+        // Read axioms
+        Self::read_axioms(reader, &mut ontology, &string_table, header.axiom_count)?;
         
         Ok(ontology)
     }
     
-    // Private helper methods
+    // === String Collection ===
+    
+    fn collect_axiom_strings(ontology: &Ontology, table: &mut StringTable) {
+        for axiom in ontology.axioms() {
+            match axiom.as_ref() {
+                Axiom::SubClassOf(axiom) => {
+                    Self::collect_class_expression_strings(axiom.sub_class(), table);
+                    Self::collect_class_expression_strings(axiom.super_class(), table);
+                }
+                Axiom::ClassAssertion(axiom) => {
+                    table.add(axiom.individual().as_str());
+                    Self::collect_class_expression_strings(axiom.class_expr(), table);
+                }
+                _ => {
+                    // For other axiom types, we'd need to extract IRIs
+                    // This is simplified - full implementation would handle all types
+                }
+            }
+        }
+    }
+    
+    fn collect_class_expression_strings(expr: &ClassExpression, table: &mut StringTable) {
+        match expr {
+            ClassExpression::Class(class) => {
+                table.add(class.iri().as_str());
+            }
+            ClassExpression::ObjectIntersectionOf(operands) |
+            ClassExpression::ObjectUnionOf(operands) => {
+                for op in operands {
+                    Self::collect_class_expression_strings(op, table);
+                }
+            }
+            ClassExpression::ObjectComplementOf(operand) => {
+                Self::collect_class_expression_strings(operand, table);
+            }
+            ClassExpression::ObjectSomeValuesFrom(_, class) |
+            ClassExpression::ObjectAllValuesFrom(_, class) => {
+                Self::collect_class_expression_strings(class, table);
+            }
+            _ => {}
+        }
+    }
+    
+    // === Header ===
     
     fn write_header<W: Write>(
         writer: &mut W,
         class_count: u64,
-        property_count: u64,
+        object_property_count: u64,
+        data_property_count: u64,
+        individual_count: u64,
         axiom_count: u64,
     ) -> IoResult<()> {
         writer.write_all(MAGIC)?;
         writer.write_all(&VERSION.to_le_bytes())?;
         writer.write_all(&class_count.to_le_bytes())?;
-        writer.write_all(&property_count.to_le_bytes())?;
+        writer.write_all(&object_property_count.to_le_bytes())?;
+        writer.write_all(&data_property_count.to_le_bytes())?;
+        writer.write_all(&individual_count.to_le_bytes())?;
         writer.write_all(&axiom_count.to_le_bytes())?;
-        writer.write_all(&[0u8; 8])?; // reserved
         Ok(())
     }
     
@@ -146,26 +238,34 @@ impl BinaryOntologyFormat {
         reader.read_exact(&mut class_count)?;
         let class_count = u64::from_le_bytes(class_count);
         
-        let mut property_count = [0u8; 8];
-        reader.read_exact(&mut property_count)?;
-        let property_count = u64::from_le_bytes(property_count);
+        let mut object_property_count = [0u8; 8];
+        reader.read_exact(&mut object_property_count)?;
+        let object_property_count = u64::from_le_bytes(object_property_count);
+        
+        let mut data_property_count = [0u8; 8];
+        reader.read_exact(&mut data_property_count)?;
+        let data_property_count = u64::from_le_bytes(data_property_count);
+        
+        let mut individual_count = [0u8; 8];
+        reader.read_exact(&mut individual_count)?;
+        let individual_count = u64::from_le_bytes(individual_count);
         
         let mut axiom_count = [0u8; 8];
         reader.read_exact(&mut axiom_count)?;
         let axiom_count = u64::from_le_bytes(axiom_count);
         
-        let mut reserved = [0u8; 8];
-        reader.read_exact(&mut reserved)?;
-        
         Ok(Header {
             magic,
             version,
             class_count,
-            property_count,
+            object_property_count,
+            data_property_count,
+            individual_count,
             axiom_count,
-            _reserved: reserved,
         })
     }
+    
+    // === Classes ===
     
     fn write_classes<W: Write>(
         writer: &mut W,
@@ -186,21 +286,17 @@ impl BinaryOntologyFormat {
         string_table: &StringTable,
         count: u64,
     ) -> IoResult<()> {
-        use crate::core::entities::Class;
-        
         for _ in 0..count {
-            let mut id_bytes = [0u8; 8];
-            reader.read_exact(&mut id_bytes)?;
-            let id = u64::from_le_bytes(id_bytes);
-            
+            let id = Self::read_u64(reader)?;
             let iri_str = string_table.get_string(id)
                 .ok_or_else(|| std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
                     "Invalid string ID"
                 ))?;
             
-            let iri = IRI::new(iri_str);
-            let class = Class::new(iri);
+            let class = Class::new(IRI::new(iri_str).map_err(|e| {
+                std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e))
+            })?);
             ontology.add_class(class).map_err(|e| {
                 std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e))
             })?;
@@ -208,40 +304,300 @@ impl BinaryOntologyFormat {
         Ok(())
     }
     
-    fn write_properties<W: Write>(
-        _writer: &mut W,
-        _ontology: &Ontology,
-        _string_table: &StringTable,
+    // === Object Properties ===
+    
+    fn write_object_properties<W: Write>(
+        writer: &mut W,
+        ontology: &Ontology,
+        string_table: &StringTable,
     ) -> IoResult<()> {
-        // Placeholder - full implementation later
+        for prop in ontology.object_properties() {
+            let id = string_table.get_id(prop.iri().as_str())
+                .expect("IRI not in string table");
+            writer.write_all(&id.to_le_bytes())?;
+        }
         Ok(())
     }
     
-    fn read_properties<R: Read>(
-        _reader: &mut R,
-        _ontology: &mut Ontology,
-        _string_table: &StringTable,
-        _count: u64,
+    fn read_object_properties<R: Read>(
+        reader: &mut R,
+        ontology: &mut Ontology,
+        string_table: &StringTable,
+        count: u64,
     ) -> IoResult<()> {
-        // Placeholder - full implementation later
+        for _ in 0..count {
+            let id = Self::read_u64(reader)?;
+            let iri_str = string_table.get_string(id)
+                .ok_or_else(|| std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Invalid string ID"
+                ))?;
+            
+            let prop = ObjectProperty::new(IRI::new(iri_str).map_err(|e| {
+                std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e))
+            })?);
+            ontology.add_object_property(prop).map_err(|e| {
+                std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e))
+            })?;
+        }
         Ok(())
     }
     
-    fn write_axioms_placeholder<W: Write>(
-        _writer: &mut W,
-        _ontology: &Ontology,
+    // === Data Properties ===
+    
+    fn write_data_properties<W: Write>(
+        writer: &mut W,
+        ontology: &Ontology,
+        string_table: &StringTable,
     ) -> IoResult<()> {
-        // Placeholder - full implementation later
+        for prop in ontology.data_properties() {
+            let id = string_table.get_id(prop.iri().as_str())
+                .expect("IRI not in string table");
+            writer.write_all(&id.to_le_bytes())?;
+        }
         Ok(())
     }
     
-    fn read_axioms_placeholder<R: Read>(
-        _reader: &mut R,
-        _ontology: &mut Ontology,
-        _count: u64,
+    fn read_data_properties<R: Read>(
+        reader: &mut R,
+        ontology: &mut Ontology,
+        string_table: &StringTable,
+        count: u64,
     ) -> IoResult<()> {
-        // Placeholder - full implementation later
+        for _ in 0..count {
+            let id = Self::read_u64(reader)?;
+            let iri_str = string_table.get_string(id)
+                .ok_or_else(|| std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Invalid string ID"
+                ))?;
+            
+            let prop = DataProperty::new(IRI::new(iri_str).map_err(|e| {
+                std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e))
+            })?);
+            ontology.add_data_property(prop).map_err(|e| {
+                std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e))
+            })?;
+        }
         Ok(())
+    }
+    
+    // === Individuals ===
+    
+    fn write_individuals<W: Write>(
+        writer: &mut W,
+        ontology: &Ontology,
+        string_table: &StringTable,
+    ) -> IoResult<()> {
+        for ind in ontology.named_individuals() {
+            let id = string_table.get_id(ind.iri().as_str())
+                .expect("IRI not in string table");
+            writer.write_all(&id.to_le_bytes())?;
+        }
+        Ok(())
+    }
+    
+    fn read_individuals<R: Read>(
+        reader: &mut R,
+        ontology: &mut Ontology,
+        string_table: &StringTable,
+        count: u64,
+    ) -> IoResult<()> {
+        for _ in 0..count {
+            let id = Self::read_u64(reader)?;
+            let iri_str = string_table.get_string(id)
+                .ok_or_else(|| std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Invalid string ID"
+                ))?;
+            
+            let ind = NamedIndividual::new(IRI::new(iri_str).map_err(|e| {
+                std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e))
+            })?);
+            ontology.add_named_individual(ind).map_err(|e| {
+                std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e))
+            })?;
+        }
+        Ok(())
+    }
+    
+    // === Axioms ===
+    
+    fn write_axioms<W: Write>(
+        writer: &mut W,
+        ontology: &Ontology,
+        string_table: &StringTable,
+    ) -> IoResult<()> {
+        for axiom in ontology.axioms() {
+            match axiom.as_ref() {
+                Axiom::SubClassOf(axiom) => {
+                    writer.write_all(&(AxiomType::SubClassOf as u8).to_le_bytes())?;
+                    Self::write_class_expression(writer, axiom.sub_class(), string_table)?;
+                    Self::write_class_expression(writer, axiom.super_class(), string_table)?;
+                }
+                Axiom::ClassAssertion(axiom) => {
+                    writer.write_all(&(AxiomType::ClassAssertion as u8).to_le_bytes())?;
+                    let ind_id = string_table.get_id(axiom.individual().as_str()).unwrap();
+                    writer.write_all(&ind_id.to_le_bytes())?;
+                    Self::write_class_expression(writer, axiom.class_expr(), string_table)?;
+                }
+                _ => {
+                    // Skip other axiom types for now (placeholder)
+                    // In full implementation, handle all types
+                }
+            }
+        }
+        Ok(())
+    }
+    
+    fn read_axioms<R: Read>(
+        reader: &mut R,
+        ontology: &mut Ontology,
+        string_table: &StringTable,
+        count: u64,
+    ) -> IoResult<()> {
+        for _ in 0..count {
+            let axiom_type = Self::read_u8(reader)?;
+            let axiom_type = AxiomType::from_u8(axiom_type)
+                .ok_or_else(|| std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Unknown axiom type"
+                ))?;
+            
+            match axiom_type {
+                AxiomType::SubClassOf => {
+                    let sub = Self::read_class_expression(reader, string_table)?;
+                    let sup = Self::read_class_expression(reader, string_table)?;
+                    let axiom = SubClassOfAxiom::new(sub, sup);
+                    ontology.add_subclass_axiom(axiom).map_err(|e| {
+                        std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e))
+                    })?;
+                }
+                AxiomType::ClassAssertion => {
+                    let ind_id = Self::read_u64(reader)?;
+                    let ind_iri = string_table.get_string(ind_id).unwrap();
+                    let iri = IRI::new(ind_iri).map_err(|e| {
+                        std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e))
+                    })?;
+                    let cls = Self::read_class_expression(reader, string_table)?;
+                    let axiom = ClassAssertionAxiom::new(std::sync::Arc::new(iri), cls);
+                    ontology.add_class_assertion(axiom).map_err(|e| {
+                        std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e))
+                    })?;
+                }
+                _ => {
+                    // Skip other types for now
+                }
+            }
+        }
+        Ok(())
+    }
+    
+    // === Class Expression Serialization ===
+    
+    fn write_class_expression<W: Write>(
+        writer: &mut W,
+        expr: &ClassExpression,
+        string_table: &StringTable,
+    ) -> IoResult<()> {
+        match expr {
+            ClassExpression::Class(class) => {
+                writer.write_all(&[1u8])?; // Type tag for Class
+                let id = string_table.get_id(class.iri().as_str()).unwrap();
+                writer.write_all(&id.to_le_bytes())?;
+            }
+            ClassExpression::ObjectIntersectionOf(operands) => {
+                writer.write_all(&[2u8])?;
+                writer.write_all(&(operands.len() as u32).to_le_bytes())?;
+                for op in operands {
+                    Self::write_class_expression(writer, op, string_table)?;
+                }
+            }
+            ClassExpression::ObjectUnionOf(operands) => {
+                writer.write_all(&[3u8])?;
+                writer.write_all(&(operands.len() as u32).to_le_bytes())?;
+                for op in operands {
+                    Self::write_class_expression(writer, op, string_table)?;
+                }
+            }
+            ClassExpression::ObjectComplementOf(operand) => {
+                writer.write_all(&[4u8])?;
+                Self::write_class_expression(writer, operand, string_table)?;
+            }
+            _ => {
+                writer.write_all(&[0u8])?; // Unknown/unsupported
+            }
+        }
+        Ok(())
+    }
+    
+    fn read_class_expression<R: Read>(
+        reader: &mut R,
+        string_table: &StringTable,
+    ) -> IoResult<ClassExpression> {
+        let type_tag = Self::read_u8(reader)?;
+        match type_tag {
+            1 => {
+                // Class
+                let id = Self::read_u64(reader)?;
+                let iri_str = string_table.get_string(id).unwrap();
+                let iri = IRI::new(iri_str).map_err(|e| {
+                    std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e))
+                })?;
+                Ok(ClassExpression::Class(Class::new(iri)))
+            }
+            2 => {
+                // ObjectIntersectionOf
+                let len = Self::read_u32(reader)?;
+                let mut operands = Vec::with_capacity(len as usize);
+                for _ in 0..len {
+                    operands.push(Self::read_class_expression(reader, string_table)?);
+                }
+                let operands: SmallVec<[Box<ClassExpression>; 4]> = operands.into_iter().map(Box::new).collect();
+                Ok(ClassExpression::ObjectIntersectionOf(operands))
+            }
+            3 => {
+                // ObjectUnionOf
+                let len = Self::read_u32(reader)?;
+                let mut operands = Vec::with_capacity(len as usize);
+                for _ in 0..len {
+                    operands.push(Self::read_class_expression(reader, string_table)?);
+                }
+                let operands: SmallVec<[Box<ClassExpression>; 4]> = operands.into_iter().map(Box::new).collect();
+                Ok(ClassExpression::ObjectUnionOf(operands))
+            }
+            4 => {
+                // ObjectComplementOf
+                let operand = Self::read_class_expression(reader, string_table)?;
+                Ok(ClassExpression::ObjectComplementOf(Box::new(operand)))
+            }
+            _ => {
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Unknown class expression type"
+                ))
+            }
+        }
+    }
+    
+    // === Helper Functions ===
+    
+    fn read_u8<R: Read>(reader: &mut R) -> IoResult<u8> {
+        let mut buf = [0u8; 1];
+        reader.read_exact(&mut buf)?;
+        Ok(buf[0])
+    }
+    
+    fn read_u32<R: Read>(reader: &mut R) -> IoResult<u32> {
+        let mut buf = [0u8; 4];
+        reader.read_exact(&mut buf)?;
+        Ok(u32::from_le_bytes(buf))
+    }
+    
+    fn read_u64<R: Read>(reader: &mut R) -> IoResult<u64> {
+        let mut buf = [0u8; 8];
+        reader.read_exact(&mut buf)?;
+        Ok(u64::from_le_bytes(buf))
     }
 }
 
@@ -250,9 +606,10 @@ struct Header {
     magic: [u8; 4],
     version: u32,
     class_count: u64,
-    property_count: u64,
+    object_property_count: u64,
+    data_property_count: u64,
+    individual_count: u64,
     axiom_count: u64,
-    _reserved: [u8; 8],
 }
 
 /// String table for deduplication
@@ -288,10 +645,7 @@ impl StringTable {
     }
     
     fn write<W: Write>(&self, writer: &mut W) -> IoResult<()> {
-        // Write count
         writer.write_all(&(self.strings.len() as u64).to_le_bytes())?;
-        
-        // Write each string
         for s in &self.strings {
             let bytes = s.as_bytes();
             writer.write_all(&(bytes.len() as u32).to_le_bytes())?;
@@ -301,37 +655,41 @@ impl StringTable {
     }
     
     fn read<R: Read>(reader: &mut R) -> IoResult<Self> {
-        let mut count_bytes = [0u8; 8];
-        reader.read_exact(&mut count_bytes)?;
-        let count = u64::from_le_bytes(count_bytes);
-        
+        let count = Self::read_u64(reader)?;
         let mut strings = Vec::with_capacity(count as usize);
         let mut id_map = std::collections::HashMap::new();
         
         for i in 0..count {
-            let mut len_bytes = [0u8; 4];
-            reader.read_exact(&mut len_bytes)?;
-            let len = u32::from_le_bytes(len_bytes) as usize;
-            
+            let len = Self::read_u32(reader)? as usize;
             let mut bytes = vec![0u8; len];
             reader.read_exact(&mut bytes)?;
-            
             let s = String::from_utf8(bytes).map_err(|e| {
                 std::io::Error::new(std::io::ErrorKind::InvalidData, e)
             })?;
-            
             id_map.insert(s.clone(), i);
             strings.push(s);
         }
         
         Ok(Self { strings, id_map })
     }
+    
+    fn read_u32<R: Read>(reader: &mut R) -> IoResult<u32> {
+        let mut buf = [0u8; 4];
+        reader.read_exact(&mut buf)?;
+        Ok(u32::from_le_bytes(buf))
+    }
+    
+    fn read_u64<R: Read>(reader: &mut R) -> IoResult<u64> {
+        let mut buf = [0u8; 8];
+        reader.read_exact(&mut buf)?;
+        Ok(u64::from_le_bytes(buf))
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::logic::Class;
+    use crate::core::entities::Class;
     
     #[test]
     fn test_serialize_deserialize_empty() {
@@ -359,6 +717,30 @@ mod tests {
         let deserialized = BinaryOntologyFormat::deserialize(&mut reader).unwrap();
         
         assert_eq!(deserialized.classes().len(), 2);
+    }
+    
+    #[test]
+    fn test_serialize_deserialize_with_subclass_axioms() {
+        let mut ontology = Ontology::new();
+        let class_a = Class::new(IRI::new("http://example.org/A"));
+        let class_b = Class::new(IRI::new("http://example.org/B"));
+        ontology.add_class(class_a.clone()).unwrap();
+        ontology.add_class(class_b.clone()).unwrap();
+        
+        let axiom = SubClassOfAxiom::new(
+            ClassExpression::Class(class_a),
+            ClassExpression::Class(class_b)
+        );
+        ontology.add_subclass_axiom(axiom).unwrap();
+        
+        let mut buffer = Vec::new();
+        BinaryOntologyFormat::serialize(&ontology, &mut buffer).unwrap();
+        
+        let mut reader = &buffer[..];
+        let deserialized = BinaryOntologyFormat::deserialize(&mut reader).unwrap();
+        
+        assert_eq!(deserialized.classes().len(), 2);
+        assert_eq!(deserialized.axioms().len(), 1);
     }
     
     #[test]
