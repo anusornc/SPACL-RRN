@@ -165,6 +165,10 @@ name = "owl2-reasoner"
 path = "src/bin/owl2-reasoner.rs"
 
 [[bin]]
+name = "epcis-reasoner"
+path = "src/bin/epcis-reasoner.rs"
+
+[[bin]]
 name = "owl2_validation"
 path = "src/bin/owl2_validation.rs"
 
