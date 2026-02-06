@@ -55,6 +55,20 @@ pdflatex manuscript.tex
 pdflatex manuscript.tex
 ```
 
+## License
+
+This paper is licensed under [Creative Commons Attribution 4.0 International (CC BY 4.0)](LICENSE).
+
+You are free to:
+- **Share** — copy and redistribute the material in any medium or format
+- **Adapt** — remix, transform, and build upon the material for any purpose, even commercially
+
+Under the terms that you give appropriate credit to the authors.
+
 ## Repository
 
 https://github.com/anusornchaikaew/tableauxx
+
+**Note**: The repository contains:
+- **Code** (Rust implementation): MIT License
+- **Paper** (LaTeX manuscript): CC BY 4.0 License

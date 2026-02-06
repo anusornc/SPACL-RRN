@@ -114,7 +114,14 @@ CODE REPOSITORY
 
 https://github.com/anusornchaikaew/tableauxx
 
-License: MIT
+LICENSE
+--------
+
+- Paper (LaTeX manuscript): Creative Commons Attribution 4.0 International (CC BY 4.0)
+  https://creativecommons.org/licenses/by/4.0/
+  
+- Code (Rust implementation): MIT License
+  https://opensource.org/licenses/MIT
 
 All benchmarks and test data are included in the repository for 
 reproducibility.
