@@ -40,3 +40,34 @@ Thumbs.db
 .env
 CLAUDE.md
 AGENTS.md
+
+# Docker
+.dockerignore.bak
+
+# Benchmark results (generated)
+results/*.pid
+results/*.json
+results/*.tmp
+benchmarks/competitors/results/*.json
+benchmarks/competitors/results/*.md
+!benchmarks/competitors/results/FINAL_BENCHMARK_REPORT.md
+
+# Test artifacts
+*.profraw
+
+# Paper build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.out
+*.synctex.gz
+*.toc
+*.lot
+*.lof
+*.pdf
+paper/**/*.pdf
+
+# Large test data (keep small ones)
+tests/data/hierarchy_100000.owl

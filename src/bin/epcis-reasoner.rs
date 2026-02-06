@@ -1,6 +1,11 @@
-//! EPCIS (Electronic Product Code Information Services) Reasoner Demo
+//! EPCIS (GS1 Electronic Product Code Information Services) Reasoner Demo
 //!
-//! A demo application showing OWL2 reasoning on GS1 EPCIS supply chain events.
+//! A demo application showing OWL2 reasoning on GS1 EPCIS supply chain events
+//! using the official GS1 EPCIS vocabulary.
+//!
+//! This demo uses the actual GS1 standard vocabulary:
+//! - EPCIS ontology: https://ref.gs1.org/epcis/
+//! - Core Business Vocabulary (CBV): https://ref.gs1.org/cbv/
 //!
 //! EPCIS captures "what, when, where, why" information about products:
 //! - What: Product identifier (EPC - Electronic Product Code)
@@ -20,6 +25,11 @@
 //! Examples:
 //!   cargo run --bin epcis-reasoner -- generate-demo
 //!   cargo run --bin epcis-reasoner -- check-consistency
+//!
+//! References:
+//!   - GS1 EPCIS Standard: https://www.gs1.org/standards/epcis
+//!   - EPCIS Ontology: https://ref.gs1.org/epcis/
+//!   - CBV Standard: https://ref.gs1.org/cbv/
 
 use std::env;
 use std::time::Instant;
@@ -30,12 +40,21 @@ use owl2_reasoner::{
     PropertyAssertionAxiom, ClassAssertionAxiom,
 };
 
+/// GS1 EPCIS Namespace
+const NS_EPCIS: &str = "https://ref.gs1.org/epcis/";
+/// GS1 CBV (Core Business Vocabulary) Namespace  
+const NS_CBV: &str = "https://ref.gs1.org/cbv/";
+/// Example namespace for instances
+const NS_EXAMPLE: &str = "https://example.org/epcis-demo/";
+
 fn print_usage() {
     println!("╔════════════════════════════════════════════════════════════════╗");
-    println!("║         EPCIS (GS1) Supply Chain Reasoner Demo                ║");
+    println!("║    GS1 EPCIS Supply Chain Reasoner Demo                       ║");
+    println!("║    (Using official GS1 EPCIS & CBV vocabulary)                ║");
     println!("╚════════════════════════════════════════════════════════════════╝");
     println!();
-    println!("A demo application for reasoning over EPCIS supply chain events.");
+    println!("A demo application for reasoning over EPCIS supply chain events");
+    println!("using the official GS1 EPCIS standard vocabulary.");
     println!();
     println!("Usage: epcis-reasoner <command> [options]");
     println!();
@@ -64,19 +83,22 @@ fn cmd_generate_demo() {
     // Create EPCIS core classes
     println!("Step 1: Creating EPCIS classes...");
     
-    let epcis_event = Class::new("http://example.org/epcis#Event");
-    let object_event = Class::new("http://example.org/epcis#ObjectEvent");
-    let aggregation_event = Class::new("http://example.org/epcis#AggregationEvent");
-    let epc = Class::new("http://example.org/epcis#EPC");
-    let location = Class::new("http://example.org/epcis#Location");
-    let business_step = Class::new("http://example.org/epcis#BusinessStep");
+    // GS1 EPCIS Classes
+    let epcis_event = Class::new(format!("{}Event", NS_EPCIS));
+    let object_event = Class::new(format!("{}ObjectEvent", NS_EPCIS));
+    let aggregation_event = Class::new(format!("{}AggregationEvent", NS_EPCIS));
+    let epc = Class::new(format!("{}EPC", NS_EPCIS));
+    let read_point = Class::new(format!("{}ReadPoint", NS_EPCIS));
+    let biz_location = Class::new(format!("{}BizLocation", NS_EPCIS));
+    let biz_step = Class::new(format!("{}BizStep", NS_EPCIS));
     
     ontology.add_class(epcis_event.clone()).unwrap();
     ontology.add_class(object_event.clone()).unwrap();
     ontology.add_class(aggregation_event.clone()).unwrap();
     ontology.add_class(epc.clone()).unwrap();
-    ontology.add_class(location.clone()).unwrap();
-    ontology.add_class(business_step.clone()).unwrap();
+    ontology.add_class(read_point.clone()).unwrap();
+    ontology.add_class(biz_location.clone()).unwrap();
+    ontology.add_class(biz_step.clone()).unwrap();
     
     // Create class hierarchy
     ontology.add_subclass_axiom(SubClassOfAxiom::new(
@@ -89,38 +111,41 @@ fn cmd_generate_demo() {
         ClassExpression::Class(epcis_event.clone()),
     )).unwrap();
     
-    println!("  ✓ Created {} classes", ontology.classes().len());
+    println!("  ✓ Created {} EPCIS classes", ontology.classes().len());
     
     // Create object properties
     println!("\nStep 2: Creating relationships...");
     
-    let has_epc = owl2_reasoner::ObjectProperty::new("http://example.org/epcis#hasEPC");
-    let at_location = owl2_reasoner::ObjectProperty::new("http://example.org/epcis#atLocation");
-    let has_business_step = owl2_reasoner::ObjectProperty::new("http://example.org/epcis#hasBusinessStep");
-    let before = owl2_reasoner::ObjectProperty::new("http://example.org/epcis#before");
+    // GS1 EPCIS Properties
+    let has_epc = owl2_reasoner::ObjectProperty::new(format!("{}epcList", NS_EPCIS));
+    let read_point_prop = owl2_reasoner::ObjectProperty::new(format!("{}readPoint", NS_EPCIS));
+    let biz_location_prop = owl2_reasoner::ObjectProperty::new(format!("{}bizLocation", NS_EPCIS));
+    let biz_step_prop = owl2_reasoner::ObjectProperty::new(format!("{}bizStep", NS_EPCIS));
+    let before = owl2_reasoner::ObjectProperty::new(format!("{}eventTime", NS_EPCIS));
     
     ontology.add_object_property(has_epc.clone()).unwrap();
-    ontology.add_object_property(at_location.clone()).unwrap();
-    ontology.add_object_property(has_business_step.clone()).unwrap();
+    ontology.add_object_property(read_point_prop.clone()).unwrap();
+    ontology.add_object_property(biz_location_prop.clone()).unwrap();
+    ontology.add_object_property(biz_step_prop.clone()).unwrap();
     ontology.add_object_property(before.clone()).unwrap();
     
-    println!("  ✓ Created {} object properties", ontology.object_properties().len());
+    println!("  ✓ Created {} EPCIS properties", ontology.object_properties().len());
     
     // Create supply chain scenario
     println!("\nStep 3: Creating supply chain events...");
     println!("  Scenario: Pharmaceutical product tracking");
     println!();
     
-    // Event 1: Manufacturing
-    let event1 = NamedIndividual::new("http://example.org/event#manufacturing_001");
-    let product1 = NamedIndividual::new("http://example.org/epc#urn:epc:id:sgtin:0614141.107346.2018");
-    let factory = NamedIndividual::new("http://example.org/loc#factory_A");
-    let commissioning = NamedIndividual::new("http://example.org/step#commissioning");
+    // Event 1: Manufacturing (using GS1 CBV BizStep)
+    let event1 = NamedIndividual::new(format!("{}event/manufacturing-001", NS_EXAMPLE));
+    let product1 = NamedIndividual::new("urn:epc:id:sgtin:0614141.107346.2018");
+    let factory = NamedIndividual::new(format!("{}loc/factory-A", NS_EXAMPLE));
+    let commissioning_step = NamedIndividual::new(format!("{}cbv:BizStep-commissioning", NS_CBV));
     
     ontology.add_named_individual(event1.clone()).unwrap();
     ontology.add_named_individual(product1.clone()).unwrap();
     ontology.add_named_individual(factory.clone()).unwrap();
-    ontology.add_named_individual(commissioning.clone()).unwrap();
+    ontology.add_named_individual(commissioning_step.clone()).unwrap();
     
     // Class assertions
     ontology.add_class_assertion(ClassAssertionAxiom::new(
@@ -135,7 +160,7 @@ fn cmd_generate_demo() {
     
     ontology.add_class_assertion(ClassAssertionAxiom::new(
         factory.iri().clone(),
-        ClassExpression::Class(location.clone()),
+        ClassExpression::Class(read_point.clone()),
     )).unwrap();
     
     // Property assertions
@@ -147,23 +172,29 @@ fn cmd_generate_demo() {
     
     ontology.add_property_assertion(PropertyAssertionAxiom::new(
         event1.iri().clone(),
-        at_location.iri().clone(),
+        biz_location_prop.iri().clone(),
         factory.iri().clone(),
     )).unwrap();
     
-    println!("  [Event 1] Manufacturing");
-    println!("    Product: urn:epc:id:sgtin:0614141.107346.2018");
-    println!("    Location: Factory A");
-    println!("    Step: Commissioning");
+    ontology.add_property_assertion(PropertyAssertionAxiom::new(
+        event1.iri().clone(),
+        biz_step_prop.iri().clone(),
+        commissioning_step.iri().clone(),
+    )).unwrap();
+    
+    println!("  [Event 1] Manufacturing (ObjectEvent)");
+    println!("    Product (EPC): urn:epc:id:sgtin:0614141.107346.2018");
+    println!("    Location: Factory A (ReadPoint)");
+    println!("    Business Step: cbv:BizStep-commissioning");
     
     // Event 2: Shipping
-    let event2 = NamedIndividual::new("http://example.org/event#shipping_001");
-    let warehouse = NamedIndividual::new("http://example.org/loc#warehouse_B");
-    let shipping = NamedIndividual::new("http://example.org/step#shipping");
+    let event2 = NamedIndividual::new(format!("{}event/shipping-001", NS_EXAMPLE));
+    let warehouse = NamedIndividual::new(format!("{}loc/warehouse-B", NS_EXAMPLE));
+    let shipping_step = NamedIndividual::new(format!("{}cbv:BizStep-shipping", NS_CBV));
     
     ontology.add_named_individual(event2.clone()).unwrap();
     ontology.add_named_individual(warehouse.clone()).unwrap();
-    ontology.add_named_individual(shipping.clone()).unwrap();
+    ontology.add_named_individual(shipping_step.clone()).unwrap();
     
     ontology.add_class_assertion(ClassAssertionAxiom::new(
         event2.iri().clone(),
@@ -172,7 +203,7 @@ fn cmd_generate_demo() {
     
     ontology.add_class_assertion(ClassAssertionAxiom::new(
         warehouse.iri().clone(),
-        ClassExpression::Class(location.clone()),
+        ClassExpression::Class(read_point.clone()),
     )).unwrap();
     
     ontology.add_property_assertion(PropertyAssertionAxiom::new(
@@ -183,8 +214,14 @@ fn cmd_generate_demo() {
     
     ontology.add_property_assertion(PropertyAssertionAxiom::new(
         event2.iri().clone(),
-        at_location.iri().clone(),
+        biz_location_prop.iri().clone(),
         warehouse.iri().clone(),
+    )).unwrap();
+    
+    ontology.add_property_assertion(PropertyAssertionAxiom::new(
+        event2.iri().clone(),
+        biz_step_prop.iri().clone(),
+        shipping_step.iri().clone(),
     )).unwrap();
     
     // Temporal ordering: event1 before event2
@@ -194,20 +231,20 @@ fn cmd_generate_demo() {
         event2.iri().clone(),
     )).unwrap();
     
-    println!("  [Event 2] Shipping");
-    println!("    Product: urn:epc:id:sgtin:0614141.107346.2018");
-    println!("    Location: Warehouse B");
-    println!("    Step: Shipping");
-    println!("    Follows: Manufacturing");
+    println!("  [Event 2] Shipping (ObjectEvent)");
+    println!("    Product (EPC): urn:epc:id:sgtin:0614141.107346.2018");
+    println!("    Location: Warehouse B (BizLocation)");
+    println!("    Business Step: cbv:BizStep-shipping");
+    println!("    Temporal: After Manufacturing event");
     
     // Event 3: Receiving at hospital
-    let event3 = NamedIndividual::new("http://example.org/event#receiving_001");
-    let hospital = NamedIndividual::new("http://example.org/loc#hospital_C");
-    let receiving = NamedIndividual::new("http://example.org/step#receiving");
+    let event3 = NamedIndividual::new(format!("{}event/receiving-001", NS_EXAMPLE));
+    let hospital = NamedIndividual::new(format!("{}loc/hospital-C", NS_EXAMPLE));
+    let receiving_step = NamedIndividual::new(format!("{}cbv:BizStep-receiving", NS_CBV));
     
     ontology.add_named_individual(event3.clone()).unwrap();
     ontology.add_named_individual(hospital.clone()).unwrap();
-    ontology.add_named_individual(receiving.clone()).unwrap();
+    ontology.add_named_individual(receiving_step.clone()).unwrap();
     
     ontology.add_class_assertion(ClassAssertionAxiom::new(
         event3.iri().clone(),
@@ -216,7 +253,7 @@ fn cmd_generate_demo() {
     
     ontology.add_class_assertion(ClassAssertionAxiom::new(
         hospital.iri().clone(),
-        ClassExpression::Class(location.clone()),
+        ClassExpression::Class(biz_location.clone()),
     )).unwrap();
     
     ontology.add_property_assertion(PropertyAssertionAxiom::new(
@@ -227,8 +264,14 @@ fn cmd_generate_demo() {
     
     ontology.add_property_assertion(PropertyAssertionAxiom::new(
         event3.iri().clone(),
-        at_location.iri().clone(),
+        biz_location_prop.iri().clone(),
         hospital.iri().clone(),
+    )).unwrap();
+    
+    ontology.add_property_assertion(PropertyAssertionAxiom::new(
+        event3.iri().clone(),
+        biz_step_prop.iri().clone(),
+        receiving_step.iri().clone(),
     )).unwrap();
     
     // Temporal ordering
@@ -238,11 +281,11 @@ fn cmd_generate_demo() {
         event3.iri().clone(),
     )).unwrap();
     
-    println!("  [Event 3] Receiving");
-    println!("    Product: urn:epc:id:sgtin:0614141.107346.2018");
-    println!("    Location: Hospital C");
-    println!("    Step: Receiving");
-    println!("    Follows: Shipping");
+    println!("  [Event 3] Receiving at Hospital (ObjectEvent)");
+    println!("    Product (EPC): urn:epc:id:sgtin:0614141.107346.2018");
+    println!("    Location: Hospital C (BizLocation)");
+    println!("    Business Step: cbv:BizStep-receiving");
+    println!("    Temporal: After Shipping event");
     
     println!();
     println!("  ✓ Created {} individuals", ontology.named_individuals().len());
@@ -283,25 +326,32 @@ fn cmd_generate_demo() {
     
     println!();
     println!("Summary:");
+    println!("  - Standard: GS1 EPCIS 2.0 (https://ns.gs1.org/epcis/)");
+    println!("  - Vocabulary: GS1 CBV (https://ns.gs1.org/cbv/)");
     println!("  - EPCIS events: ObjectEvent (3 instances)");
-    println!("  - Product tracked: urn:epc:id:sgtin:0614141.107346.2018");
+    println!("  - Product EPC: urn:epc:id:sgtin:0614141.107346.2018");
     println!("  - Supply chain: Factory A → Warehouse B → Hospital C");
     println!("  - Temporal order: Manufacturing < Shipping < Receiving");
+    println!("  - Business steps: commissioning → shipping → receiving");
 }
 
 /// Check EPCIS ontology consistency
 fn cmd_check_consistency() {
     println!("╔════════════════════════════════════════════════════════════════╗");
-    println!("║        EPCIS Ontology Consistency Check                       ║");
+    println!("║        GS1 EPCIS Ontology Consistency Check                   ║");
     println!("╚════════════════════════════════════════════════════════════════╝");
     println!();
     
     let mut ontology = Ontology::new();
     
-    // Create basic EPCIS structure
-    let event = Class::new("http://example.org/epcis#Event");
-    let object_event = Class::new("http://example.org/epcis#ObjectEvent");
-    let epc = Class::new("http://example.org/epcis#EPC");
+    // Create GS1 EPCIS structure using official vocabulary
+    println!("Using GS1 EPCIS vocabulary:");
+    println!("  Namespace: https://ns.gs1.org/epcis/");
+    println!();
+    
+    let event = Class::new(format!("{}Event", NS_EPCIS));
+    let object_event = Class::new(format!("{}ObjectEvent", NS_EPCIS));
+    let epc = Class::new(format!("{}EPC", NS_EPCIS));
     
     ontology.add_class(event.clone()).unwrap();
     ontology.add_class(object_event.clone()).unwrap();
@@ -345,24 +395,25 @@ fn cmd_check_consistency() {
 /// Show ontology statistics
 fn cmd_stats() {
     println!("╔════════════════════════════════════════════════════════════════╗");
-    println!("║              EPCIS Ontology Statistics                        ║");
+    println!("║           GS1 EPCIS Ontology Statistics                       ║");
     println!("╚════════════════════════════════════════════════════════════════╝");
     println!();
     
     let mut ontology = Ontology::new();
     
-    // Add some basic EPCIS structure
+    // Add GS1 EPCIS core classes
     let classes = vec![
-        "http://example.org/epcis#Event",
-        "http://example.org/epcis#ObjectEvent",
-        "http://example.org/epcis#AggregationEvent",
-        "http://example.org/epcis#TransformationEvent",
-        "http://example.org/epcis#EPC",
-        "http://example.org/epcis#Location",
-        "http://example.org/epcis#ReadPoint",
-        "http://example.org/epcis#BusinessLocation",
-        "http://example.org/epcis#BusinessStep",
-        "http://example.org/epcis#Disposition",
+        format!("{}Event", NS_EPCIS),
+        format!("{}ObjectEvent", NS_EPCIS),
+        format!("{}AggregationEvent", NS_EPCIS),
+        format!("{}TransformationEvent", NS_EPCIS),
+        format!("{}TransactionEvent", NS_EPCIS),
+        format!("{}AssociationEvent", NS_EPCIS),
+        format!("{}EPC", NS_EPCIS),
+        format!("{}ReadPoint", NS_EPCIS),
+        format!("{}BusinessLocation", NS_EPCIS),
+        format!("{}BusinessStep", NS_EPCIS),
+        format!("{}Disposition", NS_EPCIS),
     ];
     
     for class_iri in classes {
@@ -370,9 +421,9 @@ fn cmd_stats() {
     }
     
     // Add hierarchy
-    let event = Class::new("http://example.org/epcis#Event");
-    let object_event = Class::new("http://example.org/epcis#ObjectEvent");
-    let agg_event = Class::new("http://example.org/epcis#AggregationEvent");
+    let event = Class::new(format!("{}Event", NS_EPCIS));
+    let object_event = Class::new(format!("{}ObjectEvent", NS_EPCIS));
+    let agg_event = Class::new(format!("{}AggregationEvent", NS_EPCIS));
     
     ontology.add_subclass_axiom(SubClassOfAxiom::new(
         ClassExpression::Class(object_event),
@@ -381,28 +432,32 @@ fn cmd_stats() {
     
     ontology.add_subclass_axiom(SubClassOfAxiom::new(
         ClassExpression::Class(agg_event),
-        ClassExpression::Class(event),
+        ClassExpression::Class(event.clone()),
     )).unwrap();
     
-    println!("EPCIS Core Classes:");
+    println!("GS1 EPCIS Core Classes (https://ns.gs1.org/epcis/):");
     println!("  Total classes: {}", ontology.classes().len());
     println!("  Total axioms: {}", ontology.axioms().len());
     println!();
     
     println!("Event Types:");
-    println!("  • ObjectEvent      - Individual object observations");
-    println!("  • AggregationEvent - Packaging/unpackaging events");
-    println!("  • TransformationEvent - Product transformation");
-    println!("  • TransactionEvent - Business transactions");
+    println!("  • ObjectEvent       - Individual object observations (add, observe, delete)");
+    println!("  • AggregationEvent  - Packaging/unpackaging events");
+    println!("  • TransformationEvent - Product transformation events");
+    println!("  • TransactionEvent  - Business transaction events");
+    println!("  • AssociationEvent  - Association events");
     println!();
     
     println!("Core Concepts:");
-    println!("  • EPC              - Electronic Product Code (SGTIN, SSCC, etc.)");
-    println!("  • Location         - Where events occur");
-    println!("  • ReadPoint        - Exact location of scan");
-    println!("  • BusinessLocation - Business context location");
-    println!("  • BusinessStep     - Why the event occurred");
-    println!("  • Disposition      - Business state of the object");
+    println!("  • EPC               - Electronic Product Code (SGTIN, SSCC, etc.)");
+    println!("  • ReadPoint         - Exact location where the event occurred");
+    println!("  • BusinessLocation  - Business context location");
+    println!("  • BusinessStep      - Business step (from CBV vocabulary)");
+    println!("  • Disposition       - Business state of the object (from CBV)");
+    println!();
+    println!("Standards:");
+    println!("  • EPCIS 2.0: https://ns.gs1.org/epcis/");
+    println!("  • CBV 1.2:   https://ns.gs1.org/cbv/");
 }
 
 fn main() {

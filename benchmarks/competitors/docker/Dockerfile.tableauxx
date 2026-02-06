@@ -1,0 +1,19 @@
+# Tableauxx OWL2 Reasoner - Using locally built binary
+FROM debian:bookworm-slim
+
+WORKDIR /opt/reasoner
+
+# Install minimal dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy pre-built binary
+COPY target/release/owl2-reasoner /opt/reasoner/owl2-reasoner
+
+# Copy benchmark script
+COPY benchmarks/competitors/docker/benchmark-tableauxx.sh /opt/reasoner/benchmark.sh
+RUN chmod +x /opt/reasoner/benchmark.sh
+
+WORKDIR /ontologies
+ENTRYPOINT ["/opt/reasoner/benchmark.sh"]

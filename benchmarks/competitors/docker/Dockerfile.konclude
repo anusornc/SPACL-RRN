@@ -1,0 +1,32 @@
+# Konclude Reasoner
+# https://github.com/konclude/Konclude
+
+FROM ubuntu:22.04
+
+WORKDIR /opt/reasoner
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    unzip \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and extract Konclude - try alternative URLs
+RUN wget --max-redirect=3 -O konclude.zip "https://github.com/konclude/Konclude/releases/download/v0.7.0-1138/Konclude-v0.7.0-1138-ubuntu-20.04-amd64-dynamic.zip" || \
+    wget --max-redirect=3 -O konclude.zip "https://github.com/konclude/Konclude/releases/download/v0.7.0-1137/Konclude-v0.7.0-1137-ubuntu-20.04-amd64-dynamic.zip" || \
+    wget --max-redirect=3 -O konclude.zip "https://github.com/konclude/Konclude/releases/download/v0.7.0-1135/Konclude-v0.7.0-1135-ubuntu-20.04-amd64-dynamic.zip" && \
+    unzip konclude.zip && \
+    rm konclude.zip && \
+    mv Konclude-v* konclude && \
+    chmod +x konclude/bin/Konclude && \
+    ls -la konclude/bin/
+
+ENV PATH="/opt/reasoner/konclude/bin:${PATH}"
+
+# Copy benchmark script
+COPY benchmarks/competitors/docker/benchmark-konclude.sh /opt/reasoner/benchmark.sh
+RUN chmod +x /opt/reasoner/benchmark.sh
+
+WORKDIR /ontologies
+ENTRYPOINT ["/opt/reasoner/benchmark.sh"]

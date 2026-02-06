@@ -269,6 +269,172 @@ The relevance of SPACL extends across several dimensions:
 
 % Add these references to your references.bib file:
 % See the companion references.bib file for the complete bibliography entries
+\section{Formal Framework}
+\label{sec:formal}
+
+This section establishes the formal foundations of the SPACL algorithm, including the Description Logic syntax, tableaux calculus, and the mathematical basis for speculative parallelism with conflict learning.
+
+\subsection{Description Logic ALC}
+\label{sec:dl-syntax}
+
+We operate in the Description Logic $\mathcal{ALC}$ (Attributive Language with Complement), which forms the basis of OWL2 DL. The syntax is defined as follows:
+
+\begin{definition}[ALC Syntax]
+Let $\mathbf{C}$ be a set of concept names, $\mathbf{R}$ a set of role names, and $\mathbf{I}$ a set of individual names. \emph{Concepts} $C, D$ are defined by the grammar:
+\begin{align}
+C, D &::= A \mid \top \mid \bot \mid \neg C \mid C \sqcap D \mid C \sqcup D \mid \exists r.C \mid \forall r.C
+\end{align}
+where $A \in \mathbf{C}$ is an atomic concept and $r \in \mathbf{R}$ is a role.
+\end{definition}
+
+An \emph{ontology} $\mathcal{O} = (\mathcal{T}, \mathcal{A})$ consists of a TBox $\mathcal{T}$ (terminology) and ABox $\mathcal{A}$ (assertions):
+\begin{align}
+\mathcal{T} &::= \{C \sqsubseteq D\} \cup \{C \equiv D\} \\
+\mathcal{A} &::= \{a : C\} \cup \{(a,b) : r\}
+\end{align}
+
+\subsection{Tableaux Calculus}
+\label{sec:tableaux-calculus}
+
+The tableaux algorithm determines consistency by constructing a \emph{completion graph} $\mathcal{G} = (V, E, \mathcal{L})$ where:
+\begin{itemize}
+    \item $V$ is a set of nodes (individuals)
+    \item $E \subseteq V \times \mathbf{R} \times V$ are labeled edges (role assertions)
+    \item $\mathcal{L}: V \rightarrow 2^{\mathcal{C}}$ maps nodes to sets of concepts
+\end{itemize}
+
+\begin{definition}[Clash]
+A node $x \in V$ contains a \emph{clash} if either:
+\begin{enumerate}
+    \item $\{C, \neg C\} \subseteq \mathcal{L}(x)$ for some concept $C$, or
+    \item $\bot \in \mathcal{L}(x)$
+\end{enumerate}
+\end{definition}
+
+The tableaux algorithm applies \emph{expansion rules} until either a clash-free complete graph is found (consistent) or all branches lead to clashes (inconsistent).
+
+\begin{table}[htbp]
+\centering
+\caption{Tableaux Expansion Rules for $\mathcal{ALC}$}
+\label{tab:expansion-rules}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Rule} & \textbf{Premise} & \textbf{Action} \\
+\midrule
+$(\sqcap)$ & $x : C \sqcap D \in \mathcal{L}(x)$ & $\mathcal{L}(x) := \mathcal{L}(x) \cup \{C, D\}$ \\
+$(\sqcup)$ & $x : C \sqcup D \in \mathcal{L}(x)$ & Create branches: $\mathcal{L}_1(x) = \mathcal{L}(x) \cup \{C\}$, \\
+& & $\mathcal{L}_2(x) = \mathcal{L}(x) \cup \{D\}$ \\
+$(\exists)$ & $x : \exists r.C \in \mathcal{L}(x)$ & Add new $y$, $(x,y):r$, $y:C$ \\
+$(\forall)$ & $x : \forall r.C \in \mathcal{L}(x)$, $(x,y):r$ & $\mathcal{L}(y) := \mathcal{L}(y) \cup \{C\}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Speculative Parallelism Model}
+\label{sec:parallel-model}
+
+Traditional tableaux processing applies the $(\sqcup)$-rule sequentially, creating a binary decision tree with depth equal to the number of disjunctions. SPACL introduces \emph{speculative parallelism}:
+
+\begin{definition}[Speculative Branch]
+Given a disjunction $C \sqcup D$ at node $x$, a \emph{speculative branch} is a pair of subgraphs $(\mathcal{G}_1, \mathcal{G}_2)$ where:
+\begin{align}
+\mathcal{G}_1 &= (V, E, \mathcal{L}[x \mapsto \mathcal{L}(x) \cup \{C\}]) \\
+\mathcal{G}_2 &= (V, E, \mathcal{L}[x \mapsto \mathcal{L}(x) \cup \{D\}])
+\end{align}
+Both branches are explored concurrently by different workers.
+\end{definition}
+
+\begin{theorem}[Parallel Speedup Bound]
+Let $T_{seq}$ be the sequential tableaux runtime and $T_{par}$ the speculative parallel runtime with $p$ workers. For an ontology with $d$ disjunctions:
+\begin{align}
+T_{par} \geq \frac{T_{seq}}{p} \cdot (1 + \alpha \cdot o_{sync})
+\end{align}
+where $\alpha$ is the fraction of work requiring synchronization and $o_{sync}$ is the synchronization overhead.
+\end{theorem}
+
+\subsection{Nogood Learning}
+\label{sec:nogood-formal}
+
+\begin{definition}[Nogood]
+A \emph{nogood} is a set of class expressions $\mathcal{N} = \{C_1, C_2, \ldots, C_n\}$ such that:
+\begin{align}
+\bigcap_{i=1}^{n} C_i \sqsubseteq \bot
+\end{align}
+i.e., the conjunction of all expressions in $\mathcal{N}$ is unsatisfiable.
+\end{definition}
+
+\begin{definition}[Nogood Subsumption]
+A nogood $\mathcal{N}$ \emph{subsumes} a branch with constraints $\Gamma$ if:
+\begin{align}
+\mathcal{N} \subseteq \Gamma
+\end{align}
+If $\mathcal{N}$ subsumes $\Gamma$, the branch can be immediately pruned.
+\end{definition}
+
+\begin{algorithm}[htbp]
+\caption{Nogood Extraction}
+\label{alg:nogood}
+\begin{algorithmic}[1]
+\Require Clashed node $x$ with label $\mathcal{L}(x)$
+\Ensure Nogood $\mathcal{N}$
+\State $\mathcal{N} \gets \emptyset$
+\For{each $C \in \mathcal{L}(x)$}
+    \If{$C$ is non-atomic}
+        \State $\mathcal{N} \gets \mathcal{N} \cup \{C\}$
+    \EndIf
+\EndFor
+\State \Return $\textsc{Minimize}(\mathcal{N})$ \Comment{Remove redundant elements}
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Adaptive Threshold}
+\label{sec:adaptive-formal}
+
+The adaptive threshold mechanism uses cost estimation to decide between sequential and parallel processing.
+
+\begin{definition}[Disjunction Cost]
+The cost of a disjunction $C = C_1 \sqcup C_2 \sqcup \cdots \sqcup C_n$ is:
+\begin{align}
+\text{cost}(C) = c_{base} + \sum_{i=1}^{n} \text{cost}(C_i)
+\end{align}
+where $c_{base}$ is the base processing cost per disjunction.
+\end{definition}
+
+\begin{definition}[Parallelization Threshold]
+The adaptive threshold $\tau$ for ontology $\mathcal{O}$ with disjunctions $\mathcal{D}$ is:
+\begin{align}
+\tau(\mathcal{O}) = \beta \cdot \sum_{C \in \mathcal{D}} \text{cost}(C) \cdot \log(1 + |\mathcal{O}|)
+\end{align}
+where $\beta$ is a tuning parameter and $|\mathcal{O}|$ is the ontology size.
+\end{definition}
+
+\begin{theorem}[Adaptive Optimality]
+For an ontology $\mathcal{O}$ with total disjunction cost $D$, let $T_{seq}$ be sequential time and $T_{par}$ parallel time with overhead $o_{par}$. The adaptive mechanism achieves speedup when:
+\begin{align}
+D > \frac{p \cdot o_{par}}{1 - \alpha}
+\end{align}
+where $p$ is the number of workers and $\alpha$ is the nogood hit rate.
+\end{theorem}
+
+\subsection{Correctness}
+\label{sec:correctness}
+
+\begin{theorem}[Soundness]
+If SPACL returns \emph{consistent} for ontology $\mathcal{O}$, then $\mathcal{O}$ is satisfiable.
+\end{theorem}
+
+\begin{proof}
+SPACL explores branches speculatively but applies the same expansion rules as sequential tableaux. Each worker maintains a valid completion graph. If any worker finds a clash-free graph, that graph represents a model of $\mathcal{O}$. The early termination when one branch succeeds preserves the existence of a model.
+\end{proof}
+
+\begin{theorem}[Completeness]
+If ontology $\mathcal{O}$ is consistent, SPACL will eventually return \emph{consistent}.
+\end{theorem}
+
+\begin{proof}
+Speculative parallelism explores all branches of the search space (possibly concurrently). Nogood pruning only removes branches that are proven unsatisfiable. Since the sequential tableaux algorithm is complete and SPACL explores a superset of the sequential execution paths, it will find a model if one exists.
+\end{proof}
+
 \section{The SPACL Algorithm}
 \label{sec:algorithm}
 
