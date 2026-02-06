@@ -80,27 +80,38 @@ problematic after optimization.
 
 ---
 
-## Phase 3: Memory Profiling & Optimization (Week 2-3)
+## Phase 3: Memory Profiling & Optimization (Week 2-3) 🔄 IN PROGRESS
 
-### Tools to Use
-```bash
-# Memory profiling
-cargo install cargo-valgrind
-cargo valgrind --bin owl2-reasoner -- check large.owl
+### Completed ✅
+- Memory profiling infrastructure (`src/util/profiling/`)
+- Automatic IRI cache sizing based on file size
+- Binary format with 1.8x speedup
 
-# Heap analysis
-cargo install dhat
-cargo run --features dhat-heap --bin owl2-reasoner -- check large.owl
-```
+### Results So Far
+| Ontology | OWL/XML Load | Binary Load | Status |
+|----------|--------------|-------------|--------|
+| 1K classes | 35ms | 30ms | ✅ Fast |
+| 10K classes | 5.9s | 3.5s | ✅ Good |
+| 100K classes | 150s | >60s | ❌ Too slow |
 
-### Targets
-1. **IRI Storage**: Use string interning for repeated IRIs
-2. **Axiom Storage**: Use arena allocators
-3. **Reasoner State**: Minimize cloning during speculation
+### Bottleneck Analysis
+The 100K ontology loading is still too slow. Root causes:
+1. **IRI reconstruction** - Creating IRI objects is expensive
+2. **Ontology building** - `ontology.add_class()` has overhead
+3. **String duplication** - Each IRI string is stored multiple times
 
-### Expected Improvements
-- Memory usage: 50% reduction
-- Clone operations: 80% reduction
+### Next Optimizations
+1. **Lazy IRI loading** - Defer IRI creation until needed
+2. **Batch ontology operations** - Add classes in bulk
+3. **Memory-mapped files** - For binary format
+4. **Parallel parsing** - Multi-threaded XML parsing
+
+### Revised Targets
+| Goal | Current | Target |
+|------|---------|--------|
+| 100K load time | 150s | <10s |
+| Memory usage | Unknown | <2GB |
+| Peak RSS | Unknown | <1.5GB |
 
 ---
 
