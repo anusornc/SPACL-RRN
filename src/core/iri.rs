@@ -38,7 +38,7 @@ use crate::util::cache::BoundedCache;
 use crate::core::error::{OwlError, OwlResult};
 use once_cell::sync::Lazy;
 use std::fmt;
-use std::hash::{DefaultHasher, Hash, Hasher};
+use std::hash::{BuildHasher, Hash, Hasher};
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -355,7 +355,10 @@ impl IRI {
         }
 
         let hash = {
-            let mut hasher = DefaultHasher::new();
+            // Use ahash for faster hashing (hashbrown's default hasher)
+            let mut hasher = <hashbrown::hash_map::DefaultHashBuilder as BuildHasher>::build_hasher(
+                &hashbrown::hash_map::DefaultHashBuilder::default()
+            );
             iri_str.hash(&mut hasher);
             hasher.finish()
         };
@@ -399,7 +402,10 @@ impl IRI {
 
         // Pre-compute hash once using std::hash for better performance
         let hash = {
-            let mut hasher = DefaultHasher::new();
+            // Use ahash for faster hashing (hashbrown's default hasher)
+            let mut hasher = <hashbrown::hash_map::DefaultHashBuilder as BuildHasher>::build_hasher(
+                &hashbrown::hash_map::DefaultHashBuilder::default()
+            );
             iri_str.hash(&mut hasher);
             hasher.finish()
         };
@@ -430,6 +436,57 @@ impl IRI {
             .expect("IRI should have been freshly created with single reference");
         iri_mut.prefix = Some(Arc::from(prefix.as_ref()));
         Ok(Arc::new(iri_mut))
+    }
+
+    /// Create an IRI directly without cache lookup (for bulk loading trusted data)
+    /// 
+    /// This bypasses the global IRI cache entirely, which is much faster when:
+    /// - Loading from trusted sources (binary format)
+    /// - The strings are already deduplicated (string table)
+    /// - Cache contention would slow down parallel loading
+    pub fn new_unchecked<S: Into<String>>(iri: S) -> OwlResult<Self> {
+        let iri_str: String = iri.into();
+        
+        // Minimal validation: reject empty strings
+        if iri_str.is_empty() {
+            return Err(OwlError::InvalidIRI("IRI cannot be empty".to_string()));
+        }
+        
+        // Basic validation: IRI must contain a colon
+        if !iri_str.contains(':') {
+            return Err(OwlError::InvalidIRI(
+                "IRI must contain ':' separating scheme from path".to_string(),
+            ));
+        }
+        
+        let hash = {
+            // Use ahash for faster hashing (hashbrown's default hasher)
+            let mut hasher = <hashbrown::hash_map::DefaultHashBuilder as BuildHasher>::build_hasher(
+                &hashbrown::hash_map::DefaultHashBuilder::default()
+            );
+            iri_str.hash(&mut hasher);
+            hasher.finish()
+        };
+        
+        Ok(IRI {
+            iri: Arc::from(iri_str),
+            prefix: None,
+            hash,
+        })
+    }
+    
+    /// Create multiple IRIs in parallel for bulk loading (optimized for large ontologies)
+    /// 
+    /// Uses unchecked IRI creation for maximum speed with trusted data.
+    /// For binary format loading where strings come from a deduplicated string table.
+    pub fn create_many_unchecked_parallel<S: AsRef<str> + Send>(
+        iri_strings: Vec<S>,
+    ) -> Vec<IRI> {
+        use rayon::prelude::*;
+        
+        iri_strings.into_par_iter()
+            .filter_map(|s| IRI::new_unchecked(s.as_ref()).ok())
+            .collect()
     }
 
     /// Create a new IRI with a namespace prefix

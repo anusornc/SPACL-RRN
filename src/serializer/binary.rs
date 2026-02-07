@@ -286,21 +286,37 @@ impl BinaryOntologyFormat {
         string_table: &StringTable,
         count: u64,
     ) -> IoResult<()> {
+        // Phase 1: Read all string IDs
+        let mut string_ids = Vec::with_capacity(count as usize);
         for _ in 0..count {
             let id = Self::read_u64(reader)?;
-            let iri_str = string_table.get_string(id)
-                .ok_or_else(|| std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    "Invalid string ID"
-                ))?;
-            
-            let class = Class::new(IRI::new(iri_str).map_err(|e| {
-                std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e))
-            })?);
-            ontology.add_class(class).map_err(|e| {
-                std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e))
-            })?;
+            string_ids.push(id);
         }
+        
+        // Phase 2: Collect IRI strings (sequential - must read from string table)
+        let iri_strings: Vec<String> = string_ids.iter()
+            .map(|&id| {
+                string_table.get_string(id)
+                    .map(|s| s.to_string())
+                    .ok_or_else(|| std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "Invalid string ID"
+                    ))
+            })
+            .collect::<IoResult<Vec<_>>>()?;
+        
+        // Phase 3: Create IRIs in parallel using unchecked creation (no cache contention)
+        // This is much faster for bulk loading from trusted binary data
+        let iris = IRI::create_many_unchecked_parallel(iri_strings);
+        
+        // Phase 4: Create classes and add in bulk using trusted method (maximum speed)
+        let classes: Vec<Class> = iris.into_iter()
+            .map(|iri| Class::new(iri))
+            .collect();
+        
+        // Use trusted bulk insertion for maximum performance with binary data
+        ontology.add_classes_bulk_trusted(classes);
+        
         Ok(())
     }
     
@@ -325,6 +341,9 @@ impl BinaryOntologyFormat {
         string_table: &StringTable,
         count: u64,
     ) -> IoResult<()> {
+        // Collect all properties first, then add in bulk
+        let mut properties = Vec::with_capacity(count as usize);
+        
         for _ in 0..count {
             let id = Self::read_u64(reader)?;
             let iri_str = string_table.get_string(id)
@@ -336,10 +355,12 @@ impl BinaryOntologyFormat {
             let prop = ObjectProperty::new(IRI::new(iri_str).map_err(|e| {
                 std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e))
             })?);
-            ontology.add_object_property(prop).map_err(|e| {
-                std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e))
-            })?;
+            properties.push(prop);
         }
+        
+        // Use bulk insertion for better performance
+        ontology.add_object_properties_bulk(properties.into_iter());
+        
         Ok(())
     }
     
@@ -364,6 +385,9 @@ impl BinaryOntologyFormat {
         string_table: &StringTable,
         count: u64,
     ) -> IoResult<()> {
+        // Collect all properties first, then add in bulk
+        let mut properties = Vec::with_capacity(count as usize);
+        
         for _ in 0..count {
             let id = Self::read_u64(reader)?;
             let iri_str = string_table.get_string(id)
@@ -375,10 +399,12 @@ impl BinaryOntologyFormat {
             let prop = DataProperty::new(IRI::new(iri_str).map_err(|e| {
                 std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e))
             })?);
-            ontology.add_data_property(prop).map_err(|e| {
-                std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e))
-            })?;
+            properties.push(prop);
         }
+        
+        // Use bulk insertion for better performance
+        ontology.add_data_properties_bulk(properties.into_iter());
+        
         Ok(())
     }
     
@@ -403,6 +429,9 @@ impl BinaryOntologyFormat {
         string_table: &StringTable,
         count: u64,
     ) -> IoResult<()> {
+        // Collect all individuals first, then add in bulk
+        let mut individuals = Vec::with_capacity(count as usize);
+        
         for _ in 0..count {
             let id = Self::read_u64(reader)?;
             let iri_str = string_table.get_string(id)
@@ -414,10 +443,12 @@ impl BinaryOntologyFormat {
             let ind = NamedIndividual::new(IRI::new(iri_str).map_err(|e| {
                 std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e))
             })?);
-            ontology.add_named_individual(ind).map_err(|e| {
-                std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", e))
-            })?;
+            individuals.push(ind);
         }
+        
+        // Use bulk insertion for better performance
+        ontology.add_named_individuals_bulk(individuals.into_iter());
+        
         Ok(())
     }
     

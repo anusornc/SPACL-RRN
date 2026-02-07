@@ -360,6 +360,146 @@ impl Ontology {
         Ok(())
     }
 
+    /// Add multiple classes to the ontology in bulk (optimized for large imports)
+    /// 
+    /// This method is significantly faster than calling `add_class` repeatedly because:
+    /// - It skips redundant validation when loading from trusted sources
+    /// - It pre-allocates capacity and minimizes HashSet operations
+    /// - It handles deduplication efficiently
+    /// 
+    /// # Arguments
+    /// * `classes` - Iterator of classes to add
+    /// * `validate` - If false, skips IRI validation (use for trusted sources like binary files)
+    pub fn add_classes_bulk(
+        &mut self,
+        classes: impl Iterator<Item = Class>,
+        validate: bool,
+    ) -> OwlResult<usize> {
+        // Collect classes into a vec first to know the count
+        let classes_vec: Vec<Class> = classes.collect();
+        
+        // Pre-allocate HashSet capacity for better performance
+        let additional = classes_vec.len();
+        self.classes.reserve(additional);
+
+        let mut added = 0;
+        
+        for class in classes_vec {
+            // Only validate if requested (skip for trusted sources like binary files)
+            if validate {
+                let iri = class.iri();
+                // For validate=true, we need to check duplicates
+                if self.classes.iter().any(|c| c.iri() == iri) {
+                    continue;
+                }
+                self.validate_class_iri(iri)?;
+                self.validate_builtin_class_usage(iri)?;
+            }
+            // For validate=false, skip duplicate check (trust the source)
+
+            let class_arc = Arc::new(class);
+            self.classes.insert(class_arc);
+            added += 1;
+        }
+
+        Ok(added)
+    }
+    
+    /// Add multiple classes in bulk for trusted sources (maximum speed, no validation)
+    /// 
+    /// This is the fastest method for loading from binary format where:
+    /// - Data comes from a trusted source
+    /// - No duplicates exist in the input
+    /// - No validation is needed
+    pub fn add_classes_bulk_trusted(&mut self, classes: Vec<Class>) -> usize {
+        // Pre-allocate capacity
+        self.classes.reserve(classes.len());
+        
+        // Convert to Arc and extend in one operation
+        let class_arcs: Vec<Arc<Class>> = classes.into_iter()
+            .map(Arc::new)
+            .collect();
+        
+        let count = class_arcs.len();
+        self.classes.extend(class_arcs);
+        count
+    }
+
+    /// Add multiple object properties in bulk (optimized for large imports)
+    pub fn add_object_properties_bulk(
+        &mut self,
+        properties: impl Iterator<Item = ObjectProperty>,
+    ) -> usize {
+        let mut added = 0;
+        for property in properties {
+            let property_arc = Arc::new(property);
+            self.object_properties.insert(property_arc);
+            added += 1;
+        }
+        added
+    }
+
+    /// Add object properties in bulk for trusted sources (maximum speed)
+    pub fn add_object_properties_bulk_trusted(&mut self, properties: Vec<ObjectProperty>) -> usize {
+        self.object_properties.reserve(properties.len());
+        let prop_arcs: Vec<Arc<ObjectProperty>> = properties.into_iter()
+            .map(Arc::new)
+            .collect();
+        let count = prop_arcs.len();
+        self.object_properties.extend(prop_arcs);
+        count
+    }
+
+    /// Add multiple data properties in bulk (optimized for large imports)
+    pub fn add_data_properties_bulk(
+        &mut self,
+        properties: impl Iterator<Item = DataProperty>,
+    ) -> usize {
+        let mut added = 0;
+        for property in properties {
+            let property_arc = Arc::new(property);
+            self.data_properties.insert(property_arc);
+            added += 1;
+        }
+        added
+    }
+
+    /// Add data properties in bulk for trusted sources (maximum speed)
+    pub fn add_data_properties_bulk_trusted(&mut self, properties: Vec<DataProperty>) -> usize {
+        self.data_properties.reserve(properties.len());
+        let prop_arcs: Vec<Arc<DataProperty>> = properties.into_iter()
+            .map(Arc::new)
+            .collect();
+        let count = prop_arcs.len();
+        self.data_properties.extend(prop_arcs);
+        count
+    }
+
+    /// Add multiple named individuals in bulk (optimized for large imports)
+    pub fn add_named_individuals_bulk(
+        &mut self,
+        individuals: impl Iterator<Item = NamedIndividual>,
+    ) -> usize {
+        let mut added = 0;
+        for individual in individuals {
+            let individual_arc = Arc::new(individual);
+            self.named_individuals.insert(individual_arc);
+            added += 1;
+        }
+        added
+    }
+
+    /// Add named individuals in bulk for trusted sources (maximum speed)
+    pub fn add_named_individuals_bulk_trusted(&mut self, individuals: Vec<NamedIndividual>) -> usize {
+        self.named_individuals.reserve(individuals.len());
+        let ind_arcs: Vec<Arc<NamedIndividual>> = individuals.into_iter()
+            .map(Arc::new)
+            .collect();
+        let count = ind_arcs.len();
+        self.named_individuals.extend(ind_arcs);
+        count
+    }
+
     /// Get all classes in the ontology
     pub fn classes(&self) -> &HashSet<Arc<Class>> {
         &self.classes

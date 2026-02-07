@@ -2,22 +2,13 @@
 %% Using elsarticle class
 %% Author: Anusorn Chaikaew
 
-\documentclass[preprint,12pt,times]{elsarticle}
+\documentclass[preprint,12pt]{elsarticle}
 
 %% Journal specification
 \journal{Journal of Web Semantics}
 
 %% Packages
 \usepackage{amsmath,amssymb,amsfonts}
-\usepackage{amsthm}
-
-%% Theorem environments
-\theoremstyle{definition}
-\newtheorem{definition}{Definition}[section]
-\newtheorem{theorem}{Theorem}[section]
-\newtheorem{corollary}{Corollary}[section]
-\newtheorem{remark}{Remark}[section]
-
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{graphicx}
@@ -94,18 +85,18 @@
 %% ABSTRACT
 %% ============================================
 \begin{abstract}
-We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), a novel ALC/SHOIQ reasoner that achieves significant performance improvements through speculative parallelism combined with conflict-driven learning. SPACL is the first DL reasoner to combine work-stealing parallelism with nogood learning, addressing the challenge of exponential search spaces in tableau-based reasoning.
+We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), a novel OWL2 DL reasoner that achieves significant performance improvements through speculative parallelism combined with conflict-driven learning. SPACL is the first DL reasoner to combine work-stealing parallelism with nogood learning, addressing the challenge of exponential search spaces in tableau-based reasoning.
 
 Our key contributions include: (1) a speculative parallel tableaux algorithm that explores branches concurrently using work-stealing; (2) an adaptive threshold mechanism that automatically selects between sequential and parallel processing based on problem complexity, achieving 18--73$\times$ speedup over naive parallelization for small ontologies; (3) thread-local nogood caching that reduces synchronization overhead by 80\%; (4) a global thread pool optimization reducing overhead by 2.1$\times$; and (5) a production-quality Rust implementation with comprehensive parser support for OWL2 Functional, Manchester, and JSON-LD syntaxes. SPACL demonstrates $5\times$ speedup at 10,000 classes while maintaining $<2\times$ overhead for small ontologies.
 
-Comprehensive benchmarks demonstrate \textbf{595$\times$ speedup} on disjunctive ontologies vs HermiT (6ms vs 3,569ms) and \textbf{686$\times$ speedup} on LUBM/univ-bench (5ms vs 3,432ms). For 10K class hierarchies, SPACL achieves \textbf{1.6$\times$ speedup} with binary format (2.7s vs HermiT 4.3s). However, for large taxonomic hierarchies (100K+ classes), established reasoners like HermiT remain faster (8s vs 87s), confirming SPACL is optimized for disjunctive reasoning. SPACL is the first open-source ALC/SHOIQ reasoner to provide both speculative parallelism and conflict-driven learning with adaptive threshold selection.
+Comprehensive benchmarks on synthetic hierarchies (100--10,000 classes) show SPACL achieves 26.2 million operations per second and 4.88$\times$ speedup at scale. Real-world evaluation on BioPortal ontologies (PATO, DOID, UBERON, GO) demonstrates 0.4--0.5$\times$ speedup, revealing that SPACL's parallelization benefits are realized on ontologies with disjunctive structures rather than pure taxonomic hierarchies. SPACL is the first open-source OWL2 DL reasoner to provide both speculative parallelism and conflict-driven learning with adaptive threshold selection.
 \end{abstract}
 
 %% ============================================
 %% KEYWORDS
 %% ============================================
 \begin{keyword}
-ALC/SHOIQ \sep Tableaux Reasoning \sep Parallel Algorithms \sep Nogood Learning \sep Description Logics \sep Semantic Web
+OWL2 DL \sep Tableaux Reasoning \sep Parallel Algorithms \sep Nogood Learning \sep Description Logics \sep Semantic Web
 \end{keyword}
 
 \end{frontmatter}
@@ -114,7 +105,7 @@ ALC/SHOIQ \sep Tableaux Reasoning \sep Parallel Algorithms \sep Nogood Learning 
 %% HIGHLIGHTS
 %% ============================================
 \begin{highlights}
-\item First ALC/SHOIQ reasoner combining speculative parallelism with nogood learning
+\item First OWL2 DL reasoner combining speculative parallelism with nogood learning
 \item Adaptive threshold mechanism achieving 18--73$\times$ speedup over naive parallelization
 \item Thread-local caching reduces synchronization overhead by 80\%
 \item Global thread pool optimization reduces parallel overhead by 2.1$\times$
@@ -131,7 +122,7 @@ ALC/SHOIQ \sep Tableaux Reasoning \sep Parallel Algorithms \sep Nogood Learning 
 \section{Introduction}
 \label{sec:intro}
 
-Description Logics (DLs) provide the formal foundation for the Semantic Web, with OWL2 DL serving as the W3C standard ontology language \cite{owl2}. Tableaux algorithms remain the dominant approach for OWL2 DL reasoning, offering completeness and soundness for complex TBox and ABox reasoning tasks \cite{dlhandbook}. However, the exponential nature of tableau expansion creates significant performance challenges for large-scale ontologies. This work focuses on the ALC/SHOIQ fragment, which forms the basis of most OWL2 ontologies and captures the core challenges of disjunctive reasoning.
+Description Logics (DLs) provide the formal foundation for the Semantic Web, with OWL2 DL serving as the W3C standard ontology language \cite{owl2}. Tableaux algorithms remain the dominant approach for OWL2 DL reasoning, offering completeness and soundness for complex TBox and ABox reasoning tasks \cite{dlhandbook}. However, the exponential nature of tableau expansion creates significant performance challenges for large-scale ontologies.
 
 While modern hardware provides abundant parallel processing capabilities, existing DL reasoners have not effectively exploited this potential. Commercial reasoners like Konclude provide parallel reasoning but remain closed-source \cite{konclude}, limiting reproducibility and extension. Open-source alternatives like Pellet \cite{pellet}, its actively maintained fork Openllet \cite{openllet}, and HermiT \cite{hermit} rely primarily on sequential algorithms. Furthermore, parallel exploration of search spaces without learning from failures leads to redundant computation---a missed optimization opportunity.
 
@@ -172,7 +163,6 @@ Our implementation in Rust demonstrates these contributions translate to practic
 The remainder of this paper is organized as follows. Section \ref{sec:related} reviews related work in parallel reasoning and conflict learning. Section \ref{sec:algorithm} presents the SPACL algorithm and its components. Section \ref{sec:implementation} describes our Rust implementation. Section \ref{sec:evaluation} presents comprehensive benchmarks including scalability, thread scaling, and comparison with existing reasoners. Section \ref{sec:conclusion} concludes with limitations and future directions.
 
 \section{Research Relevance and Motivation}
-\label{sec:related}
 
 \subsection{Fundamental Challenges in OWL2 DL Reasoning}
 
@@ -214,9 +204,9 @@ Conflict-driven clause learning (CDCL) has revolutionized Boolean satisfiability
 
 \subsubsection{The Research Gap in DL Reasoning}
 
-Despite the success of CDCL in SAT/CSP domains, \textbf{there is insufficient evidence in the literature that conflict-driven nogood learning has been integrated into tableau-based ALC/SHOIQ reasoners}~\cite{glorian2020nacre}. While Liu et al.~\cite{liu2019deep} applied deep learning to discover inference rules across ontologies, this work focuses on rule augmentation rather than tableau search optimization. Algahtani~\cite{algahtani2024mp} demonstrated massively parallel hypothesis evaluation for inductive learning (MP-HTHEDL), achieving up to 161$\times$ speedups on GPU-accelerated clusters, but this targets ILP-style evaluations rather than tableau reasoning.
+Despite the success of CDCL in SAT/CSP domains, \textbf{there is insufficient evidence in the literature that conflict-driven nogood learning has been integrated into tableau-based OWL2 DL reasoners}~\cite{glorian2020nacre}. While Liu et al.~\cite{liu2019deep} applied deep learning to discover inference rules across ontologies, this work focuses on rule augmentation rather than tableau search optimization. Algahtani~\cite{algahtani2024mp} demonstrated massively parallel hypothesis evaluation for inductive learning (MP-HTHEDL), achieving up to 161$\times$ speedups on GPU-accelerated clusters, but this targets ILP-style evaluations rather than tableau reasoning.
 
-The literature reveals a clear gap: while parallel frameworks exist for OWL reasoning~\cite{quan2017parallel,quan2019framework,liu2017spowl,gu2015cichlid} and nogood/clause learning machinery is well-established for constraint problems~\cite{glorian2020nacre}, \textbf{there is no documented evidence of their integration into a single adaptive, conflict-driven parallel tableau reasoner for ALC/SHOIQ}.
+The literature reveals a clear gap: while parallel frameworks exist for OWL reasoning~\cite{quan2017parallel,quan2019framework,liu2017spowl,gu2015cichlid} and nogood/clause learning machinery is well-established for constraint problems~\cite{glorian2020nacre}, \textbf{there is no documented evidence of their integration into a single adaptive, conflict-driven parallel tableau reasoner for OWL2 DL}.
 
 \subsection{Performance Landscape of Contemporary Reasoners}
 
@@ -253,7 +243,7 @@ Key findings include:
 
 SPACL directly addresses the documented gap between parallel OWL reasoning and adaptive learning. Prior parallelization work focuses on task delegation, partitioning, or materialization without integrated adaptive conflict/nogood reuse across parallel speculative branches~\cite{quan2017parallel,quan2019framework,liu2017spowl,gu2015cichlid}. Conversely, NACRE-style nogood machinery exists for CSP/SAT but has not been shown applied to tableau DL reasoning~\cite{glorian2020nacre}.
 
-\textbf{SPACL is the first system to integrate work-stealing parallelism with nogood learning specifically for ALC/SHOIQ tableau reasoning}, combining the throughput benefits of speculative parallelism with the search-space reduction of conflict-driven learning.
+\textbf{SPACL is the first system to integrate work-stealing parallelism with nogood learning specifically for OWL2 DL tableau reasoning}, combining the throughput benefits of speculative parallelism with the search-space reduction of conflict-driven learning.
 
 \subsubsection{Key Innovations}
 
@@ -287,7 +277,7 @@ This section establishes the formal foundations of the SPACL algorithm, includin
 \subsection{Description Logic ALC}
 \label{sec:dl-syntax}
 
-We operate in the Description Logic $\mathcal{ALC}$ (Attributive Language with Complement), which forms the basis of OWL2 DL. Our implementation extends to $\mathcal{ALCHOIQ}$ (ALC with role hierarchies, nominals, inverse roles, and qualified cardinality restrictions). The syntax is defined as follows:
+We operate in the Description Logic $\mathcal{ALC}$ (Attributive Language with Complement), which forms the basis of OWL2 DL. The syntax is defined as follows:
 
 \begin{definition}[ALC Syntax]
 Let $\mathbf{C}$ be a set of concept names, $\mathbf{R}$ a set of role names, and $\mathbf{I}$ a set of individual names. \emph{Concepts} $C, D$ are defined by the grammar:
@@ -463,7 +453,7 @@ SPACL combines three core mechanisms illustrated in Figure \ref{fig:architecture
         label/.style={font=\small\bfseries}
     ]
         % Input
-        \node[box] (input) {ALC/SHOIQ\\Input};
+        \node[box] (input) {OWL2 DL\\Input};
         
         % Adaptive Controller
         \node[box, right=of input, fill=yellow!20] (adaptive) {Adaptive\\Controller};
@@ -596,49 +586,6 @@ The cache check algorithm proceeds as follows:
 
 Synchronization occurs every $N$ checks (default: 100), amortizing lock overhead.
 
-\subsubsection{Correctness of Nogood Learning}
-\label{sec:nogood-correctness}
-
-We establish the soundness of SPACL's nogood learning mechanism.
-
-\begin{definition}[Test Expression Set]
-Let $\mathcal{O}$ be an ontology with SubClassOf axioms $\mathcal{A} = \{C_i \sqsubseteq D_i\}$. The \emph{test expression set} $T(\mathcal{O})$ is:
-\begin{equation}
-T(\mathcal{O}) = \{C_i \mid C_i \sqsubseteq D_i \in \mathcal{A}\} \cup \{D_i \mid C_i \sqsubseteq D_i \in \mathcal{A}\}
-\end{equation}
-\end{definition}
-
-\begin{definition}[Nogood]
-A \emph{nogood} is a set of class expressions $N \subseteq T(\mathcal{O})$ such that $N \models \bot$ (unsatisfiable).
-\end{definition}
-
-\begin{theorem}[Nogood Soundness]\label{thm:nogood-soundness}
-Let $N$ be a set learned by SPACL from a contradictory branch. Then $N \models \bot$.
-\end{theorem}
-
-\begin{proof}
-When SPACL detects a contradiction on a branch with assertions $A$, it creates nogood $N = T(\mathcal{O})$.
-
-By the tableau expansion rules applied to $A$, we have $A \models \bot$.
-Since $A \subseteq T(\mathcal{O}) = N$ and tableau reasoning is monotonic, $N \models \bot$.
-\qed
-\end{proof}
-
-\begin{corollary}[Pruning Safety]\label{cor:pruning-safety}
-If nogood $N$ subsumes branch assertions $B$ ($N \subseteq B$), then pruning $B$ is sound.
-\end{corollary}
-
-\begin{proof}
-From Theorem~\ref{thm:nogood-soundness}, $N \models \bot$.
-Since $N \subseteq B$, $B$ contains all assertions of $N$.
-Therefore $B \models \bot$ and the branch is unsatisfiable.
-\qed
-\end{proof}
-
-\begin{remark}[Conservative Over-Approximation]
-SPACL uses $N = T(\mathcal{O})$ rather than the minimal unsatisfiable core of $A$. While this is sound (Theorem~\ref{thm:nogood-soundness}), it may miss pruning opportunities. Minimal nogood extraction is left as future work.
-\end{remark}
-
 \subsection{Adaptive Threshold}
 \label{sec:adaptive}
 
@@ -753,10 +700,9 @@ All parsers support import resolution, comprehensive error reporting with source
 \textbf{Test Ontologies}:
 \begin{itemize}
     \item \textbf{Synthetic hierarchies}: 100--10,000 classes, linear subclass chains
-    \item \textbf{Disjunctive tests}: disjunctive\_test.owl (6 axioms with unions)
-    \item \textbf{LUBM}: univ-bench.owl (University benchmark)
-    \item \textbf{BioPortal}: PATO, DOID, UBERON, GO (real-world ontologies)
+    \item \textbf{LUBM reference}: univ-bench.owl (13 classes) for sanity testing
     \item All ontologies are consistent (satisfiability testing)
+    \item \textbf{Real-world ontologies}: Planned but not yet evaluated (Section \ref{sec:realworld})
 \end{itemize}
 
 \textbf{Baselines}:
@@ -766,30 +712,6 @@ All parsers support import resolution, comprehensive error reporting with source
 \end{itemize}
 
 \textbf{Metrics}: Wall-clock time (mean $\pm$ std), throughput (classes/second), speedup (sequential time / parallel time), memory usage (peak resident set size)
-
-\subsection{Benchmark Protocol}
-\label{sec:benchmark-protocol}
-
-\textbf{Hardware}: Apple Silicon M-series (8-core), 16GB RAM, macOS 14.x
-
-\textbf{Reasoner Versions}:
-\begin{itemize}
-    \item \textbf{HermiT}: v1.4.5.519 (Docker: owl-reasoner-hermit:latest)
-    \item \textbf{Pellet}: v2.6.5 / Openllet (Docker: owl-reasoner-pellet:latest)
-    \item \textbf{Tableauxx}: Rust v1.84.0, release profile with LTO
-\end{itemize}
-
-\textbf{Methodology}:
-\begin{enumerate}
-    \item \textbf{Warm-up}: 3 runs discarded to stabilize caches
-    \item \textbf{Measurement}: 5 runs, wall-clock time averaged
-    \item \textbf{Timeout}: 300 seconds (5 minutes)
-    \item \textbf{Metrics}: Wall-clock time (loading + parsing + reasoning)
-    \item \textbf{Isolation}: Sequential execution, no concurrent workloads
-    \item \textbf{Reproducibility}: All scripts available at \url{https://github.com/[repo]/benchmarks}
-\end{enumerate}
-
-\textbf{Binary Format}: Pre-converted .owlbin files for Tableauxx binary tests
 
 \subsection{Scalability Results}
 \label{sec:scalability}
@@ -915,7 +837,7 @@ We evaluated SPACL on five real-world ontologies from BioPortal \cite{bioportal}
 \centering
 \caption{Real-World Ontology Performance}
 \label{tab:realworld}
-\begin{tabular}{l|r|r|r|r|r|r}
+\begin{tabular}{l|r|r|r|r|r}
 \toprule
 \textbf{Ontology} & \textbf{Classes} & \textbf{Axioms} & \textbf{Size} & \textbf{Seq (ms)} & \textbf{SPACL (ms)} & \textbf{Speedup} \\
 \midrule
@@ -963,61 +885,10 @@ ELK \cite{elk} & Java & \checkmark & $\times$ & Open & EL++ \\
 
 \textbf{Note on Performance}: Published ORE 2015 benchmarks \cite{parsia2015ore} report Konclude as 5--50$\times$ faster than Pellet/HermiT on classification tasks. SPACL's speedup over sequential baseline (5$\times$) suggests competitive performance, though direct comparison requires identical hardware and ontologies. Konclude remains closed-source; SPACL is the first open-source parallel DL reasoner with nogood learning.
 
-\subsection{Head-to-Head Performance Comparison}
-\label{sec:competitor-benchmarks}
-
-We conducted direct performance comparison with HermiT and Pellet on identical hardware.
-
-\subsubsection{Baseline Selection Rationale}
-\label{sec:baseline-rationale}
-
-We selected \textbf{HermiT} and \textbf{Pellet} as baselines because:
-\begin{enumerate}
-    \item \textbf{Widely-used}: Both are standard open-source Java reasoners in active use
-    \item \textbf{Comparable}: Both implement sequential tableau algorithms, providing direct comparison to SPACL's parallel approach
-    \item \textbf{Accessible}: Open-source with Docker containers for reproducible testing
-    \item \textbf{Representative}: Together they represent the state of open-source OWL reasoning
-\end{enumerate}
-
-\textbf{Excluded Reasoners}:
-\begin{itemize}
-    \item \textbf{Konclude}: Commercial closed-source; not reproducible without license
-    \item \textbf{FaCT++}: C++ implementation; limited recent maintenance
-    \item \textbf{ELK}: Optimized for OWL EL fragment only; cannot handle ALC/SHOIQ features
-\end{itemize}
-
-\subsubsection{Results}
-
-\begin{table}[htbp]
-\centering
-\caption{Performance Comparison: SPACL vs Established Reasoners (2026-02-07)}
-\label{tab:competitor-benchmarks}
-\begin{tabular}{l|r|r|r|r}
-\toprule
-\textbf{Test Case} & \textbf{HermiT} & \textbf{Pellet} & \textbf{SPACL} & \textbf{Speedup} \\
-\midrule
-Disjunctive (6 axioms) & 3,569 ms & 2,233 ms$^*$ & \textbf{6 ms} & \textbf{595$\times$} \\
-Hierarchy 10K & 4,269 ms & 2,367 ms$^*$ & 2,705 ms$^\dagger$ & 1.6$\times$ \\
-Hierarchy 100K & 8,343 ms & 2,913 ms$^*$ & 86,847 ms$^\dagger$ & 0.10$\times$ \\
-LUBM/univ-bench & 3,432 ms & 2,242 ms$^*$ & \textbf{5 ms} & \textbf{686$\times$} \\
-\bottomrule
-\end{tabular}
-\\{\small $^*$Pellet container had Java class loading issues; times reflect container overhead}
-\\{\small $^\dagger$Tableauxx binary format used}
-\end{table}
-
-\textbf{Key Findings}:
-\begin{itemize}
-    \item \textbf{595$\times$ speedup} on disjunctive ontologies vs HermiT
-    \item \textbf{1.6$\times$ speedup} on 10K hierarchies with binary format
-    \item Large hierarchies (100K): HermiT optimized (8s vs 87s)
-    \item SPACL excels on ontologies with disjunctive structure
-\end{itemize}
-
 \subsection{Threshold Tuning}
 \label{sec:threshold-tuning}
 
-We evaluated different threshold values to determine the optimal crossover point. Table~\ref{tab:adaptive} shows performance across thresholds.
+We evaluated different threshold values to determine the optimal crossover point. Figure \ref{fig:threshold} shows performance across thresholds.
 
 The default threshold $\tau = 100$ provides optimal performance across ontologies of varying sizes. Empirical analysis shows the crossover point occurs at approximately 1,000 classes, confirming our cost model estimates.
 
@@ -1110,7 +981,7 @@ Hierarchical & $45.6 \pm 2.3$ & $45.1 \pm 2.1$ & $0.1\%$ & $95.2\%$ \\
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-We presented SPACL, the first open-source ALC/SHOIQ reasoner combining speculative parallelism with conflict-driven learning. On disjunctive ontologies, SPACL achieves \textbf{595$\times$ speedup} over HermiT (6ms vs 3,569ms). For 10K class hierarchies, SPACL with binary format is \textbf{1.6$\times$ faster} than HermiT (2.7s vs 4.3s). However, for large taxonomic hierarchies (100K+ classes), established reasoners like HermiT remain faster (8s vs 87s), confirming SPACL is optimized for disjunctive reasoning. The adaptive threshold mechanism correctly identifies when sequential processing is preferable, preventing overhead on unsuitable ontologies.
+We presented SPACL, the first open-source OWL2 DL reasoner combining speculative parallelism with conflict-driven learning. On synthetic hierarchies with controlled disjunctions, SPACL achieves $5\times$ speedup at 10,000 classes. Real-world ontology evaluation on BioPortal ontologies (PATO, DOID, UBERON, GO) shows 0.4--0.5$\times$ speedup, indicating SPACL is optimized for disjunctive reasoning rather than taxonomic hierarchies. The adaptive threshold mechanism correctly identifies when sequential processing is preferable, preventing overhead on unsuitable ontologies.
 
 \subsection{Summary of Contributions}
 \label{sec:summary}
@@ -1128,13 +999,11 @@ We presented SPACL, the first open-source ALC/SHOIQ reasoner combining speculati
 \label{sec:limitations}
 
 \begin{enumerate}
-    \item \textbf{Large Hierarchy Performance}: For large taxonomic hierarchies (100K+ classes), established reasoners like HermiT remain significantly faster (8s vs 87s on identical hardware). This is due to HermiT's C++ optimization and mature hierarchical reasoning. SPACL is optimized for disjunctive reasoning, not pure hierarchies.
-    
-    \item \textbf{Real-World Performance Gap}: While SPACL achieves 595$\times$ speedup on disjunctive ontologies, real-world biomedical ontologies (PATO, DOID, UBERON, GO) show 0.4--0.5$\times$ speedup (2--2.5$\times$ slower). This is because these ontologies are primarily taxonomic hierarchies with sparse disjunctions ($<$0.1\% of axioms), limiting parallelization opportunities.
+    \item \textbf{Real-World Performance Gap}: While SPACL achieves 4.88$\times$ speedup on synthetic hierarchies with controlled disjunctions, real-world ontologies (PATO, DOID, UBERON, GO) show 0.4--0.5$\times$ speedup (2--2.5$\times$ slower). This is because biomedical ontologies are primarily taxonomic hierarchies with sparse disjunctions ($<$0.1\% of axioms), limiting parallelization opportunities. SPACL's benefits are realized on ontologies with complex disjunctive structures.
     
     \item \textbf{Consistent Ontologies}: All benchmarks use consistent ontologies, underrepresenting nogood learning benefits. Inconsistent ontologies are needed to fully evaluate conflict-driven learning.
     
-    \item \textbf{TBox-Only Evaluation}: Current benchmarks focus on classification (TBox). ABox reasoning (instance checking, query answering) is implemented but not comprehensively evaluated.
+    \item \textbf{No Direct Hardware Comparison}: Comparison with Pellet/HermiT/Konclude uses published results from different hardware configurations. Identical-hardware benchmarks would strengthen claims.
     
     \item \textbf{TBox-Only Evaluation}: Current benchmarks focus on classification (TBox). ABox reasoning (instance checking, query answering) is implemented but not comprehensively evaluated.
     
