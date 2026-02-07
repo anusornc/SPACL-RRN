@@ -1,0 +1,189 @@
+================================================================================
+MANUSCRIPT SECTIONS REQUIRING VERIFICATION
+================================================================================
+
+Each line below shows a citation that needs to be verified against the 
+actual paper content. Format: [LINE NUMBER] Citation - Claim made
+
+--- INTRODUCTION ---
+
+[134] \cite{owl2} - "OWL2 DL serving as the W3C standard"
+    → VERIFY: Is this accurately described?
+
+[134] \cite{dlhandbook} - "Tableaux algorithms remain the dominant approach"
+    → VERIFY: Does handbook claim tableaux are "dominant"?
+    → ACTION: Find page number
+
+[136] \cite{konclude} - "Konclude provide parallel reasoning but remain closed-source"
+    → VERIFY: Does paper discuss parallel reasoning? Is it closed-source?
+
+[136] \cite{pellet} - "Pellet... rely primarily on sequential algorithms"
+    → VERIFY: Does Pellet paper explicitly state it is "sequential"?
+
+[136] \cite{openllet} - Openllet citation
+    → OK: GitHub repo reference
+
+[136] \cite{hermit} - "HermiT... rely primarily on sequential algorithms"
+    → VERIFY: Does HermiT paper explicitly state it is "sequential"?
+
+--- BACKGROUND & MOTIVATION ---
+
+[179] \cite{hitzler2012owl} - OWL 2 DL importance claim
+    → VERIFY: Primer document content
+
+[183] \cite{amir2017cedar} - Scalability challenges
+    → VERIFY: CEDAR paper discusses scalability
+
+[183] \cite{faddoul2015fork} - "non-determinism as the dominant source of complexity"
+    ⚠️ CRITICAL: Find EXACT quote. Get page number.
+    → SEARCH: "Handling Non-determinism Description Logics Fork Join Faddoul"
+
+[187] \cite{quan2017parallel} - "majority of open-source OWL reasoners... sequential"
+    → VERIFY: What evidence do they provide?
+
+[191] \cite{steigmiller2020parallelised} - "repeated exploration of branches... contradictions"
+    → VERIFY: Exact quote from paper
+    → SEARCH: "Parallelised ABox Reasoning Steigmiller Glimm"
+
+[191] \cite{motik2009hypertableau} - "exponentially redundant work"
+    → VERIFY: Context in Hypertableau paper
+
+[197] \cite{quan2017parallel,quan2019framework} - "order-of-magnitude wall-clock improvements"
+    → VERIFY: Exact numbers claimed
+    → SEARCH: "Parallel Shared-Memory OWL Classification Quan"
+
+[201] \cite{liu2017spowl} - SPOWL introduction
+    → VERIFY: Description accuracy
+
+[201] \cite{gu2015cichlid} - "approximately 10x average speedups"
+    ⚠️ CRITICAL: Verify exact number
+    → SEARCH: "Cichlid Large Scale RDFS OWL Reasoning Spark Gu"
+
+[201] \cite{benitez2023nora} - NORA description
+    → VERIFY: Paper content
+
+[203] \cite{wu2016parallel} - "less applicable to full OWL2 DL"
+    → VERIFY: Paper discusses this limitation
+
+[207] \cite{wang2019comr} - "96.9% reduction in classification time"
+    ⚠️ CRITICAL: Verify exact percentage
+    → SEARCH: "ComR Combined OWL EL Full Reasoner Wang"
+
+[207] \cite{steigmiller2020parallelised} - "dynamic splitting of model construction"
+    → VERIFY: Context in paper
+
+[213] \cite{marques1999grasp} - CDCL revolution claim
+    → VERIFY: GRASP paper describes CDCL
+
+[213] \cite{glorian2020nacre} - NACRE introduction
+    → VERIFY: Nogood learning description
+
+[217] \cite{glorian2020nacre} - "no documented evidence" claim
+    ⚠️ CRITICAL: Your main research gap
+    → VERIFY: Does NACRE paper support this claim?
+
+[217] \cite{liu2019deep} - Deep learning for IoT
+    → VERIFY: Context
+
+[217] \cite{algahtani2024mp} - "161x speedups"
+    ⚠️ CRITICAL: Verify exact number
+    → SEARCH: "MP-HTHEDL Parallel Hypothesis Evaluation Description Logic"
+
+--- ORE BENCHMARKS ---
+
+[225] \cite{parsia2015ore,scioscia2021ore} - ORE workshop description
+    → VERIFY: Benchmark details
+
+[229] \cite{kang2012rigorous} - "no single reasoner dominating"
+    → VERIFY: Paper findings
+
+[230] \cite{parsia2015ore,scioscia2021ore} - "time out or fail"
+    → VERIFY: Do papers document this?
+
+[231] \cite{song2013complete,glimm2014coupling} - "specialized optimizations"
+    → VERIFY: Context in both papers
+
+--- COMPETITORS ---
+
+[236] \cite{sirin2007pellet} - Pellet description
+    → NOTE: Duplicate with \cite{pellet}?
+    → VERIFY: Are these same paper?
+
+[238] \cite{glimm2014hermit} - "beats FaCT++ and Pellet on many difficult benchmarks"
+    ⚠️ CRITICAL: Find EXACT quote. Page number?
+
+[240] \cite{song2013complete,glimm2014coupling} - Konclude description
+    → VERIFY: Both papers discuss Konclude?
+
+[242] \cite{bate2018consequence} - ELK description
+    ⚠️ ISSUE: This paper is about consequence-based reasoning, not ELK specifically
+    → VERIFY: Is ELK discussed in this paper?
+
+[248] \cite{singh2020owl2bench} - OWL2Bench description
+    → VERIFY: Benchmark description
+
+[250] \cite{bilenchi2021multiplatform} - evOWLuator description
+    → VERIFY: Framework description
+
+--- RESEARCH GAP ---
+
+[254] \cite{quan2017parallel,quan2019framework,liu2017spowl,gu2015cichlid}
+    → YOUR ANALYSIS: "focus on task delegation without integrated learning"
+    → VERIFY: Does this accurately characterize all 4 papers?
+
+[254] \cite{glorian2020nacre} - NACRE not applied to DL reasoning
+    → YOUR CLAIM: Verify accuracy
+
+--- METHODOLOGY ---
+
+[261] \cite{faddoul2015fork,quan2017parallel} - Work-stealing inspired by
+    → VERIFY: Do these papers discuss work-stealing?
+
+[263] \cite{faddoul2015fork} - "addressing fundamental inefficiency"
+    → YOUR INTERPRETATION: Verify this is what paper says
+
+[263] \cite{steigmiller2020parallelised} - "redundant computation"
+    → VERIFY: Context
+
+[265] \cite{steigmiller2020parallelised} - "lessons from distributed caching"
+    → VERIFY: What lessons?
+
+[267] \cite{quan2017parallel} - "maintaining low overhead for small ontologies"
+    → VERIFY: Does Quan 2017 discuss overhead?
+
+--- IMPLEMENTATION ---
+
+[508] \cite{workstealing} - Work-stealing deque
+    → VERIFY: Algorithm description
+
+[554] \cite{workstealing} - Chase-Lev algorithm
+    ⚠️ ERROR: Arora 1998 is NOT Chase-Lev algorithm!
+    ⚠️ Chase-Lev is from 2005: "Dynamic Circular Work-Stealing Deque"
+    → ACTION: Add Chase-Lev 2005 citation
+
+[672] \cite{crossbeam} - Crossbeam library
+    → OK: GitHub reference
+
+--- EXPERIMENTS ---
+
+[901] \cite{bioportal} - BioPortal ontologies
+    → VERIFY: Dataset description
+
+[955-959] Table with multiple citations:
+    - \cite{konclude}, \cite{pellet}, \cite{openllet}, \cite{hermit}, \cite{elk}
+    → VERIFY: Implementation details for each
+
+[964] \cite{parsia2015ore} - "Konclude as 5-50x faster"
+    ⚠️ CRITICAL: Verify EXACT numbers
+    → Is it "5-50x" or different range?
+
+================================================================================
+TOTAL CITATIONS NEEDING VERIFICATION: 36
+================================================================================
+
+CRITICAL ISSUES FOUND:
+1. [Line 554] Wrong citation for Chase-Lev algorithm
+2. [Line 242] Wrong citation for ELK (Bate 2018 is not about ELK)
+3. [Multiple] Specific numbers (10x, 96.9%, 161x, 5-50x) need verification
+4. [Multiple] Direct quotes need page numbers
+

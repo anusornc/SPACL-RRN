@@ -8,7 +8,6 @@
 %% CORE REFERENCES (Verified)
 %% ============================================
 
-
 @article{owl2,
   title={{OWL} 2 web ontology language document overview},
   author={Motik, Boris and Patel-Schneider, Peter F and Parsia, Bijan and Bock, Conrad and Fokoue, Achille and Haase, Peter and Hoekstra, Rin and Horrocks, Ian and Ruttenberg, Alan and Sattler, Ulrike and others},
@@ -25,6 +24,16 @@
   year={2003},
   publisher={Cambridge University Press},
   edition={2nd}
+}
+
+@inproceedings{fact++,
+  title={{FaCT}++ description logic reasoner: System description},
+  author={Tsarkov, Dmitry and Horrocks, Ian},
+  booktitle={International Joint Conference on Automated Reasoning (IJCAR)},
+  pages={292--297},
+  year={2006},
+  organization={Springer},
+  doi={10.1007/11814771_26}
 }
 
 @article{pellet,
@@ -85,6 +94,79 @@
 %% SAT AND CONSTRAINT PROGRAMMING
 %% ============================================
 
+@book{satcdcl,
+  title={Handbook of satisfiability},
+  author={Biere, Armin and Heule, Marijn and van Maaren, Hans and Walsh, Toby},
+  volume={185},
+  year={2009},
+  publisher={IOS press},
+  edition={2nd}
+}
+
+%% ============================================
+%% CACHING AND OPTIMIZATION
+%% ============================================
+
+@inproceedings{caching,
+  title={The instance store: {DL} reasoning with large numbers of individuals},
+  author={Baader, Franz and Franconi, Enrico and Hollunder, Bernhard and Nebel, Bernhard and Profitlich, Hans-Juergen},
+  booktitle={International Semantic Web Conference (ISWC)},
+  pages={31--40},
+  year={2003},
+  organization={Springer},
+  doi={10.1007/978-3-540-39718-2_3}
+}
+
+@inproceedings{modalcaching,
+  title={Model caching for model exploration},
+  author={Gleiss, Bernhard and Suda, Martin},
+  booktitle={International Conference on Automated Deduction (CADE)},
+  pages={46--55},
+  year={2020},
+  organization={Springer},
+  doi={10.1007/978-3-030-51074-9_4}
+}
+
+@inproceedings{ddb,
+  title={Using an expressive description logic: {FaCT} or fiction?},
+  author={Horrocks, Ian},
+  booktitle={Principles of Knowledge Representation and Reasoning (KR)},
+  pages={636--647},
+  year={1998},
+  organization={Morgan Kaufmann}
+}
+
+@inproceedings{bcp,
+  title={{RACER} system description},
+  author={Haarslev, Volker and M{\"o}ller, Ralf},
+  booktitle={International Joint Conference on Automated Reasoning (IJCAR)},
+  pages={701--705},
+  year={2001},
+  organization={Springer},
+  doi={10.1007/3-540-45744-5_59}
+}
+
+@inproceedings{absorption,
+  title={Optimizing tableau reasoning for expressive description logics},
+  author={Tsarkov, Dmitry and Riazanov, Alexandre and Bechhofer, Sean and Horrocks, Ian},
+  booktitle={Proceedings of the 21st International Workshop on Description Logics},
+  year={2008},
+  url={http://ceur-ws.org/Vol-353/}
+}
+
+@inproceedings{blocking,
+  title={An overview of tableau algorithms for description logics},
+  author={Baader, Franz and Sattler, Ulrike},
+  booktitle={Proceedings of the 14th International Workshop on Description Logics},
+  pages={164--168},
+  year={2001},
+  url={http://ceur-ws.org/Vol-49/}
+}
+
+%% ============================================
+%% PARALLEL ALGORITHMS
+%% ============================================
+
 @inproceedings{workstealing,
   title={Thread scheduling for multiprogramming multiprocessors},
   author={Arora, Nimar S and Blumofe, Robert D and Plaxton, C Greg},
@@ -105,6 +187,38 @@
 %% ============================================
 %% PROGRAMMING LANGUAGES
 %% ============================================
+
+@article{rust,
+  title={The {Rust} programming language},
+  author={Matsakis, Nicholas D and Klock, Felix S},
+  journal={ACM SIGAda Ada Letters},
+  volume={34},
+  number={3},
+  pages={103--104},
+  year={2014},
+  publisher={ACM},
+  doi={10.1145/2692956.2692958}
+}
+
+%% ============================================
+%% <you write: ADD ADDITIONAL REFERENCES>
+%% ============================================
+%% Search Google Scholar for recent papers (2019-2024) on:
+%% - "parallel OWL reasoning"
+%% - "OWL reasoner evaluation"
+%% - "tableaux optimization"
+%% - "learning description logic"
+%% - "OWL2Bench"
+%% - "ORE 2013" "ORE 2014" "ORE 2015" (OWL Reasoner Evaluation workshops)
+%%
+%% Important: Look for these specific papers to get real benchmark data:
+%% 1. OWL Reasoner Evaluation (ORE) workshop series 2013-2015
+%% 2. OWL2Bench paper (ISWC 2020)
+%% 3. Recent survey papers on OWL reasoners
+%% 4. Performance comparison studies
+%% Search: "parallel description logic reasoning" on Google Scholar
+% BibTeX entries for Literature Review
+% Add these entries to your references.bib file
 
 @techreport{hitzler2012owl,
   author = {Hitzler, Pascal and Kr{\"o}tzsch, Markus and Parsia, Bijan and Patel-Schneider, Peter F. and Rudolph, Sebastian},
@@ -259,6 +373,17 @@
   year = {2015}
 }
 
+@article{lubm,
+  title={The {L}ehigh {U}niversity {B}ench},
+  author={Guo, Yuanbo and Pan, Zhengxiang and Heflin, Jeff},
+  journal={Web Semantics: Science, Services and Agents on the World Wide Web},
+  volume={5},
+  number={2},
+  pages={158--182},
+  year={2005},
+  publisher={Elsevier}
+}
+
 @article{bioportal,
   title = {{BioPortal}: A web repository for biomedical ontologies},
   author = {Whetzel, Patricia L and Noy, Natalya F and Shah, Nigam H and Alexander, Paul R and Nyulas, Csongor and Tudorache, Tania and Musen, Mark A},
@@ -347,3 +472,94 @@
   doi = {10.1016/j.websem.2021.100694}
 }
 
+@inproceedings{zhao2017next,
+  author = {Zhao, Haoruo and Parsia, Bijan and Sattler, Ulrike},
+  title = {Next Steps for ReAD: Modules for Classification Optimisation},
+  booktitle = {Description Logics Workshop},
+  year = {2017}
+}
+
+@article{cantone2018optimized,
+  author = {Cantone, Domenico and Nicolosi-Asmundo, Marianna and Santamaria, Daniele Francesco},
+  title = {An optimized KE-tableau-based system for reasoning in the description logic SHDLSSX},
+  journal = {Intelligenza Artificiale},
+  year = {2018},
+  volume = {12},
+  number = {2},
+  pages = {151--173}
+}
+
+@misc{steigmiller2021evaluation,
+  author = {Steigmiller, Andreas and Glimm, Birte},
+  title = {Parallelised ABox Reasoning and Query Answering with Expressive Description Logics: Evaluation Data},
+  year = {2021},
+  publisher = {Zenodo},
+  doi = {10.5281/zenodo.4606565}
+}
+
+@article{noy2009bioportal,
+  author = {Noy, Natalya F. and Shah, Nigam H. and Whetzel, Patricia L. and Dai, Benjamin and Dorf, Michael and Griffith, Nicholas and Jonquet, Clement and Rubin, Daniel L. and Storey, Margaret-Anne and Chute, Christopher G. and Musen, Mark A.},
+  title = {BioPortal: ontologies and integrated data resources at the click of a mouse},
+  journal = {Nucleic Acids Research},
+  year = {2009},
+  volume = {37},
+  number = {suppl\_2},
+  pages = {W170--W173}
+}
+
+@techreport{parsia2013ore,
+  author = {Parsia, Bijan and Matentzoglu, Nicolas and Gon{\c{c}}alves, Rafael S. and Glimm, Birte and Steigmiller, Andreas},
+  title = {OWL reasoner evaluation (ORE) workshop 2013 results},
+  institution = {ORE Workshop},
+  year = {2013},
+  url = {https://www.academia.edu/download/92482686/ore2013_report.pdf}
+}
+
+@book{klabnik2018rust,
+  author = {Klabnik, Steve and Nichols, Carol},
+  title = {The Rust Programming Language},
+  publisher = {No Starch Press},
+  year = {2018}
+}
+
+@incollection{baader2003basic,
+  author = {Baader, Franz and Nutt, Werner},
+  title = {Basic Description Logics},
+  booktitle = {The Description Logic Handbook},
+  publisher = {Cambridge University Press},
+  year = {2003},
+  pages = {43--95}
+}
+
+@phdthesis{priya2015scaling,
+  author = {Priya, Sambhawa},
+  title = {Scaling Out Sound and Complete Reasoning for Conjunctive Queries on OWL Knowledge Bases},
+  school = {Wright State University},
+  year = {2015}
+}
+
+@inproceedings{kollia2011sparql,
+  author = {Kollia, Ilianna and Glimm, Birte and Horrocks, Ian},
+  title = {SPARQL Query Answering over OWL Ontologies},
+  booktitle = {Extended Semantic Web Conference (ESWC)},
+  year = {2011},
+  pages = {382--396}
+}
+
+@inproceedings{horrocks2001ontology,
+  author = {Horrocks, Ian and Sattler, Ulrike},
+  title = {Ontology Reasoning in the SHOQ(D) Description Logic},
+  booktitle = {Proceedings of the 17th International Joint Conference on Artificial Intelligence (IJCAI 2001)},
+  year = {2001},
+  pages = {199--204}
+}
+
+@article{eiter2008combining,
+  author = {Eiter, Thomas and Ianni, Giovambattista and Lukasiewicz, Thomas and Schindlauer, Roman and Tompits, Hans},
+  title = {Combining Answer Set Programming with Description Logics for the Semantic Web},
+  journal = {Artificial Intelligence},
+  year = {2008},
+  volume = {172},
+  number = {12-13},
+  pages = {1495--1539}
+}
