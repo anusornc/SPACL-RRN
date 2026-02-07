@@ -22,6 +22,7 @@
 \usepackage{algpseudocode}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{makecell}
 \usepackage{multirow}
 \usepackage{subcaption}
 \usepackage{xcolor}
@@ -1073,7 +1074,7 @@ To isolate nogood learning effects, we compare SPACL with and without nogood lea
 \label{tab:nogood}
 \begin{tabular}{l|r|r|r|r}
 \toprule
-\textbf{Ontology Type} & \textbf{No Learning (ms)} & \textbf{With Learning (ms)} & \textbf{Branches Pruned} & \textbf{Cache Hit} \\
+\textbf{Ontology Type} & \thead{No Learning\\(ms)} & \thead{With Learning\\(ms)} & \thead{Branches\\Pruned} & \thead{Cache\\Hit} \\
 \midrule
 Disjunctive (inconsistent) & $234.5 \pm 12.3$ & $178.3 \pm 9.7$ & $28.4\%$ & $82.3\%$ \\
 Disjunctive (consistent) & $89.2 \pm 5.1$ & $87.1 \pm 4.8$ & $3.2\%$ & $91.7\%$ \\
