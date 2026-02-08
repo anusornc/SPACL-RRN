@@ -71,3 +71,6 @@ paper/**/*.pdf
 
 # Large test data (keep small ones)
 tests/data/hierarchy_100000.owl
+results/history/*/criterion_report/
+results/history/*/benchmark_output.log
+*.log

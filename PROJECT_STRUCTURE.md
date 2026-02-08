@@ -218,3 +218,62 @@ cargo bench
 ## Last Updated
 
 February 8, 2026
+
+### Benchmark Result Tracking (NEW)
+
+The project includes a timestamped benchmark tracking system:
+
+```
+results/
+├── history/                    # Timestamped benchmark runs
+│   └── YYYYMMDD_HHMMSS/       # Each run has its own directory
+│       ├── README.md          # Run summary
+│       ├── system_info.txt    # System configuration
+│       ├── benchmark_output.log
+│       ├── summary.txt        # Key metrics
+│       └── criterion_report/  # Criterion HTML reports
+│
+├── comparisons/               # Comparison reports
+│   └── comparison_<t1>_vs_<t2>.md
+│
+└── [existing result files]   # Historical results
+```
+
+#### Benchmark Scripts:
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `scripts/run_benchmark.sh` | Run benchmark with timestamp | `./scripts/run_benchmark.sh <name>` |
+| `scripts/list_benchmarks.sh` | List all benchmark runs | `./scripts/list_benchmarks.sh` |
+| `scripts/compare_benchmarks.sh` | Compare two runs | `./scripts/compare_benchmarks.sh <t1> <t2>` |
+
+#### Example Workflow:
+
+```bash
+# Run a benchmark (creates timestamped result)
+./scripts/run_benchmark.sh spacl_vs_sequential
+
+# List all benchmark runs
+./scripts/list_benchmarks.sh
+
+# Compare two runs
+./scripts/compare_benchmarks.sh 20260208_120000 20260208_130000
+
+# View specific run
+cat results/history/20260208_120000/README.md
+```
+
+#### Result Organization:
+
+Each benchmark run creates a new directory with:
+- **Unique timestamp** - No overwriting previous results
+- **System info** - Hardware, OS, Rust version
+- **Full output** - Complete benchmark log
+- **Summary** - Key metrics extracted
+- **README** - Human-readable summary
+
+This allows:
+- Tracking performance over time
+- Comparing different code versions
+- Identifying performance regressions
+- Verifying consistency across runs
