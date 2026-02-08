@@ -1,0 +1,135 @@
+Benchmarking simple_reasoner/family_ontology
+Benchmarking simple_reasoner/family_ontology: Warming up for 3.0000 s
+Benchmarking simple_reasoner/family_ontology: Collecting 100 samples in estimated 10.043 s (828k iterations)
+Benchmarking simple_reasoner/family_ontology: Analyzing
+                        time:   [12.074 µs 12.080 µs 12.086 µs]
+Benchmarking hierarchy_scaling/sequential/10
+Benchmarking hierarchy_scaling/sequential/10: Warming up for 3.0000 s
+Benchmarking hierarchy_scaling/sequential/10: Collecting 100 samples in estimated 20.055 s (773k iterations)
+Benchmarking hierarchy_scaling/sequential/10: Analyzing
+                        time:   [25.983 µs 26.146 µs 26.396 µs]
+                        time:   [-0.3448% +0.1135% +0.5947%] (p = 0.66 > 0.05)
+Benchmarking hierarchy_scaling/sequential/50
+Benchmarking hierarchy_scaling/sequential/50: Warming up for 3.0000 s
+Benchmarking hierarchy_scaling/sequential/50: Collecting 100 samples in estimated 20.172 s (167k iterations)
+Benchmarking hierarchy_scaling/sequential/50: Analyzing
+                        time:   [120.43 µs 120.61 µs 120.81 µs]
+                        time:   [-0.4063% -0.1667% +0.0423%] (p = 0.16 > 0.05)
+Benchmarking hierarchy_scaling/sequential/100
+Benchmarking hierarchy_scaling/sequential/100: Warming up for 3.0000 s
+Benchmarking hierarchy_scaling/sequential/100: Collecting 100 samples in estimated 20.182 s (71k iterations)
+Benchmarking hierarchy_scaling/sequential/100: Analyzing
+                        time:   [285.57 µs 286.46 µs 287.60 µs]
+                        time:   [+0.5952% +1.1254% +1.8551%] (p = 0.00 < 0.05)
+Benchmarking hierarchy_scaling/sequential/500
+Benchmarking hierarchy_scaling/sequential/500: Warming up for 3.0000 s
+Benchmarking hierarchy_scaling/sequential/500: Collecting 100 samples in estimated 30.647 s (10k iterations)
+Benchmarking hierarchy_scaling/sequential/500: Analyzing
+                        time:   [3.0099 ms 3.0154 ms 3.0222 ms]
+                        time:   [-1.0475% -0.6433% -0.2818%] (p = 0.00 < 0.05)
+Benchmarking spacl_vs_sequential/sequential/4
+Benchmarking spacl_vs_sequential/sequential/4: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/sequential/4: Collecting 100 samples in estimated 30.006 s (1.4M iterations)
+Benchmarking spacl_vs_sequential/sequential/4: Analyzing
+                        time:   [21.020 µs 21.035 µs 21.053 µs]
+                        time:   [+1.6798% +1.9178% +2.1304%] (p = 0.00 < 0.05)
+Benchmarking spacl_vs_sequential/spacl_default/4
+Benchmarking spacl_vs_sequential/spacl_default/4: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/spacl_default/4: Collecting 100 samples in estimated 30.088 s (1.1M iterations)
+Benchmarking spacl_vs_sequential/spacl_default/4: Analyzing
+                        time:   [26.789 µs 26.913 µs 27.045 µs]
+                        time:   [+0.7806% +1.3175% +1.9095%] (p = 0.00 < 0.05)
+Benchmarking spacl_vs_sequential/spacl_no_learning/4
+Benchmarking spacl_vs_sequential/spacl_no_learning/4: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/spacl_no_learning/4: Collecting 100 samples in estimated 30.038 s (1.1M iterations)
+Benchmarking spacl_vs_sequential/spacl_no_learning/4: Analyzing
+                        time:   [26.372 µs 26.412 µs 26.481 µs]
+                        time:   [-1.9753% -1.5168% -1.0988%] (p = 0.00 < 0.05)
+Benchmarking spacl_vs_sequential/spacl_single_worker/4
+Benchmarking spacl_vs_sequential/spacl_single_worker/4: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/spacl_single_worker/4: Collecting 100 samples in estimated 30.080 s (1.1M iterations)
+Benchmarking spacl_vs_sequential/spacl_single_worker/4: Analyzing
+                        time:   [26.270 µs 26.364 µs 26.533 µs]
+                        time:   [-0.2996% -0.1038% +0.1596%] (p = 0.45 > 0.05)
+Benchmarking spacl_vs_sequential/sequential/8
+Benchmarking spacl_vs_sequential/sequential/8: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/sequential/8: Collecting 100 samples in estimated 30.007 s (889k iterations)
+Benchmarking spacl_vs_sequential/sequential/8: Analyzing
+                        time:   [33.691 µs 33.861 µs 34.071 µs]
+                        time:   [-2.4868% -1.8581% -1.2907%] (p = 0.00 < 0.05)
+Benchmarking spacl_vs_sequential/spacl_default/8
+Benchmarking spacl_vs_sequential/spacl_default/8: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/spacl_default/8: Collecting 100 samples in estimated 30.001 s (758k iterations)
+Benchmarking spacl_vs_sequential/spacl_default/8: Analyzing
+                        time:   [39.742 µs 39.792 µs 39.847 µs]
+                        time:   [-1.1094% -0.7216% -0.4077%] (p = 0.00 < 0.05)
+Benchmarking spacl_vs_sequential/spacl_no_learning/8
+Benchmarking spacl_vs_sequential/spacl_no_learning/8: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/spacl_no_learning/8: Collecting 100 samples in estimated 30.117 s (763k iterations)
+Benchmarking spacl_vs_sequential/spacl_no_learning/8: Analyzing
+                        time:   [39.526 µs 39.625 µs 39.748 µs]
+                        time:   [-3.2455% -2.8423% -2.4386%] (p = 0.00 < 0.05)
+Benchmarking spacl_vs_sequential/spacl_single_worker/8
+Benchmarking spacl_vs_sequential/spacl_single_worker/8: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/spacl_single_worker/8: Collecting 100 samples in estimated 30.091 s (763k iterations)
+Benchmarking spacl_vs_sequential/spacl_single_worker/8: Analyzing
+                        time:   [39.209 µs 39.286 µs 39.381 µs]
+                        time:   [-3.3616% -2.4873% -1.7780%] (p = 0.00 < 0.05)
+Benchmarking spacl_vs_sequential/sequential/16
+Benchmarking spacl_vs_sequential/sequential/16: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/sequential/16: Collecting 100 samples in estimated 30.019 s (429k iterations)
+Benchmarking spacl_vs_sequential/sequential/16: Analyzing
+                        time:   [70.024 µs 70.335 µs 70.774 µs]
+                        time:   [-0.7426% -0.4754% -0.1263%] (p = 0.00 < 0.05)
+Benchmarking spacl_vs_sequential/spacl_default/16
+Benchmarking spacl_vs_sequential/spacl_default/16: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/spacl_default/16: Collecting 100 samples in estimated 30.088 s (379k iterations)
+Benchmarking spacl_vs_sequential/spacl_default/16: Analyzing
+                        time:   [76.196 µs 76.249 µs 76.313 µs]
+                        time:   [-3.2009% -2.3545% -1.5883%] (p = 0.00 < 0.05)
+Benchmarking spacl_vs_sequential/spacl_no_learning/16
+Benchmarking spacl_vs_sequential/spacl_no_learning/16: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/spacl_no_learning/16: Collecting 100 samples in estimated 30.055 s (394k iterations)
+Benchmarking spacl_vs_sequential/spacl_no_learning/16: Analyzing
+                        time:   [76.018 µs 76.056 µs 76.106 µs]
+                        time:   [-2.1364% -1.5565% -1.1677%] (p = 0.00 < 0.05)
+Benchmarking spacl_vs_sequential/spacl_single_worker/16
+Benchmarking spacl_vs_sequential/spacl_single_worker/16: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/spacl_single_worker/16: Collecting 100 samples in estimated 30.372 s (399k iterations)
+Benchmarking spacl_vs_sequential/spacl_single_worker/16: Analyzing
+                        time:   [76.055 µs 76.247 µs 76.523 µs]
+                        time:   [-1.1082% -0.5392% +0.2432%] (p = 0.12 > 0.05)
+Benchmarking spacl_vs_sequential/sequential/32
+Benchmarking spacl_vs_sequential/sequential/32: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/sequential/32: Collecting 100 samples in estimated 30.382 s (197k iterations)
+Benchmarking spacl_vs_sequential/sequential/32: Analyzing
+                        time:   [154.90 µs 155.39 µs 156.02 µs]
+                        time:   [-1.4263% -0.5861% +0.1401%] (p = 0.15 > 0.05)
+Benchmarking spacl_vs_sequential/spacl_default/32
+Benchmarking spacl_vs_sequential/spacl_default/32: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/spacl_default/32: Collecting 100 samples in estimated 30.575 s (187k iterations)
+Benchmarking spacl_vs_sequential/spacl_default/32: Analyzing
+                        time:   [162.41 µs 162.82 µs 163.51 µs]
+                        time:   [-2.2435% -1.4942% -0.9143%] (p = 0.00 < 0.05)
+Benchmarking spacl_vs_sequential/spacl_no_learning/32
+Benchmarking spacl_vs_sequential/spacl_no_learning/32: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/spacl_no_learning/32: Collecting 100 samples in estimated 30.633 s (187k iterations)
+Benchmarking spacl_vs_sequential/spacl_no_learning/32: Analyzing
+                        time:   [162.64 µs 163.71 µs 165.03 µs]
+                        time:   [-1.7056% -1.2010% -0.6867%] (p = 0.00 < 0.05)
+Benchmarking spacl_vs_sequential/spacl_single_worker/32
+Benchmarking spacl_vs_sequential/spacl_single_worker/32: Warming up for 3.0000 s
+Benchmarking spacl_vs_sequential/spacl_single_worker/32: Collecting 100 samples in estimated 30.516 s (187k iterations)
+Benchmarking spacl_vs_sequential/spacl_single_worker/32: Analyzing
+                        time:   [161.81 µs 161.89 µs 161.98 µs]
+                        time:   [-3.1143% -2.4068% -1.7829%] (p = 0.00 < 0.05)
+Benchmarking spacl_statistics/collect_stats
+Benchmarking spacl_statistics/collect_stats: Warming up for 3.0000 s
+Benchmarking spacl_statistics/collect_stats: Collecting 100 samples in estimated 10.121 s (131k iterations)
+Benchmarking spacl_statistics/collect_stats: Analyzing
+                        time:   [77.620 µs 78.197 µs 79.113 µs]
+Benchmarking spacl_statistics/nogood_stats
+Benchmarking spacl_statistics/nogood_stats: Warming up for 3.0000 s
+Benchmarking spacl_statistics/nogood_stats: Collecting 100 samples in estimated 10.104 s (131k iterations)
+Benchmarking spacl_statistics/nogood_stats: Analyzing
+                        time:   [77.355 µs 77.484 µs 77.634 µs]
