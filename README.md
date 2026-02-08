@@ -5,6 +5,28 @@ A high-performance, feature-complete OWL2 reasoning engine implemented in Rust.
 [![GitHub](https://img.shields.io/badge/GitHub-anusornc%2Ftableauxx-blue)](https://github.com/anusornc/tableauxx)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> **Paper Status**: Ready for final verification before Journal of Web Semantics submission.  
+> **Repository**: https://github.com/anusornc/tableauxx
+
+---
+
+## 📁 Project Structure
+
+```
+tableauxx/
+├── src/           # Rust source code
+├── tests/         # Test suite
+├── paper/         # Journal submission
+│   ├── submission/    # Manuscript files
+│   ├── guides/        # Reference guides
+│   └── downloads/     # Downloaded PDFs
+├── admin/         # Project administration
+├── docs/          # Developer documentation
+└── benchmarks/    # Benchmark data
+```
+
+**📖 [Full Project Structure](PROJECT_STRUCTURE.md)**
+
 ## 🚀 Quick Start
 
 ```bash
