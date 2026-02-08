@@ -52,6 +52,14 @@
 - **Academic Integrity Warning**: `paper/ACADEMIC_INTEGRITY_WARNING.md`
 - **Status**: All 36 references are legitimate, but require verification before submission
 
+### 5. CRITICAL: Benchmark Hardware Inconsistency (NEW - Feb 8, 2026)
+⚠️ **SERIOUS ISSUE DISCOVERED:**
+- **Paper Claims**: AMD Ryzen 9 5900X (12 cores, 3.7-4.8GHz)
+- **Actual Hardware**: Intel Xeon Silver 4214 (12 cores @ 2.20GHz)
+- **Impact**: Benchmark results may not be reproducible on claimed hardware
+- **See**: `paper/guides/BENCHMARK_INCONSISTENCY_WARNING.md`
+- **Action Required**: Either re-run on AMD hardware OR update paper specs
+
 ### 5. Key Files Location
 ```
 paper/submission/
