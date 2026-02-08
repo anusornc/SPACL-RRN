@@ -1,5 +1,4 @@
 //! Check what disjunctions are found in the ontology
-use owl2_reasoner::SpeculativeTableauxReasoner;
 
 fn main() {
     let content = std::fs::read_to_string("tests/data/disjunctive_test.owl").unwrap();
@@ -16,11 +15,17 @@ fn main() {
     println!("\nEquivalent classes axioms: {}", eq_axioms.len());
     
     for (i, ax) in eq_axioms.iter().enumerate() {
-        println!("  Axiom {}: {:?}", i, ax);
-        // Try to inspect the class expressions
-        for expr in ax.class_expressions() {
-            check_expression(expr, 2);
-        }
+        println!("  Axiom {}: classes involved: {:?}", i, 
+            ax.classes().iter().map(|c| c.to_string()).collect::<Vec<_>>()
+        );
+    }
+    
+    // Check subclass axioms for disjunctions
+    let sub_axioms = ontology.subclass_axioms();
+    println!("\nSubclass axioms: {}", sub_axioms.len());
+    
+    for (i, ax) in sub_axioms.iter().enumerate() {
+        println!("  Axiom {}: {:?} ⊑ {:?}", i, ax.sub_class(), ax.super_class());
     }
 }
 

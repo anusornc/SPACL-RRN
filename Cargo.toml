@@ -116,42 +116,58 @@ path = "src/lib.rs"
 name = "analyze_tableaux_performance"
 path = "scripts/analyze_tableaux_performance.rs"
 
-[[example]]
-name = "family_ontology"
-path = "examples/basic/family_ontology.rs"
 
 [[example]]
-name = "simple_example"
-path = "examples/basic/simple_example.rs"
+name = "benchmark_100k"
+path = "examples/benchmark_100k.rs"
 
 [[example]]
-name = "json_ld_example"
-path = "examples/basic/json_ld_example.rs"
+name = "benchmark_disjunctive"
+path = "examples/benchmark_disjunctive.rs"
 
 [[example]]
-name = "complete_validation"
-path = "examples/validation/complete_validation.rs"
+name = "benchmark_disjunctive_simple"
+path = "examples/benchmark_disjunctive_simple.rs"
 
 [[example]]
-name = "comparative_analysis"
-path = "examples/advanced/comparative_analysis.rs"
+name = "benchmark_large"
+path = "examples/benchmark_large.rs"
 
 [[example]]
-name = "cache_usage"
-path = "examples/cache_usage.rs"
+name = "check_disjunctions"
+path = "examples/check_disjunctions.rs"
 
 [[example]]
-name = "epcis_validation_suite"
-path = "examples/advanced/epcis_validation_suite.rs"
+name = "inspect_axioms"
+path = "examples/inspect_axioms.rs"
 
 [[example]]
-name = "import_resolution_example"
-path = "examples/import_resolution_example.rs"
+name = "overnight_test"
+path = "examples/overnight_test.rs"
 
 [[example]]
-name = "web_service_example"
-path = "examples/web_service_example.rs"
-required-features = ["web-service"]
+name = "quick_speedup_test"
+path = "examples/quick_speedup_test.rs"
+
+[[example]]
+name = "test_branch_splitting"
+path = "examples/test_branch_splitting.rs"
+
+[[example]]
+name = "test_spacl"
+path = "examples/test_spacl.rs"
+
+[[example]]
+name = "test_spacl_large"
+path = "examples/test_spacl_large.rs"
+
+[[example]]
+name = "test_tuning"
+path = "examples/test_tuning.rs"
+
+[[example]]
+name = "verify_spacl"
+path = "examples/verify_spacl.rs"
 
 [[bin]]
 name = "benchmark_adaptive"

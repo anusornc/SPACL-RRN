@@ -738,8 +738,8 @@ mod tests {
     #[test]
     fn test_serialize_deserialize_with_classes() {
         let mut ontology = Ontology::new();
-        ontology.add_class(Class::new(IRI::new("http://example.org/A"))).unwrap();
-        ontology.add_class(Class::new(IRI::new("http://example.org/B"))).unwrap();
+        ontology.add_class(Class::new(IRI::new("http://example.org/A").unwrap())).unwrap();
+        ontology.add_class(Class::new(IRI::new("http://example.org/B").unwrap())).unwrap();
         
         let mut buffer = Vec::new();
         BinaryOntologyFormat::serialize(&ontology, &mut buffer).unwrap();
@@ -753,8 +753,8 @@ mod tests {
     #[test]
     fn test_serialize_deserialize_with_subclass_axioms() {
         let mut ontology = Ontology::new();
-        let class_a = Class::new(IRI::new("http://example.org/A"));
-        let class_b = Class::new(IRI::new("http://example.org/B"));
+        let class_a = Class::new(IRI::new("http://example.org/A").unwrap());
+        let class_b = Class::new(IRI::new("http://example.org/B").unwrap());
         ontology.add_class(class_a.clone()).unwrap();
         ontology.add_class(class_b.clone()).unwrap();
         
