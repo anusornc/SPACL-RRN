@@ -69,6 +69,8 @@ admin/
 │   ├── BENCHMARK_ANALYSIS_2026_02_06.md
 │   ├── COMPLETION_REPORT.md
 │   ├── COMPLETION_REPORT_FINAL.md
+│   ├── ETHICAL_CORRECTIONS_REPORT.md
+│   ├── FINAL_ETHICAL_VALIDATION.md
 │   ├── FINAL_PROJECT_SUMMARY.md
 │   ├── FINAL_SUMMARY.md
 │   ├── PHASE1_IMPLEMENTATION_SUMMARY.md
@@ -95,7 +97,7 @@ paper/
 │   ├── compile.sh       # Compilation script
 │   └── MARKED_SECTIONS.txt  # Citation analysis
 │
-├── guides/              # Reference guides
+├── guides/              # Reference guides and validation
 │   ├── ACADEMIC_INTEGRITY_WARNING.md
 │   ├── PAPER_REVISION_GUIDE.md
 │   ├── REFERENCE_VALIDATION_REPORT.md
@@ -106,6 +108,11 @@ paper/
 │   ├── *.pdf           # Downloaded papers
 │   ├── MANUAL_DOWNLOAD_GUIDE.md
 │   └── download_*.sh   # Download scripts
+│
+├── CHANGES_IMPLEMENTED.md   # Change history
+├── CHANGES_SUMMARY.md       # Summary of changes
+├── PROJECT_STATUS.md        # Current status
+├── SUBMISSION_CHECKLIST.md  # Pre-submission checklist
 │
 ├── elsarticle/          # LaTeX class files
 ├── figures/             # Figure files
@@ -193,11 +200,13 @@ cargo bench
 | File | Location | Purpose |
 |------|----------|---------|
 | Main README | `/README.md` | Project overview |
-| Project Status | `/paper/PROJECT_STATUS.md` | Current status |
+| Project Structure | `/PROJECT_STRUCTURE.md` | This guide |
+| Project Status | `/paper/PROJECT_STATUS.md` | Current status & checklist |
 | Changes Log | `/paper/CHANGES_IMPLEMENTED.md` | Change history |
 | Manuscript | `/paper/submission/manuscript.tex` | Paper source |
 | Compile Script | `/paper/submission/compile.sh` | Build PDF |
 | Reference Guide | `/paper/guides/PAPER_REVISION_GUIDE.md` | Citation guide |
+| Revision Summary | `/paper/guides/REVISION_SUMMARY.md` | Action plan |
 
 ## Notes
 
