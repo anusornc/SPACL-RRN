@@ -198,4 +198,58 @@ grep -c "686" manuscript.tex                    # 2
 | OWL2 DL fixes | 10+ | 13 | ✅ |
 | Wrong claims remaining | 0 | 0 | ✅ |
 
-**All criteria met. Ready for submission.**
+---
+
+## Additional Changes (Feb 7, 2026)
+
+### 6. GitHub URL Fixed
+**Changed**: `github.com/anusornchaikaew/tableauxx` → `github.com/anusornc/tableauxx`
+**Locations**: 
+- Line 789: Reproducibility section
+- Line 1160: Availability section
+
+### 7. References Cleaned
+**Changed**: 57 references → 36 cited references
+**Removed**: 21 unused entries from .bib file
+**Backup**: `references_original_57.bib`
+
+### 8. Table 7 Fixed
+**Issue**: Headers overlapping right border
+**Solution**: Added `makecell` package, wrapped headers:
+- `No Learning/(ms)` → `\thead{No Learning\\(ms)}`
+- `With Learning/(ms)` → `\thead{With Learning\\(ms)}`
+- `Branches Pruned` → `\thead{Branches\\Pruned}`
+- `Cache Hit` → `\thead{Cache\\Hit}`
+
+### 9. Compile Script Added
+**File**: `paper/submission/compile.sh`
+**Usage**: `./compile.sh` or `./compile.sh clean`
+**Features**: Auto-detects Docker or local LaTeX, full compilation sequence
+
+### 10. Reference Validation Documentation
+**New Files**:
+- `paper/REFERENCE_VALIDATION_REPORT.md` - All 36 references verified legitimate
+- `paper/PAPER_REVISION_GUIDE.md` - Search terms for all citations
+- `paper/REVISION_SUMMARY.md` - Action plan for verification
+- `paper/ACADEMIC_INTEGRITY_WARNING.md` - Why verification is required
+- `paper/submission/MARKED_SECTIONS.txt` - Line-by-line citation analysis
+
+**⚠️ NOTE**: All 36 citations need to be read and verified before submission!
+See REVISION_SUMMARY.md for complete checklist.
+
+---
+
+## Current Status
+
+| Criterion | Target | Actual | Status |
+|-----------|--------|--------|--------|
+| Nogood theorem | 1 | 1 | ✅ |
+| Benchmark protocol | 1 | 1 | ✅ |
+| 100K acknowledgment | 1+ | 3 | ✅ |
+| Competitor rationale | 1 | 1 | ✅ |
+| OWL2 DL fixes | 10+ | 13 | ✅ |
+| Wrong claims remaining | 0 | 0 | ✅ |
+| GitHub URL correct | 2 | 2 | ✅ |
+| Table formatting | 0 overlap | Fixed | ✅ |
+
+**All LaTeX changes complete. Reference verification required before submission.**

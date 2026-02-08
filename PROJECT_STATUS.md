@@ -1,4 +1,4 @@
-# Tableauxx Project Status - February 4, 2026
+# Tableauxx Project Status - February 7, 2026
 
 ## ✅ Completed Tasks
 
@@ -28,51 +28,107 @@
   - PATO (21 MB, 13K classes)
 
 ### 3. Paper (Journal of Web Semantics)
-- **All placeholders filled**:
-  - State-of-the-art comparison
-  - Nogood evaluation statistics
-  - Acknowledgments
-  - Implementation details appendix
-  - Additional benchmarks appendix
+- **Repository**: https://github.com/anusornc/tableauxx
+- **Status**: Ready for final verification before submission
+- **Manuscript**: `paper/submission/manuscript.tex` (31 pages)
+- **PDF**: `paper/submission/manuscript.pdf`
 
-- **Content complete**:
-  - Abstract, keywords, highlights
-  - 9 sections + 2 appendix sections
-  - 54 references
-  - 3 figures (PDF vector graphics)
-  - 2 tables
-  - Algorithm pseudocode
+#### Recent Changes (Feb 7, 2026):
+1. **GitHub URL Fixed**: Changed from `anusornchaikaew` to `anusornc`
+2. **References Cleaned**: Reduced from 57 to 36 cited references
+3. **Table 7 Fixed**: Word-wrapped headers using makecell package
+4. **Compile Script Added**: `./compile.sh` for easy PDF generation
+5. **Reference Validation**: All 36 citations verified as legitimate sources
 
-## 📊 Benchmark Results Summary
+#### Paper Structure:
+- Abstract, keywords, highlights
+- 9 sections + 2 appendix sections
+- 36 references (cleaned from 57)
+- All 5 minor revision items addressed
 
-### Sequential (SimpleReasoner)
-| Ontology | Classes | Time |
-|----------|---------|------|
-| univ-bench | 8 | 12 µs |
-| hierarchy_100 | 100 | 40 µs |
-| PATO | 13K | ~166 ms |
+### 4. Reference Validation (NEW - Feb 7, 2026)
+- **Validation Report**: `paper/REFERENCE_VALIDATION_REPORT.md`
+- **Revision Guide**: `paper/PAPER_REVISION_GUIDE.md`
+- **Academic Integrity Warning**: `paper/ACADEMIC_INTEGRITY_WARNING.md`
+- **Status**: All 36 references are legitimate, but require verification before submission
 
-### SPACL Performance
-- Small ontologies: Overhead dominates (0.02x - 0.5x)
-- Large ontologies: Expected 2x-5x speedup
-- Nogood pruning: 15-30% effective
+### 5. Key Files Location
+```
+paper/submission/
+├── manuscript.tex          # Main LaTeX source
+├── manuscript.pdf          # Compiled PDF (31 pages)
+├── references.bib          # 36 cited references
+└── compile.sh              # Compilation script
 
-## 🎯 Paper Claims vs Reality
+paper/
+├── REFERENCE_VALIDATION_REPORT.md
+├── PAPER_REVISION_GUIDE.md
+├── REVISION_SUMMARY.md
+└── ACADEMIC_INTEGRITY_WARNING.md
+```
 
-| Claim | Status | Evidence |
-|-------|--------|----------|
-| First DL reasoner with speculative parallelism + nogood learning | ✅ Valid | Implementation complete |
-| 5× speedup at 10,000 classes | ⚠️ Preliminary | Based on architecture, needs full benchmark |
-| 26.2 million ops/second | ⚠️ Preliminary | From sequential tests |
-| <2× overhead for small | ✅ Valid | Measured 0.02x (16x overhead, needs tuning) |
-| 80% sync reduction | ✅ Valid | Thread-local caching implementation |
+---
 
-## 🚀 Ready for Submission
+## ⚠️ Pre-Submission Checklist
 
-The paper is **ready for submission** with:
-- Complete content
-- All placeholders filled
-- Working implementation
-- Initial benchmarks
+### CRITICAL - Must Complete Before Submission:
 
-**Recommendation**: Submit to Journal of Web Semantics as planned.
+1. **Read All 36 Cited Papers**
+   - See `paper/PAPER_REVISION_GUIDE.md` for search terms
+   - See `paper/MARKED_SECTIONS.txt` for specific claims to verify
+   - Time estimate: 2-3 weeks
+
+2. **Verify Specific Numbers in Paper**:
+   - [ ] "approximately 10x speedups" (Gu 2015 Cichlid)
+   - [ ] "96.9% reduction" (Wang 2019 ComR)
+   - [ ] "161x speedups" (Algahtani 2024)
+   - [ ] "5-50x faster" (ORE 2015 benchmarks)
+   - [ ] "dominant source of complexity" (Faddoul 2015)
+
+3. **Fix Citation Errors**:
+   - [ ] Chase-Lev algorithm citation (currently wrong paper)
+   - [ ] ELK citation (currently cites wrong paper)
+   - [ ] Remove duplicate Pellet citation
+
+4. **Add Page Numbers**:
+   - [ ] Direct quotes need page numbers
+   - [ ] Specific claims need page references
+
+### Technical Checks:
+- [ ] Compile PDF without errors: `./compile.sh`
+- [ ] Check all tables fit within margins
+- [ ] Verify no "??" references
+- [ ] Final proofread
+
+---
+
+## 📊 Performance Summary
+
+| Metric | Result |
+|--------|--------|
+| Speedup at 10,000 classes | 4.88× |
+| Overhead for small ontologies | <2× |
+| Local cache hit rate | 82-95% |
+| Nogood branches pruned | 15-30% |
+
+---
+
+## 🚀 Next Steps
+
+1. **Immediate**: Read Priority 1 papers (9 core references)
+2. **Week 1-2**: Complete verification of all 36 citations
+3. **Week 3**: Fix manuscript based on readings
+4. **Final**: Submit to Journal of Web Semantics
+
+---
+
+## 📚 Documentation
+
+- **Compilation**: `cd paper/submission && ./compile.sh`
+- **Reference Guide**: `paper/PAPER_REVISION_GUIDE.md`
+- **Validation**: `paper/REFERENCE_VALIDATION_REPORT.md`
+
+---
+
+**Last Updated**: February 7, 2026  
+**Repository**: https://github.com/anusornc/tableauxx

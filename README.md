@@ -2,6 +2,9 @@
 
 A high-performance, feature-complete OWL2 reasoning engine implemented in Rust.
 
+[![GitHub](https://img.shields.io/badge/GitHub-anusornc%2Ftableauxx-blue)](https://github.com/anusornc/tableauxx)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ## 🚀 Quick Start
 
 ```bash
