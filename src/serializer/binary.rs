@@ -4,7 +4,7 @@
 //! It is NOT a standard format - it's an internal optimization.
 //!
 //! Format version 1:
-//! ```
+//! ```text
 //! [Header] (32 bytes)
 //!   - magic: [u8; 4] = b"OWLB"
 //!   - version: u32 = 1

@@ -1,3 +1,4 @@
+#![allow(unused_imports, unused_variables, unused_mut, dead_code)]
 //! Load real-world ontologies and collect statistics
 
 use std::path::Path;

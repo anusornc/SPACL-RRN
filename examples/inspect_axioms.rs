@@ -1,3 +1,4 @@
+#![allow(unused_imports, unused_variables, unused_mut, dead_code)]
 use owl2_reasoner::{Ontology, ParserFactory};
 
 fn main() {

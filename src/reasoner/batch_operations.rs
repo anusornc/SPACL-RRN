@@ -10,18 +10,19 @@
 //! use owl2_reasoner::entities::Class;
 //! use owl2_reasoner::axioms::SubClassOfAxiom;
 //! use owl2_reasoner::axioms::ClassExpression;
+//! use owl2_reasoner::Ontology;
 //!
 //! // Create a batch builder for a family ontology
 //! let mut builder = ClassBatchBuilder::new("http://example.org/family");
 //!
 //! // Add multiple classes efficiently
-//! let person = builder.add_class("Person");
-//! let parent = builder.add_class("Parent");
-//! let child = builder.add_class("Child");
+//! let person = builder.add_class("Person").clone();
+//! let parent = builder.add_class("Parent").clone();
+//! let child = builder.add_class("Child").clone();
 //!
 //! // Add subclass relationships in batch
-//! builder.add_subclass(parent, child);
-//! builder.add_subclass(parent, person);
+//! builder.add_subclass(&parent, &child);
+//! builder.add_subclass(&parent, &person);
 //!
 //! // Build all classes at once
 //! let classes = builder.build();
@@ -31,9 +32,10 @@
 //! for class in classes {
 //!     ontology.add_class(class)?;
 //! }
+//! # Ok::<(), owl2_reasoner::OwlError>(())
 //! ```
 
-use crate::core::entities::{Class, NamedIndividual, ObjectProperty};
+use crate::core::entities::Class;
 use crate::logic::axioms::{ClassExpression, SubClassOfAxiom};
 use crate::core::ontology::Ontology;
 use crate::core::iri::IRI;
@@ -45,7 +47,6 @@ pub struct ClassBatchBuilder {
     classes: Vec<Class>,
     iri_prefix: String,
     subclass_relationships: Vec<(Class, Class)>,
-    counter: usize,
 }
 
 impl ClassBatchBuilder {
@@ -55,7 +56,6 @@ impl ClassBatchBuilder {
             classes: Vec::new(),
             iri_prefix: iri_prefix.to_string(),
             subclass_relationships: Vec::new(),
-            counter: 0,
         }
     }
 
@@ -100,8 +100,6 @@ pub struct AxiomBatchBuilder {
     subclass_axioms: Vec<SubClassOfAxiom>,
     class_assertions: Vec<(ClassExpression, ClassExpression)>,
     equivalent_classes: Vec<(ClassExpression, ClassExpression)>,
-    data_properties: Vec<(ObjectProperty, Vec<String>)>,
-    individual_assertions: Vec<(NamedIndividual, Vec<NamedIndividual>)>,
 }
 
 impl AxiomBatchBuilder {
@@ -111,8 +109,6 @@ impl AxiomBatchBuilder {
             subclass_axioms: Vec::new(),
             class_assertions: Vec::new(),
             equivalent_classes: Vec::new(),
-            data_properties: Vec::new(),
-            individual_assertions: Vec::new(),
         }
     }
 
@@ -166,8 +162,6 @@ pub mod utils {
         let mut ontology = Ontology::new();
         let mut builder = ClassBatchBuilder::new(family_prefix);
 
-        let mut classes = Vec::new();
-
         // Add all classes
         for (parent, child) in parent_child_pairs {
             let parent_class = builder.add_class(parent).clone();
@@ -175,7 +169,7 @@ pub mod utils {
             builder.add_subclass(&parent_class, &child_class);
         }
 
-        classes = builder.build();
+        let classes = builder.build();
 
         // Add all classes to ontology
         for class in &classes {
@@ -198,18 +192,16 @@ pub mod utils {
         let mut builder = ClassBatchBuilder::new("http://example.org/hierarchy/");
 
         let root_class = builder.add_class(root_class).clone();
-        let mut classes = vec![root_class.clone()];
 
         // Add hierarchical levels
         for level in levels {
             for &child_name in level.1.iter() {
                 let child_class = builder.add_class(child_name).clone();
                 builder.add_subclass(&root_class, &child_class);
-                classes.push(child_class);
             }
         }
 
-        classes = builder.build();
+        let classes = builder.build();
 
         // Add all classes to ontology
         for class in &classes {

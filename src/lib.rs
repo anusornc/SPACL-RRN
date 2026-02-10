@@ -14,7 +14,7 @@
 //!
 //! ## Project Structure
 //!
-//! ```
+//! ```text
 //! src/
 //! ├── core/          # Core types: IRI, entities, ontology, errors
 //! ├── logic/         # Axioms, class expressions, datatypes
@@ -57,6 +57,8 @@
 //! # Ok::<(), owl2_reasoner::OwlError>(())
 //! ```
 
+#![allow(ambiguous_glob_reexports)]
+
 // Core modules
 pub mod core;
 pub mod logic;
@@ -71,6 +73,25 @@ pub mod app;
 
 // Storage (for future backends)
 pub mod storage;
+
+// Backwards-compatible module aliases for doctests/examples
+pub mod entities {
+    pub use crate::core::entities::*;
+}
+
+pub mod axioms {
+    pub use crate::logic::axioms::*;
+}
+
+pub mod reasoning {
+    pub mod tableaux {
+        pub use crate::reasoner::tableaux::*;
+    }
+
+    pub mod batch_operations {
+        pub use crate::reasoner::batch_operations::*;
+    }
+}
 
 // Re-exports for convenience
 pub use core::{
@@ -88,14 +109,17 @@ pub use parser::{
 };
 
 pub use reasoner::{
-    batch_operations::*, classification::*, consistency::*, profile_optimized::*,
+    batch_operations::*, classification::*, consistency::*, 
+    hierarchical_classification::HierarchicalClassificationEngine,
+    profile_optimized::*,
     simple::SimpleReasoner, speculative::*, tableaux::*, ComplexityLevel, ExpressivenessLevel,
     OntologyFeatures, OwlReasoner, Reasoner, ReasoningResult, ReasoningStats, ReasoningTask,
 };
 
 pub use strategy::{
     evolutionary::{EvolutionaryOptimizer, EvolutionaryStrategy, PopulationStats},
-    meta_reasoner::{MetaReasoner, ReasoningStrategy},
+    meta_reasoner::{MetaReasoner, ReasoningStrategy as MetaReasoningStrategy},
+    ontology_analysis::{OntologyCharacteristics, ReasoningStrategy},
     profiles::{
         CachePriority, CacheStats, Owl2Profile, Owl2ProfileValidator, ProfileAnalysisReport,
         ProfileCacheConfig, ProfileValidationCache, ProfileValidationResult, ProfileValidator,

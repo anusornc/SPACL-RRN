@@ -53,7 +53,7 @@ use crate::core::error::{OwlError, OwlResult};
 use crate::core::iri::IRI;
 use crate::core::ontology::Ontology;
 use crate::strategy::profiles::{
-    Owl2Profile, Owl2ProfileValidator, ProfileValidationResult, ProfileValidator,
+    Owl2Profile, Owl2ProfileValidator, ProfileValidationResult,
 };
 use hashbrown::HashMap;
 use std::sync::Arc;
@@ -147,7 +147,7 @@ impl CacheStats {
 /// # Ok::<(), owl2_reasoner::OwlError>(())
 /// ```
 pub struct SimpleReasoner {
-    pub ontology: Ontology,
+    pub ontology: Arc<Ontology>,
 
     // Profile validation
     profile_validator: Owl2ProfileValidator,
@@ -182,8 +182,15 @@ impl SimpleReasoner {
     /// # Ok::<(), owl2_reasoner::OwlError>(())
     /// ```
     pub fn new(ontology: Ontology) -> Self {
-        let ontology_arc = Arc::new(ontology);
-        let profile_validator = match Owl2ProfileValidator::new(ontology_arc.clone()) {
+        Self::from_arc(Arc::new(ontology))
+    }
+
+    /// Create a new simple reasoner from a shared ontology
+    ///
+    /// This avoids deep cloning large ontologies when multiple reasoners
+    /// need to share the same ontology.
+    pub fn from_arc(ontology: Arc<Ontology>) -> Self {
+        let profile_validator = match Owl2ProfileValidator::new(ontology.clone()) {
             Ok(validator) => validator,
             Err(_e) => {
                 // If profile validator creation fails, create a minimal validator
@@ -194,7 +201,7 @@ impl SimpleReasoner {
         };
 
         SimpleReasoner {
-            ontology: Arc::try_unwrap(ontology_arc).unwrap_or_else(|arc| (*arc).clone()),
+            ontology,
             profile_validator,
             consistency_cache: RwLock::new(None),
             subclass_cache: RwLock::new(HashMap::new()),

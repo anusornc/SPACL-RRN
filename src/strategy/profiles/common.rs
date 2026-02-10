@@ -293,7 +293,7 @@ impl ProfileAnalysisReport {
 #[derive(Debug, Clone)]
 pub struct Owl2ProfileValidator {
     ontology: Arc<Ontology>,
-    cache_enabled: bool,
+    _cache_enabled: bool,
     advanced_caching: bool,
 }
 
@@ -301,7 +301,7 @@ impl Owl2ProfileValidator {
     pub fn new(ontology: Arc<Ontology>) -> OwlResult<Self> {
         Ok(Self {
             ontology,
-            cache_enabled: true,
+            _cache_enabled: true,
             advanced_caching: false,
         })
     }

@@ -1,3 +1,4 @@
+#![allow(unused_imports, unused_variables, unused_mut, dead_code)]
 //! Test real-world ontologies
 //! 
 //! This script tests SPACL on real-world ontologies from BioPortal

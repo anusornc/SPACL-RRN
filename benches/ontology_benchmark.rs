@@ -2,11 +2,14 @@
 //! 
 //! Run with: cargo bench --bench ontology_benchmark
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 use std::path::Path;
+use std::sync::Arc;
 use std::time::Duration;
 
 use owl2_reasoner::{
+    serializer::BinaryOntologyFormat,
+    util::profiling::configure_iri_cache_for_large_ontology,
     Ontology, OntologyParser,
     SimpleReasoner,
     SpeculativeTableauxReasoner,
@@ -23,6 +26,30 @@ fn load_ontology(path: &str) -> Option<Ontology> {
     if !path.exists() {
         println!("File not found: {}", path.display());
         return None;
+    }
+
+    // Prefer binary format if available to avoid costly parsing for large files.
+    let bin_path = if path.extension().map(|e| e == "owlbin").unwrap_or(false) {
+        path.to_path_buf()
+    } else {
+        path.with_extension("owlbin")
+    };
+    if bin_path.exists() {
+        println!("Loading binary {}...", bin_path.display());
+        let start = std::time::Instant::now();
+        let mut file = std::fs::File::open(&bin_path).ok()?;
+        let ontology = BinaryOntologyFormat::deserialize(&mut file).ok()?;
+        println!("Loaded in {:?}: {} classes", start.elapsed(), ontology.classes().len());
+        return Some(ontology);
+    }
+
+    // Pre-configure IRI cache based on file size to reduce allocations.
+    if let Ok(metadata) = std::fs::metadata(path) {
+        let file_size = metadata.len();
+        let estimated_classes = (file_size / 50) as usize;
+        if estimated_classes > 10_000 {
+            configure_iri_cache_for_large_ontology(estimated_classes);
+        }
     }
     
     // Try RDF/XML parser first (most .owl files are RDF/XML)
@@ -50,24 +77,33 @@ fn bench_lubm(c: &mut Criterion) {
         println!("LUBM ontology not found, skipping benchmark");
         return;
     };
+    let ontology = Arc::new(ontology);
     
     let mut group = c.benchmark_group("lubm_consistency");
     group.measurement_time(Duration::from_secs(10));
     
     // Sequential benchmark
     group.bench_function("sequential", |b| {
-        b.iter(|| {
-            let reasoner = SimpleReasoner::new(ontology.clone());
-            let _ = reasoner.is_consistent();
-        });
+        b.iter_batched(
+            || Arc::clone(&ontology),
+            |ontology| {
+                let reasoner = SimpleReasoner::from_arc(ontology);
+                let _ = reasoner.is_consistent();
+            },
+            BatchSize::SmallInput,
+        );
     });
     
     // SPACL benchmark
     group.bench_function("spacl", |b| {
-        b.iter(|| {
-            let mut reasoner = SpeculativeTableauxReasoner::new(ontology.clone());
-            let _ = reasoner.is_consistent();
-        });
+        b.iter_batched(
+            || Arc::clone(&ontology),
+            |ontology| {
+                let mut reasoner = SpeculativeTableauxReasoner::from_arc(ontology);
+                let _ = reasoner.is_consistent();
+            },
+            BatchSize::SmallInput,
+        );
     });
     
     group.finish();
@@ -78,6 +114,7 @@ fn bench_go(c: &mut Criterion) {
         println!("GO ontology not found, skipping benchmark");
         return;
     };
+    let ontology = Arc::new(ontology);
     
     println!("Running GO benchmark (this may take a while)...");
     
@@ -87,18 +124,26 @@ fn bench_go(c: &mut Criterion) {
     
     // Sequential benchmark
     group.bench_function("sequential", |b| {
-        b.iter(|| {
-            let reasoner = SimpleReasoner::new(ontology.clone());
-            let _ = reasoner.is_consistent();
-        });
+        b.iter_batched(
+            || Arc::clone(&ontology),
+            |ontology| {
+                let reasoner = SimpleReasoner::from_arc(ontology);
+                let _ = reasoner.is_consistent();
+            },
+            BatchSize::SmallInput,
+        );
     });
     
     // SPACL benchmark
     group.bench_function("spacl", |b| {
-        b.iter(|| {
-            let mut reasoner = SpeculativeTableauxReasoner::new(ontology.clone());
-            let _ = reasoner.is_consistent();
-        });
+        b.iter_batched(
+            || Arc::clone(&ontology),
+            |ontology| {
+                let mut reasoner = SpeculativeTableauxReasoner::from_arc(ontology);
+                let _ = reasoner.is_consistent();
+            },
+            BatchSize::SmallInput,
+        );
     });
     
     group.finish();

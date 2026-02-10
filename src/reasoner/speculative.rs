@@ -23,6 +23,8 @@
 //! - **Worst case**: O(1) overhead compared to sequential tableaux
 //! - **Memory**: Linear in the number of active speculative branches
 
+#![allow(dead_code)]
+
 use super::simple::SimpleReasoner;
 use crate::logic::axioms::class_expressions::ClassExpression;
 use crate::core::error::{OwlError, OwlResult};
@@ -415,10 +417,21 @@ impl SpeculativeTableauxReasoner {
         Self::with_config(ontology, config)
     }
 
+    /// Create a new speculative reasoner from a shared ontology
+    pub fn from_arc(ontology: Arc<Ontology>) -> Self {
+        let config = SpeculativeConfig::default();
+        Self::with_config_arc(ontology, config)
+    }
+
     /// Create with custom configuration
     pub fn with_config(ontology: Ontology, config: SpeculativeConfig) -> Self {
+        Self::with_config_arc(Arc::new(ontology), config)
+    }
+
+    /// Create with custom configuration from a shared ontology
+    pub fn with_config_arc(ontology: Arc<Ontology>, config: SpeculativeConfig) -> Self {
         Self {
-            ontology: Arc::new(ontology),
+            ontology,
             config,
             nogoods: Arc::new(NogoodDatabase::new(10000)),
             stats: Arc::new(Mutex::new(SpeculativeStats::default())),
@@ -463,7 +476,7 @@ impl SpeculativeTableauxReasoner {
     /// exceeds the benefit.
     fn is_consistent_sequential(&self) -> OwlResult<bool> {
         // Use SimpleReasoner for minimal overhead on trivial cases
-        let mut reasoner = SimpleReasoner::new((*self.ontology).clone());
+        let reasoner = SimpleReasoner::from_arc(Arc::clone(&self.ontology));
         reasoner.is_consistent()
     }
 
@@ -908,7 +921,7 @@ impl SpeculativeTableauxReasoner {
         }
         
         // Check consistency with constraints applied
-        let mut reasoner = SimpleReasoner::new(branch_ontology);
+        let reasoner = SimpleReasoner::new(branch_ontology);
         let is_consistent = reasoner.is_consistent().unwrap_or(true);
         
         if !is_consistent {
@@ -946,7 +959,7 @@ impl SpeculativeTableauxReasoner {
     /// Collect and combine results from all workers
     fn collect_results(&self) -> OwlResult<bool> {
         let receiver = self.result_receiver.as_ref().unwrap();
-        let mut completed_branches = 0;
+        let mut _completed_branches = 0;
         let mut found_sat = false;
         let start = Instant::now();
 
@@ -954,10 +967,10 @@ impl SpeculativeTableauxReasoner {
             match result {
                 WorkResult::Success { .. } => {
                     found_sat = true;
-                    completed_branches += 1;
+                    _completed_branches += 1;
                 }
                 WorkResult::Contradiction { .. } => {
-                    completed_branches += 1;
+                    _completed_branches += 1;
                 }
                 WorkResult::Partial { .. } => {
                     // More work generated - would distribute to workers

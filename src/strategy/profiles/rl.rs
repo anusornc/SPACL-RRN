@@ -11,16 +11,17 @@ use std::sync::Arc;
 /// RL Profile Validator
 #[derive(Debug, Clone)]
 pub struct RLProfileValidator {
-    ontology: Arc<Ontology>,
+    _ontology: Arc<Ontology>,
 }
 
 impl RLProfileValidator {
     /// Create a new RL profile validator
     pub fn new(ontology: Arc<Ontology>) -> Self {
-        Self { ontology }
+        Self { _ontology: ontology }
     }
 
     /// Check if a construct is allowed in RL
+    #[allow(dead_code)]
     fn is_allowed_in_rl(&self, construct: &str) -> bool {
         matches!(
             construct,

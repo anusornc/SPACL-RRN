@@ -1,3 +1,4 @@
+#![allow(unused_imports, unused_variables, unused_mut, dead_code)]
 // Quick benchmark comparing sequential, adaptive, and parallel modes
 use owl2_reasoner::{
     Class, ClassExpression, Ontology, SimpleReasoner, 

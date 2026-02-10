@@ -11,16 +11,17 @@ use std::sync::Arc;
 /// QL Profile Validator
 #[derive(Debug, Clone)]
 pub struct QLProfileValidator {
-    ontology: Arc<Ontology>,
+    _ontology: Arc<Ontology>,
 }
 
 impl QLProfileValidator {
     /// Create a new QL profile validator
     pub fn new(ontology: Arc<Ontology>) -> Self {
-        Self { ontology }
+        Self { _ontology: ontology }
     }
 
     /// Check if a construct is allowed in QL
+    #[allow(dead_code)]
     fn is_allowed_in_ql(&self, construct: &str) -> bool {
         matches!(
             construct,

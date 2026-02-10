@@ -1,3 +1,4 @@
+#![allow(unused_imports, unused_variables, unused_mut, dead_code)]
 //! Test disjunctive ontologies with progress output
 
 use std::path::Path;

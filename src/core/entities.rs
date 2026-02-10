@@ -119,6 +119,17 @@ impl Entity for Class {
 }
 
 impl Class {
+    /// Built-in owl:Thing class
+    #[inline]
+    pub fn owl_thing() -> Self {
+        Class::new("http://www.w3.org/2002/07/owl#Thing")
+    }
+
+    /// Built-in owl:Nothing class
+    #[inline]
+    pub fn owl_nothing() -> Self {
+        Class::new("http://www.w3.org/2002/07/owl#Nothing")
+    }
     /// Create a new class with the given IRI (backward compatibility)
     pub fn new<I: Into<IRI> + Clone>(iri: I) -> Self {
         <Self as Entity>::new(iri)

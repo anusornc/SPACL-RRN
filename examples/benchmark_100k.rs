@@ -1,3 +1,4 @@
+#![allow(unused_imports, unused_variables, unused_mut, dead_code)]
 //! Quick benchmark with working ontologies
 use owl2_reasoner::{SimpleReasoner, SpeculativeTableauxReasoner, SpeculativeConfig};
 use std::time::Instant;

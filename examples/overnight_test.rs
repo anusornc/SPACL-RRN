@@ -1,3 +1,4 @@
+#![allow(unused_imports, unused_variables, unused_mut, dead_code)]
 //! Overnight Real-World Ontology Benchmark
 //! 
 //! Run with: cargo run --release --example overnight_test

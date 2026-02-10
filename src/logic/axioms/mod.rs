@@ -125,3 +125,15 @@ impl Axiom {
         }
     }
 }
+
+impl From<SubClassOfAxiom> for Axiom {
+    fn from(axiom: SubClassOfAxiom) -> Self {
+        Axiom::SubClassOf(Box::new(axiom))
+    }
+}
+
+impl From<ClassAssertionAxiom> for Axiom {
+    fn from(axiom: ClassAssertionAxiom) -> Self {
+        Axiom::ClassAssertion(Box::new(axiom))
+    }
+}

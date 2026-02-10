@@ -1,3 +1,4 @@
+#![allow(unused_imports, unused_variables, unused_mut, dead_code)]
 //! Test SPACL vs Sequential performance
 
 use owl2_reasoner::{SimpleReasoner, SpeculativeTableauxReasoner};

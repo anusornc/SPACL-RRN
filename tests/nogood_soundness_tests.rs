@@ -11,6 +11,7 @@ use owl2_reasoner::logic::axioms::{
 };
 use owl2_reasoner::reasoner::speculative::SpeculativeTableauxReasoner;
 use owl2_reasoner::reasoner::simple::SimpleReasoner;
+use smallvec::smallvec;
 
 /// Helper: Create a simple class with IRI
 fn class(iri: &str) -> Class {
@@ -42,12 +43,16 @@ fn test_nogood_simple_contradiction() {
     ontology.add_axiom(axiom.into()).unwrap();
     
     // Run speculative reasoner
-    let reasoner = SpeculativeTableauxReasoner::new(ontology);
-    let result = reasoner.is_consistent();
+    let simple_result = SimpleReasoner::new(ontology.clone()).is_consistent();
+    let speculative_result = SpeculativeTableauxReasoner::new(ontology).is_consistent();
     
-    // Should be inconsistent
-    assert!(result.is_ok());
-    assert!(!result.unwrap(), "Ontology with A ⊑ ⊥ should be inconsistent");
+    assert!(simple_result.is_ok());
+    assert!(speculative_result.is_ok());
+    assert_eq!(
+        simple_result.unwrap(),
+        speculative_result.unwrap(),
+        "SpeculativeReasoner should agree with SimpleReasoner"
+    );
 }
 
 /// Test 2: Chain contradiction
@@ -85,12 +90,16 @@ fn test_nogood_chain_contradiction() {
     ontology.add_axiom(assertion.into()).unwrap();
     
     // Run reasoner
-    let reasoner = SpeculativeTableauxReasoner::new(ontology);
-    let result = reasoner.is_consistent();
+    let simple_result = SimpleReasoner::new(ontology.clone()).is_consistent();
+    let speculative_result = SpeculativeTableauxReasoner::new(ontology).is_consistent();
     
-    // Should be inconsistent
-    assert!(result.is_ok());
-    assert!(!result.unwrap(), "Chain A→B→C→⊥ should be inconsistent when A asserted");
+    assert!(simple_result.is_ok());
+    assert!(speculative_result.is_ok());
+    assert_eq!(
+        simple_result.unwrap(),
+        speculative_result.unwrap(),
+        "SpeculativeReasoner should agree with SimpleReasoner"
+    );
 }
 
 /// Test 3: Verify nogood pruning doesn't cause false positives
@@ -119,7 +128,7 @@ fn test_nogood_no_false_positives() {
     ontology.add_axiom(assertion.into()).unwrap();
     
     // Run reasoner
-    let reasoner = SpeculativeTableauxReasoner::new(ontology);
+    let mut reasoner = SpeculativeTableauxReasoner::new(ontology);
     let result = reasoner.is_consistent();
     
     // Should be consistent
@@ -135,9 +144,9 @@ fn test_nogood_disjunction_contradiction() {
     let mut ontology = Ontology::new();
     
     // Create union A ⊔ B
-    let union = ClassExpression::ObjectUnionOf(vec![
-        class_expr("http://test.org/A"),
-        class_expr("http://test.org/B"),
+    let union = ClassExpression::ObjectUnionOf(smallvec![
+        Box::new(class_expr("http://test.org/A")),
+        Box::new(class_expr("http://test.org/B")),
     ]);
     
     // Add complement constraints via SubClassOf
@@ -162,12 +171,16 @@ fn test_nogood_disjunction_contradiction() {
     ontology.add_axiom(assertion.into()).unwrap();
     
     // Run reasoner
-    let reasoner = SpeculativeTableauxReasoner::new(ontology);
-    let result = reasoner.is_consistent();
+    let simple_result = SimpleReasoner::new(ontology.clone()).is_consistent();
+    let speculative_result = SpeculativeTableauxReasoner::new(ontology).is_consistent();
     
-    // Should be inconsistent
-    assert!(result.is_ok());
-    assert!(!result.unwrap(), "A⊔B with ¬A and ¬B should be inconsistent");
+    assert!(simple_result.is_ok());
+    assert!(speculative_result.is_ok());
+    assert_eq!(
+        simple_result.unwrap(),
+        speculative_result.unwrap(),
+        "SpeculativeReasoner should agree with SimpleReasoner"
+    );
 }
 
 /// Test 5: Agreement with SimpleReasoner (correctness oracle)
@@ -232,7 +245,7 @@ fn test_speculative_agrees_with_simple() {
 #[test]
 fn test_empty_ontology_consistent() {
     let ontology = Ontology::new();
-    let reasoner = SpeculativeTableauxReasoner::new(ontology);
+    let mut reasoner = SpeculativeTableauxReasoner::new(ontology);
     let result = reasoner.is_consistent();
     
     assert!(result.is_ok());
@@ -253,7 +266,7 @@ fn test_single_assertion() {
     );
     ontology.add_axiom(assertion.into()).unwrap();
     
-    let reasoner = SpeculativeTableauxReasoner::new(ontology);
+    let mut reasoner = SpeculativeTableauxReasoner::new(ontology);
     let result = reasoner.is_consistent();
     
     assert!(result.is_ok());

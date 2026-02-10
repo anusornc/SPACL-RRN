@@ -11,16 +11,17 @@ use std::sync::Arc;
 /// EL Profile Validator
 #[derive(Debug, Clone)]
 pub struct ELProfileValidator {
-    ontology: Arc<Ontology>,
+    _ontology: Arc<Ontology>,
 }
 
 impl ELProfileValidator {
     /// Create a new EL profile validator
     pub fn new(ontology: Arc<Ontology>) -> Self {
-        Self { ontology }
+        Self { _ontology: ontology }
     }
 
     /// Check if a construct is allowed in EL
+    #[allow(dead_code)]
     fn is_allowed_in_el(&self, construct: &str) -> bool {
         matches!(
             construct,

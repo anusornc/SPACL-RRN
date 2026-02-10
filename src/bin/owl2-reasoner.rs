@@ -105,11 +105,10 @@ fn load_ontology(path: &str) -> Result<Ontology, String> {
 
 /// Analyze ontology to determine best reasoning strategy
 fn analyze_ontology(ontology: &Ontology) -> OntologyAnalysis {
-    use owl2_reasoner::logic::axioms::class_expressions::ClassExpression;
     use owl2_reasoner::logic::axioms::Axiom;
     
-    let mut disjunction_count = 0;
-    let mut class_count = ontology.classes().len();
+    let disjunction_count = 0;
+    let class_count = ontology.classes().len();
     let mut subclass_axiom_count = 0;
     let mut complex_axiom_count = 0;
     
@@ -148,21 +147,6 @@ fn analyze_ontology(ontology: &Ontology) -> OntologyAnalysis {
         } else {
             ReasonerChoice::Simple
         },
-    }
-}
-
-fn contains_disjunction(expr: &owl2_reasoner::logic::axioms::class_expressions::ClassExpression) -> bool {
-    use owl2_reasoner::logic::axioms::class_expressions::ClassExpression;
-    
-    match expr {
-        ClassExpression::ObjectUnionOf(_) => true,
-        ClassExpression::ObjectIntersectionOf(operands) => {
-            operands.iter().any(|op| contains_disjunction(op))
-        }
-        ClassExpression::ObjectComplementOf(inner) => contains_disjunction(inner),
-        ClassExpression::ObjectSomeValuesFrom(_, inner) => contains_disjunction(inner),
-        ClassExpression::ObjectAllValuesFrom(_, inner) => contains_disjunction(inner),
-        _ => false,
     }
 }
 

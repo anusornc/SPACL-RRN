@@ -1,3 +1,4 @@
+#![allow(unused_imports, unused_variables, unused_mut, dead_code)]
 // Test edge cases for adaptive threshold
 use owl2_reasoner::{
     Class, ClassExpression, Ontology, SimpleReasoner, 

@@ -1,3 +1,4 @@
+#![allow(unused_imports, unused_variables, unused_mut, dead_code)]
 //! Check what disjunctions are found in the ontology
 
 fn main() {
