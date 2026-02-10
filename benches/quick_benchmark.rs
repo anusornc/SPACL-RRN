@@ -30,7 +30,7 @@ fn create_hierarchy_ontology(size: usize) -> Ontology {
 
 /// Sequential consistency check
 fn sequential_consistency(ontology: &Ontology) -> bool {
-    let mut reasoner = SimpleReasoner::new(ontology.clone());
+    let reasoner = SimpleReasoner::new(ontology.clone());
     reasoner.is_consistent().unwrap_or(false)
 }
 
