@@ -374,30 +374,17 @@ impl JsonLdParser {
         // Note: ObjectPropertyAssertionAxiom creation would need the API support
         Ok(())
     }
-}
 
-impl OntologyParser for JsonLdParser {
-    fn parse_str(&self, content: &str) -> OwlResult<Ontology> {
+    fn parse_json_value(&self, json: &Value) -> OwlResult<Ontology> {
         let mut ontology = Ontology::new();
 
-        // Parse JSON
-        let json: Value = serde_json::from_str(content)
-            .map_err(|e| OwlError::ParseError(format!("JSON parsing error: {}", e)))?;
-
-        // Create expansion algorithm
         let mut algorithm =
             JsonLdExpansionAlgorithm::with_expansion_config(self.expansion_config.clone());
 
-        // Expand JSON-LD using full W3C algorithm
-        let expanded_nodes = algorithm.expand(&json)?;
-
-        // Convert to OWL2 format
+        let expanded_nodes = algorithm.expand(json)?;
         let owl2_nodes = algorithm.to_owl2_format(&expanded_nodes)?;
-
-        // Process expanded nodes and add to ontology
         self.process_expanded_nodes(&mut ontology, &owl2_nodes)?;
 
-        // If no entities were added but we had nodes, ensure we have a valid ontology
         if ontology.classes().is_empty()
             && ontology.object_properties().is_empty()
             && ontology.data_properties().is_empty()
@@ -412,20 +399,27 @@ impl OntologyParser for JsonLdParser {
 
         Ok(ontology)
     }
+}
+
+impl OntologyParser for JsonLdParser {
+    fn parse_str(&self, content: &str) -> OwlResult<Ontology> {
+        // Parse JSON
+        let json: Value = serde_json::from_str(content)
+            .map_err(|e| OwlError::ParseError(format!("JSON parsing error: {}", e)))?;
+        self.parse_json_value(&json)
+    }
 
     fn parse_file(&self, path: &Path) -> OwlResult<Ontology> {
         use std::fs::File;
-        use std::io::Read;
+        use std::io::BufReader;
 
         let mut file = File::open(path)
             .map_err(|e| OwlError::IoError(std::io::Error::new(std::io::ErrorKind::NotFound, e)))?;
 
-        let mut content = String::new();
-        file.read_to_string(&mut content).map_err(|e| {
-            OwlError::IoError(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
-        })?;
-
-        self.parse_str(&content)
+        let reader = BufReader::new(&mut file);
+        let json: Value = serde_json::from_reader(reader)
+            .map_err(|e| OwlError::ParseError(format!("JSON parsing error: {}", e)))?;
+        self.parse_json_value(&json)
     }
 
     fn format_name(&self) -> &'static str {

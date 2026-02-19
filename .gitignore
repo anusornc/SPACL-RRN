@@ -38,18 +38,43 @@ Thumbs.db
 # Project specific
 *.log
 .env
+.env.*
+!.env.example
 CLAUDE.md
-AGENTS.md
 
 # Docker
 .dockerignore.bak
 
-# Benchmark results (generated)
+# Sensitive local files
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.crt
+*.der
+*_secret.*
+*secrets*.json
+
+# Benchmark and profiling artifacts (generated)
+perf.data
+perf.data.*
+flamegraph.svg
+flamegraph*.svg
 results/*.pid
 results/*.json
 results/*.tmp
-benchmarks/competitors/results/*.json
-benchmarks/competitors/results/*.md
+results/history/*/criterion_report/
+results/history/*/benchmark_output.log
+benchmarks/competitors/results/history/
+benchmarks/competitors/results/latest
+benchmarks/competitors/results/**/*.csv
+benchmarks/competitors/results/**/*.json
+benchmarks/competitors/results/**/*.md
+benchmarks/competitors/results/**/*.tex
+benchmarks/competitors/results/**/*.log
+benchmarks/competitors/results/**/*.pdf
 !benchmarks/competitors/results/FINAL_BENCHMARK_REPORT.md
 
 # Test artifacts
@@ -71,6 +96,6 @@ paper/**/*.pdf
 
 # Large test data (keep small ones)
 tests/data/hierarchy_100000.owl
-results/history/*/criterion_report/
-results/history/*/benchmark_output.log
-*.log
+tests/data/*.owlbin
+benchmarks/ontologies/**/*.owlbin
+benchmarks/competitors/ontologies/*.owlbin

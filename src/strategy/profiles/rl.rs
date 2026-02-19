@@ -17,7 +17,9 @@ pub struct RLProfileValidator {
 impl RLProfileValidator {
     /// Create a new RL profile validator
     pub fn new(ontology: Arc<Ontology>) -> Self {
-        Self { _ontology: ontology }
+        Self {
+            _ontology: ontology,
+        }
     }
 
     /// Check if a construct is allowed in RL
@@ -25,26 +27,26 @@ impl RLProfileValidator {
     fn is_allowed_in_rl(&self, construct: &str) -> bool {
         matches!(
             construct,
-            "Class" |
-            "ObjectIntersectionOf" |
-            "ObjectUnionOf" |
-            "ObjectComplementOf" |
-            "ObjectAllValuesFrom" |
-            "ObjectHasValue" |
-            "ObjectProperty" |
-            "SubClassOf" |
-            "EquivalentClasses" |
-            "DisjointClasses" |
-            "ObjectPropertyDomain" |
-            "ObjectPropertyRange" |
-            "SubObjectPropertyOf" |
-            "EquivalentObjectProperties" |
-            "InverseObjectProperties" |
-            "FunctionalObjectProperty" |
-            "ClassAssertion" |
-            "ObjectPropertyAssertion" |
-            "SameIndividual" |
-            "DifferentIndividuals"
+            "Class"
+                | "ObjectIntersectionOf"
+                | "ObjectUnionOf"
+                | "ObjectComplementOf"
+                | "ObjectAllValuesFrom"
+                | "ObjectHasValue"
+                | "ObjectProperty"
+                | "SubClassOf"
+                | "EquivalentClasses"
+                | "DisjointClasses"
+                | "ObjectPropertyDomain"
+                | "ObjectPropertyRange"
+                | "SubObjectPropertyOf"
+                | "EquivalentObjectProperties"
+                | "InverseObjectProperties"
+                | "FunctionalObjectProperty"
+                | "ClassAssertion"
+                | "ObjectPropertyAssertion"
+                | "SameIndividual"
+                | "DifferentIndividuals"
         )
     }
 }

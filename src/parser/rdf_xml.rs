@@ -88,10 +88,37 @@ impl OntologyParser for RdfXmlParser {
     fn parse_file(&self, path: &Path) -> OwlResult<Ontology> {
         use std::fs;
 
+        // Check file size using metadata to avoid loading large files into memory.
+        if self.config.max_file_size > 0 {
+            if let Ok(metadata) = fs::metadata(path) {
+                if metadata.len() as usize > self.config.max_file_size {
+                    return Err(crate::core::error::OwlError::ValidationError(
+                        "File size exceeds maximum allowed size".to_string(),
+                    ));
+                }
+            }
+        }
+
+        #[cfg(feature = "rio-xml")]
+        {
+            if !self.config.strict_validation {
+                let mut streaming_parser = RdfXmlStreamingParser::new(self.config.clone());
+                match streaming_parser.parse_file(path) {
+                    Ok(ontology) => return Ok(ontology),
+                    Err(e) => {
+                        eprintln!(
+                            "[FALLBACK] Streaming parser failed: {}. Trying legacy parser...",
+                            e
+                        );
+                        log::warn!("Streaming parser failed: {}. Trying legacy parser...", e);
+                    }
+                }
+            }
+        }
+
         let content = fs::read_to_string(path).map_err(crate::core::error::OwlError::IoError)?;
 
-        // Check file size
-        if content.len() > self.config.max_file_size {
+        if self.config.max_file_size > 0 && content.len() > self.config.max_file_size {
             return Err(crate::core::error::OwlError::ValidationError(
                 "File size exceeds maximum allowed size".to_string(),
             ));

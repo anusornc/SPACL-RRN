@@ -109,9 +109,8 @@ pub use parser::{
 };
 
 pub use reasoner::{
-    batch_operations::*, classification::*, consistency::*, 
-    hierarchical_classification::HierarchicalClassificationEngine,
-    profile_optimized::*,
+    batch_operations::*, classification::*, consistency::*,
+    hierarchical_classification::HierarchicalClassificationEngine, profile_optimized::*,
     simple::SimpleReasoner, speculative::*, tableaux::*, ComplexityLevel, ExpressivenessLevel,
     OntologyFeatures, OwlReasoner, Reasoner, ReasoningResult, ReasoningStats, ReasoningTask,
 };
@@ -125,11 +124,16 @@ pub use strategy::{
         ProfileCacheConfig, ProfileValidationCache, ProfileValidationResult, ProfileValidator,
         ProfileViolation, ValidationStatistics,
     },
+    reasoner_router::{
+        detect_profile, select_classification_reasoner, select_consistency_reasoner,
+        ClassificationReasoner, ClassificationRoutingDecision, ConsistencyReasoner,
+        ConsistencyRoutingDecision, RoutingSource,
+    },
 };
 
 pub use util::{
-    cache::*, cache_manager::*, config::*, constants::*, memory::*, memory_protection::*,
-    utils::*, validation::academic_validation::*,
+    cache::*, cache_manager::*, config::*, constants::*, memory::*, memory_protection::*, utils::*,
+    validation::academic_validation::*,
 };
 
 pub use app::{epcis::*, epcis_test_generator::*};

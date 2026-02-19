@@ -8,26 +8,23 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
-use owl2_reasoner::{
-    Ontology, OwlReasoner,
-    ParserFactory,
-    SimpleReasoner,
-    SpeculativeTableauxReasoner,
-    HierarchicalClassificationEngine,
-    serializer::BinaryOntologyFormat,
-    util::profiling::configure_iri_cache_for_large_ontology,
-};
 use owl2_reasoner::reasoner::grail_hierarchy::GrailClassificationEngine;
+use owl2_reasoner::{
+    detect_profile, select_classification_reasoner, util::module_extraction::extract_tbox_module,
+    util::ontology_io::load_ontology_with_env, ClassificationReasoner,
+    HierarchicalClassificationEngine, Ontology, SimpleReasoner, SpeculativeTableauxReasoner,
+};
 
 /// Configuration for benchmark runs
 const SAMPLE_SIZE: usize = 10;
 const MEASUREMENT_TIME_SECS: u64 = 30;
+const TBOX_MODULE_MIN_CLASSES: usize = 50_000;
 
 /// Ontology benchmark configuration
 struct OntologyBenchmark {
     name: &'static str,
     path: &'static str,
-    description: &'static str,
+    _description: &'static str,
 }
 
 /// List of ontologies to benchmark
@@ -35,138 +32,99 @@ const ONTOLOGIES: &[OntologyBenchmark] = &[
     OntologyBenchmark {
         name: "LUBM",
         path: "tests/data/univ-bench.owl",
-        description: "Lehigh University Benchmark",
+        _description: "Lehigh University Benchmark",
     },
     OntologyBenchmark {
         name: "PATO",
         path: "benchmarks/ontologies/other/pato.owl",
-        description: "Phenotype And Trait Ontology",
+        _description: "Phenotype And Trait Ontology",
     },
     OntologyBenchmark {
         name: "DOID",
         path: "benchmarks/ontologies/other/doid.owl",
-        description: "Disease Ontology",
+        _description: "Disease Ontology",
     },
     OntologyBenchmark {
         name: "UBERON",
         path: "benchmarks/ontologies/other/uberon.owl",
-        description: "Uberon Anatomy Ontology",
+        _description: "Uberon Anatomy Ontology",
     },
     OntologyBenchmark {
         name: "GO_Basic",
         path: "benchmarks/ontologies/other/go-basic.owl",
-        description: "Gene Ontology (basic)",
+        _description: "Gene Ontology (basic)",
+    },
+    OntologyBenchmark {
+        name: "ChEBI",
+        path: "benchmarks/ontologies/other/chebi.owl",
+        _description: "Chemical Entities of Biological Interest",
     },
 ];
-
-/// Strategy selection enum
-#[derive(Debug, Clone, Copy)]
-enum Strategy {
-    Hierarchical,
-    Simple,
-    SPACL,
-}
 
 /// Load an ontology from file
 fn load_ontology(path: &str) -> Option<Ontology> {
     let path = Path::new(path);
-    
+
     if !path.exists() {
         eprintln!("Warning: Ontology file not found: {}", path.display());
         return None;
     }
 
-    // Prefer binary format if available to avoid costly parsing for large files.
-    let bin_path = if path.extension().map(|e| e == "owlbin").unwrap_or(false) {
-        path.to_path_buf()
-    } else {
-        path.with_extension("owlbin")
-    };
-    if bin_path.exists() {
-        println!("Loading binary {}...", bin_path.display());
-        let start = std::time::Instant::now();
-        let mut file = std::fs::File::open(&bin_path).ok()?;
-        let ontology = BinaryOntologyFormat::deserialize(&mut file).ok()?;
-        println!("Loaded in {:?}: {} classes", start.elapsed(), ontology.classes().len());
-        return Some(ontology);
-    }
-
-    // Pre-configure IRI cache based on file size to reduce allocations.
-    if let Ok(metadata) = std::fs::metadata(path) {
-        let file_size = metadata.len();
-        let estimated_classes = (file_size / 50) as usize;
-        if estimated_classes > 10_000 {
-            configure_iri_cache_for_large_ontology(estimated_classes);
-        }
-    }
-    
-    let content = std::fs::read_to_string(path).ok()?;
-    let parser = ParserFactory::auto_detect(&content)?;
-    
-    match parser.parse_str(&content) {
-        Ok(ontology) => {
-            println!("Loaded {}: {} classes", path.display(), ontology.classes().len());
-            Some(ontology)
-        }
-        Err(e) => {
-            eprintln!("Error parsing {}: {:?}", path.display(), e);
-            None
-        }
-    }
+    println!("Loading {}...", path.display());
+    let start = std::time::Instant::now();
+    let ontology = load_ontology_with_env(path).ok()?;
+    println!(
+        "Loaded in {:?}: {} classes",
+        start.elapsed(),
+        ontology.classes().len()
+    );
+    Some(ontology)
 }
 
-/// Select the best strategy for an ontology
-fn select_strategy(ontology: &Ontology) -> Strategy {
-    // First check if hierarchical classification can handle it
-    if HierarchicalClassificationEngine::can_handle(ontology) {
-        return Strategy::Hierarchical;
+fn has_abox_axioms(ontology: &Ontology) -> bool {
+    !ontology.class_assertions().is_empty()
+        || !ontology.property_assertions().is_empty()
+        || !ontology.data_property_assertions().is_empty()
+        || !ontology.negative_object_property_assertions().is_empty()
+        || !ontology.negative_data_property_assertions().is_empty()
+        || !ontology.same_individual_axioms().is_empty()
+        || !ontology.different_individuals_axioms().is_empty()
+        || !ontology.named_individuals().is_empty()
+        || !ontology.anonymous_individuals().is_empty()
+}
+
+fn maybe_extract_tbox_module(ontology: Ontology) -> Ontology {
+    if ontology.classes().len() < TBOX_MODULE_MIN_CLASSES {
+        return ontology;
     }
-    
-    // Check complexity metrics
-    let class_count = ontology.classes().len();
+
+    if has_abox_axioms(&ontology) {
+        return ontology;
+    }
+
     let axiom_count = ontology.axioms().len();
-    
-    // Estimate disjunction density
-    let mut union_count = 0;
-    for axiom in ontology.axioms() {
-        if let Some(sub) = axiom.as_sub_class_of() {
-            if contains_union(sub.super_class()) {
-                union_count += 1;
-            }
+    match extract_tbox_module(&ontology) {
+        Ok(module) => {
+            println!(
+                "TBox module extracted: {} axioms -> {} axioms",
+                axiom_count,
+                module.axioms().len()
+            );
+            module
         }
-    }
-    
-    let disjunction_density = if axiom_count > 0 {
-        union_count as f64 / axiom_count as f64
-    } else {
-        0.0
-    };
-    
-    // Thresholds for strategy selection
-    const SPACL_MIN_CLASSES: usize = 100;
-    const SPACL_MIN_DISJUNCTION_DENSITY: f64 = 0.01; // 1%
-    
-    if class_count >= SPACL_MIN_CLASSES && disjunction_density >= SPACL_MIN_DISJUNCTION_DENSITY {
-        Strategy::SPACL
-    } else {
-        Strategy::Simple
+        Err(err) => {
+            eprintln!("TBox module extraction failed: {:?}", err);
+            ontology
+        }
     }
 }
 
-/// Check if a class expression contains a union
-fn contains_union(expr: &owl2_reasoner::ClassExpression) -> bool {
-    use owl2_reasoner::ClassExpression;
-    
-    match expr {
-        ClassExpression::ObjectUnionOf(_) => true,
-        ClassExpression::ObjectIntersectionOf(ops) => {
-            ops.iter().any(|op| contains_union(op))
-        }
-        ClassExpression::ObjectComplementOf(inner) => contains_union(inner),
-        ClassExpression::ObjectSomeValuesFrom(_, inner) => contains_union(inner),
-        ClassExpression::ObjectAllValuesFrom(_, inner) => contains_union(inner),
-        _ => false,
+fn should_skip_ontology(ont: &OntologyBenchmark) -> bool {
+    if ont.name == "ChEBI" && std::env::var("OWL2_REASONER_INCLUDE_CHEBI").is_err() {
+        println!("Skipping ChEBI (set OWL2_REASONER_INCLUDE_CHEBI=1 to include)");
+        return true;
     }
+    false
 }
 
 /// Benchmark adaptive strategy selection
@@ -174,19 +132,33 @@ fn bench_adaptive_classification(c: &mut Criterion) {
     let mut group = c.benchmark_group("adaptive_classification");
     group.sample_size(SAMPLE_SIZE);
     group.measurement_time(Duration::from_secs(MEASUREMENT_TIME_SECS));
-    
+
     for ont_config in ONTOLOGIES {
+        if should_skip_ontology(ont_config) {
+            continue;
+        }
         let Some(ontology) = load_ontology(ont_config.path) else {
             println!("Skipping {} (file not found)", ont_config.name);
             continue;
         };
+        let ontology = maybe_extract_tbox_module(ontology);
         let ontology = Arc::new(ontology);
-        
-        let strategy = select_strategy(&ontology);
-        println!("{}: Using {:?} strategy", ont_config.name, strategy);
-        
-        match strategy {
-            Strategy::Hierarchical => {
+
+        let profile = detect_profile(&ontology);
+        if let Some(profile) = profile {
+            println!("{}: Profile {:?}", ont_config.name, profile);
+        }
+
+        let decision = select_classification_reasoner(&ontology, profile);
+        println!(
+            "{}: Using {} ({})",
+            ont_config.name,
+            decision.reasoner.as_str(),
+            decision.rationale
+        );
+
+        match decision.reasoner {
+            ClassificationReasoner::Hierarchical => {
                 let class_count = ontology.classes().len();
                 if class_count > 10_000 {
                     group.bench_with_input(
@@ -213,7 +185,8 @@ fn bench_adaptive_classification(c: &mut Criterion) {
                             b.iter_batched(
                                 || Arc::clone(ontology),
                                 |ontology| {
-                                    let mut engine = HierarchicalClassificationEngine::from_arc(ontology);
+                                    let mut engine =
+                                        HierarchicalClassificationEngine::from_arc(ontology);
                                     let _ = engine.classify();
                                     black_box(engine);
                                 },
@@ -223,7 +196,7 @@ fn bench_adaptive_classification(c: &mut Criterion) {
                     );
                 }
             }
-            Strategy::Simple => {
+            ClassificationReasoner::Simple => {
                 group.bench_with_input(
                     BenchmarkId::new("simple", ont_config.name),
                     &ontology,
@@ -231,7 +204,7 @@ fn bench_adaptive_classification(c: &mut Criterion) {
                         b.iter_batched(
                             || Arc::clone(ontology),
                             |ontology| {
-                                let mut reasoner = SimpleReasoner::from_arc(ontology);
+                                let reasoner = SimpleReasoner::from_arc(ontology);
                                 let _ = reasoner.is_consistent();
                                 black_box(reasoner);
                             },
@@ -240,7 +213,7 @@ fn bench_adaptive_classification(c: &mut Criterion) {
                     },
                 );
             }
-            Strategy::SPACL => {
+            ClassificationReasoner::Speculative => {
                 group.bench_with_input(
                     BenchmarkId::new("spacl", ont_config.name),
                     &ontology,
@@ -259,7 +232,7 @@ fn bench_adaptive_classification(c: &mut Criterion) {
             }
         }
     }
-    
+
     group.finish();
 }
 
@@ -268,13 +241,17 @@ fn bench_sequential_baseline(c: &mut Criterion) {
     let mut group = c.benchmark_group("sequential_baseline");
     group.sample_size(SAMPLE_SIZE);
     group.measurement_time(Duration::from_secs(MEASUREMENT_TIME_SECS));
-    
+
     for ont_config in ONTOLOGIES {
+        if should_skip_ontology(ont_config) {
+            continue;
+        }
         let Some(ontology) = load_ontology(ont_config.path) else {
             continue;
         };
+        let ontology = maybe_extract_tbox_module(ontology);
         let ontology = Arc::new(ontology);
-        
+
         group.bench_with_input(
             BenchmarkId::new("sequential", ont_config.name),
             &ontology,
@@ -282,7 +259,7 @@ fn bench_sequential_baseline(c: &mut Criterion) {
                 b.iter_batched(
                     || Arc::clone(ontology),
                     |ontology| {
-                        let mut reasoner = SimpleReasoner::from_arc(ontology);
+                        let reasoner = SimpleReasoner::from_arc(ontology);
                         let _ = reasoner.is_consistent();
                         black_box(reasoner);
                     },
@@ -291,7 +268,7 @@ fn bench_sequential_baseline(c: &mut Criterion) {
             },
         );
     }
-    
+
     group.finish();
 }
 

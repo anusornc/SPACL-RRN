@@ -51,13 +51,13 @@ impl Default for ClassificationConfig {
 #[derive(Debug, Clone, Default)]
 pub struct ClassHierarchy {
     /// Parent relationships (class -> its superclasses)
-    parents: HashMap<IRI, HashSet<IRI>>,
+    pub(crate) parents: HashMap<IRI, HashSet<IRI>>,
     /// Child relationships (class -> its subclasses)
-    children: HashMap<IRI, HashSet<IRI>>,
+    pub(crate) children: HashMap<IRI, HashSet<IRI>>,
     /// Equivalent classes
-    equivalences: HashMap<IRI, HashSet<IRI>>,
+    pub equivalences: HashMap<IRI, HashSet<IRI>>,
     /// Disjoint classes
-    disjointness: HashMap<IRI, HashSet<IRI>>,
+    pub disjointness: HashMap<IRI, HashSet<IRI>>,
     /// Satisfiability cache
     #[allow(dead_code)]
     satisfiable: HashMap<IRI, bool>,

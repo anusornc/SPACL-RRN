@@ -5,10 +5,11 @@
 use super::property_expressions::{DataPropertyExpression, ObjectPropertyExpression};
 use crate::core::entities::Class;
 use crate::core::iri::IRI;
+use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
 /// A class expression in OWL2
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ClassExpression {
     /// Named class
     Class(Class),
@@ -198,7 +199,7 @@ impl From<Class> for ClassExpression {
 }
 
 /// Data ranges for data property expressions
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DataRange {
     /// Datatype restriction
     Datatype(IRI),
@@ -215,7 +216,7 @@ pub enum DataRange {
 }
 
 /// Facet restrictions for datatype restrictions
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct FacetRestriction {
     /// The facet (e.g., xsd:minInclusive)
     facet: IRI,

@@ -56,12 +56,12 @@
 //!          is_consistent, memory_stats.peak_memory_bytes);
 //! ```
 
-use crate::logic::axioms::property_expressions::ObjectPropertyExpression;
-use crate::logic::axioms::*;
 use crate::core::entities::Class;
 use crate::core::error::{OwlError, OwlResult};
 use crate::core::iri::IRI;
 use crate::core::ontology::Ontology;
+use crate::logic::axioms::property_expressions::ObjectPropertyExpression;
+use crate::logic::axioms::*;
 
 use hashbrown::HashMap;
 use smallvec::SmallVec;
@@ -567,10 +567,14 @@ impl TableauxReasoner {
     }
 
     pub fn with_config(ontology: Ontology, config: ReasoningConfig) -> Self {
+        Self::with_config_arc(Arc::new(ontology), config)
+    }
+
+    pub fn with_config_arc(ontology: Arc<Ontology>, config: ReasoningConfig) -> Self {
         let rules = ReasoningRules::new(&ontology);
 
         Self {
-            ontology: Arc::new(ontology),
+            ontology,
             config,
             rules,
             cache: ReasoningCache::new(),
@@ -580,7 +584,7 @@ impl TableauxReasoner {
     }
 
     pub fn from_arc(ontology: &Arc<Ontology>) -> Self {
-        Self::with_config(Ontology::clone(ontology), ReasoningConfig::default())
+        Self::with_config_arc(Arc::clone(ontology), ReasoningConfig::default())
     }
 
     pub fn check_consistency(&mut self) -> OwlResult<bool> {

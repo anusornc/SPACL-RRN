@@ -8,7 +8,11 @@
 
 pub mod batch_operations;
 pub mod classification;
+pub mod compact_hierarchy;
 pub mod consistency;
+pub mod grail_hierarchy;
+pub mod hierarchical_classification;
+pub mod optimized_hierarchy;
 pub mod profile_optimized;
 pub mod rules;
 pub mod simple;

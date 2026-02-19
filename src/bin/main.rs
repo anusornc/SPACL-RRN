@@ -1,7 +1,13 @@
-/// The main entry point of the OWL2 Reasoner application.
-///
-/// This function initializes and runs the OWL2 reasoning engine.
-/// Currently prints a placeholder message.
 fn main() {
-    println!("Hello, world!");
+    println!("Tableauxx demo binaries:");
+    println!("  - owl2-reasoner");
+    println!("  - epcis-reasoner");
+    println!("  - owl2_validation");
+    println!();
+    println!("Large ontology env:");
+    println!("  OWL2_REASONER_LARGE_PARSE=1");
+    println!("  OWL2_REASONER_AUTO_CACHE=1");
+    println!("  OWL2_REASONER_FORCE_TEXT=1");
+    println!("  OWL2_REASONER_BIN_ONLY=1");
+    println!("  OWL2_REASONER_MAX_FILE_SIZE=<bytes>");
 }

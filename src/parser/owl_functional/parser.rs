@@ -13,6 +13,8 @@ use crate::parser::owl_functional::tokenizer::Tokenizer;
 use crate::parser::owl_functional::validator::FunctionalSyntaxValidator;
 use crate::parser::{OntologyParser, ParserArenaBuilder, ParserArenaTrait, ParserConfig};
 use std::collections::HashMap;
+use std::fs;
+use std::io::{BufReader, Read};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -232,9 +234,6 @@ impl OntologyParser for OwlFunctionalSyntaxParser {
     }
 
     fn parse_file(&self, path: &Path) -> OwlResult<Ontology> {
-        use std::fs;
-        use std::io::Read;
-
         // Check file size
         if self.config.max_file_size > 0 {
             let metadata = fs::metadata(path)?;
@@ -246,11 +245,15 @@ impl OntologyParser for OwlFunctionalSyntaxParser {
             }
         }
 
-        let mut file = fs::File::open(path)?;
-        let mut content = String::new();
-        file.read_to_string(&mut content)?;
+        let file = fs::File::open(path)?;
+        let mut reader = BufReader::new(file);
+        let capacity = fs::metadata(path).map(|m| m.len() as usize).unwrap_or(0);
+        let mut content = String::with_capacity(capacity.saturating_add(1));
+        reader.read_to_string(&mut content)?;
 
-        self.parse_str(&content)
+        let mut parser_copy = OwlFunctionalSyntaxParser::with_config(self.config.clone());
+        parser_copy.prefixes = self.prefixes.clone();
+        parser_copy.parse_content(&content)
     }
 
     fn format_name(&self) -> &'static str {

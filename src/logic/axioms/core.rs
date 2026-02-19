@@ -6,10 +6,11 @@
 use crate::logic::axioms::types::*;
 use crate::core::entities::{AnonymousIndividual, Literal, Annotation};
 use crate::core::iri::IRI;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 /// Property assertion axiom: (a, b) ∈ P
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PropertyAssertionAxiom {
     subject: Arc<IRI>,
     property: Arc<IRI>,
@@ -87,7 +88,7 @@ impl PropertyAssertionAxiom {
 }
 
 /// Data property assertion axiom: (a, v) ∈ P where v is a literal
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DataPropertyAssertionAxiom {
     subject: Arc<IRI>,
     property: Arc<IRI>,
@@ -131,7 +132,7 @@ impl DataPropertyAssertionAxiom {
 }
 
 /// Annotation assertion axiom: ⊤ ⊑ ∃r.{@a}
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AnnotationAssertionAxiom {
     subject: Arc<IRI>,
     property: Arc<IRI>,
@@ -172,7 +173,7 @@ impl AnnotationAssertionAxiom {
 // Property axioms
 
 /// SubObjectPropertyOf axiom: P ⊑ Q
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SubObjectPropertyOfAxiom {
     sub_property: Arc<IRI>,
     super_property: Arc<IRI>,
@@ -187,7 +188,7 @@ impl SubObjectPropertyOfAxiom {
 }
 
 /// EquivalentObjectProperties axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EquivalentObjectPropertiesAxiom {
     properties: Vec<Arc<IRI>>,
 }
@@ -200,7 +201,7 @@ impl EquivalentObjectPropertiesAxiom {
 }
 
 /// DisjointObjectProperties axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DisjointObjectPropertiesAxiom {
     properties: Vec<Arc<IRI>>,
 }
@@ -213,7 +214,7 @@ impl DisjointObjectPropertiesAxiom {
 }
 
 /// FunctionalProperty axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FunctionalPropertyAxiom {
     property: Arc<IRI>,
 }
@@ -226,7 +227,7 @@ impl FunctionalPropertyAxiom {
 }
 
 /// InverseFunctionalProperty axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InverseFunctionalPropertyAxiom {
     property: Arc<IRI>,
 }
@@ -239,7 +240,7 @@ impl InverseFunctionalPropertyAxiom {
 }
 
 /// ReflexiveProperty axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReflexivePropertyAxiom {
     property: Arc<IRI>,
 }
@@ -252,7 +253,7 @@ impl ReflexivePropertyAxiom {
 }
 
 /// IrreflexiveProperty axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IrreflexivePropertyAxiom {
     property: Arc<IRI>,
 }
@@ -265,7 +266,7 @@ impl IrreflexivePropertyAxiom {
 }
 
 /// SymmetricProperty axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SymmetricPropertyAxiom {
     property: Arc<IRI>,
 }
@@ -278,7 +279,7 @@ impl SymmetricPropertyAxiom {
 }
 
 /// AsymmetricProperty axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AsymmetricPropertyAxiom {
     property: Arc<IRI>,
 }
@@ -291,7 +292,7 @@ impl AsymmetricPropertyAxiom {
 }
 
 /// TransitiveProperty axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TransitivePropertyAxiom {
     property: Arc<IRI>,
 }
@@ -304,7 +305,7 @@ impl TransitivePropertyAxiom {
 }
 
 /// SubDataPropertyOf axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SubDataPropertyOfAxiom {
     sub_property: Arc<IRI>,
     super_property: Arc<IRI>,
@@ -317,7 +318,7 @@ impl SubDataPropertyOfAxiom {
 }
 
 /// EquivalentDataProperties axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EquivalentDataPropertiesAxiom {
     properties: Vec<Arc<IRI>>,
 }
@@ -329,7 +330,7 @@ impl EquivalentDataPropertiesAxiom {
 }
 
 /// DisjointDataProperties axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DisjointDataPropertiesAxiom {
     properties: Vec<Arc<IRI>>,
 }
@@ -341,7 +342,7 @@ impl DisjointDataPropertiesAxiom {
 }
 
 /// FunctionalDataProperty axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FunctionalDataPropertyAxiom {
     property: Arc<IRI>,
 }
@@ -353,7 +354,7 @@ impl FunctionalDataPropertyAxiom {
 }
 
 /// SameIndividual axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SameIndividualAxiom {
     individuals: Vec<Arc<IRI>>,
 }
@@ -365,7 +366,7 @@ impl SameIndividualAxiom {
 }
 
 /// DifferentIndividuals axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DifferentIndividualsAxiom {
     individuals: Vec<Arc<IRI>>,
 }
@@ -377,7 +378,7 @@ impl DifferentIndividualsAxiom {
 }
 
 /// HasKey axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HasKeyAxiom {
     class: Arc<IRI>,
     properties: Vec<Arc<IRI>>,
@@ -390,7 +391,7 @@ impl HasKeyAxiom {
 }
 
 /// SubAnnotationPropertyOf axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SubAnnotationPropertyOfAxiom {
     sub_property: Arc<IRI>,
     super_property: Arc<IRI>,
@@ -403,7 +404,7 @@ impl SubAnnotationPropertyOfAxiom {
 }
 
 /// AnnotationPropertyDomain axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AnnotationPropertyDomainAxiom {
     property: Arc<IRI>,
     domain: Arc<IRI>,
@@ -416,7 +417,7 @@ impl AnnotationPropertyDomainAxiom {
 }
 
 /// AnnotationPropertyRange axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AnnotationPropertyRangeAxiom {
     property: Arc<IRI>,
     range: Arc<IRI>,
@@ -435,7 +436,7 @@ pub type SubDataPropertyAxiom = SubDataPropertyOfAxiom;
 // Additional axiom types
 
 /// SubPropertyChainOf axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SubPropertyChainOfAxiom {
     properties: Vec<Arc<IRI>>,
     super_property: Arc<IRI>,
@@ -448,7 +449,7 @@ impl SubPropertyChainOfAxiom {
 }
 
 /// InverseObjectProperties axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InverseObjectPropertiesAxiom {
     property1: Arc<IRI>,
     property2: Arc<IRI>,
@@ -461,7 +462,7 @@ impl InverseObjectPropertiesAxiom {
 }
 
 /// ObjectPropertyDomain axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ObjectPropertyDomainAxiom {
     property: Arc<IRI>,
     domain: Arc<IRI>,
@@ -482,7 +483,7 @@ impl ObjectPropertyDomainAxiom {
 }
 
 /// ObjectPropertyRange axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ObjectPropertyRangeAxiom {
     property: Arc<IRI>,
     range: Arc<IRI>,
@@ -503,7 +504,7 @@ impl ObjectPropertyRangeAxiom {
 }
 
 /// DataPropertyDomain axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DataPropertyDomainAxiom {
     property: Arc<IRI>,
     domain: Arc<IRI>,
@@ -516,7 +517,7 @@ impl DataPropertyDomainAxiom {
 }
 
 /// DataPropertyRange axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DataPropertyRangeAxiom {
     property: Arc<IRI>,
     range: Arc<IRI>,
@@ -537,7 +538,7 @@ pub type DataMaxQualifiedCardinalityAxiom = ();  // Placeholder
 pub type DataExactQualifiedCardinalityAxiom = ();  // Placeholder
 
 /// NegativeObjectPropertyAssertion axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NegativeObjectPropertyAssertionAxiom {
     subject: Arc<IRI>,
     property: Arc<IRI>,
@@ -551,7 +552,7 @@ impl NegativeObjectPropertyAssertionAxiom {
 }
 
 /// NegativeDataPropertyAssertion axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NegativeDataPropertyAssertionAxiom {
     subject: Arc<IRI>,
     property: Arc<IRI>,
@@ -565,7 +566,7 @@ impl NegativeDataPropertyAssertionAxiom {
 }
 
 /// Collection item for RDF collections
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CollectionItem {
     Named(Arc<IRI>),
     Anonymous(Box<AnonymousIndividual>),
@@ -573,7 +574,7 @@ pub enum CollectionItem {
 }
 
 /// Collection axiom for RDF collections
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CollectionAxiom {
     items: Vec<CollectionItem>,
 }
@@ -585,7 +586,7 @@ impl CollectionAxiom {
 }
 
 /// Import axiom
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImportAxiom {
     imported_ontology: Arc<IRI>,
 }

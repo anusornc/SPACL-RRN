@@ -8,8 +8,11 @@ use crate::core::entities::*;
 use crate::core::error::OwlResult;
 use crate::core::iri::IRI;
 use crate::core::ontology::Ontology;
+use crate::parser::rdf_xml::RdfXmlParser;
 use crate::parser::{OntologyParser, ParserConfig};
 use std::collections::HashMap;
+use std::fs;
+use std::io::{BufReader, Read};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -20,6 +23,35 @@ pub struct OwlXmlParser {
 }
 
 impl OwlXmlParser {
+    fn env_truthy(key: &str) -> bool {
+        match std::env::var(key) {
+            Ok(value) => {
+                let value = value.trim().to_ascii_lowercase();
+                !(value.is_empty() || value == "0" || value == "false" || value == "no")
+            }
+            Err(_) => false,
+        }
+    }
+
+    fn might_be_rdf_xml(path: &Path) -> bool {
+        let file = match fs::File::open(path) {
+            Ok(f) => f,
+            Err(_) => return false,
+        };
+        let mut reader = BufReader::new(file);
+        let mut buf = vec![0u8; 16 * 1024];
+        let n = match reader.read(&mut buf) {
+            Ok(n) => n,
+            Err(_) => return false,
+        };
+        if n == 0 {
+            return false;
+        }
+        let sample = String::from_utf8_lossy(&buf[..n]);
+        let sample = sample.trim_start();
+        sample.contains("<rdf:RDF") || sample.contains("<rdf:Description")
+    }
+
     /// Create a new OWL/XML parser with default configuration
     pub fn new() -> Self {
         Self::with_config(ParserConfig::default())
@@ -76,10 +108,9 @@ impl OwlXmlParser {
         };
 
         // More sophisticated XML parsing for OWL/XML structure
-        let lines: Vec<&str> = content.lines().collect();
         let mut element_stack: Vec<(XmlElement, usize)> = Vec::new();
 
-        for (line_num, line) in lines.iter().enumerate() {
+        for (line_num, line) in content.lines().enumerate() {
             let line = line.trim();
             if line.is_empty() {
                 continue;
@@ -736,9 +767,6 @@ impl OntologyParser for OwlXmlParser {
     }
 
     fn parse_file(&self, path: &Path) -> OwlResult<Ontology> {
-        use std::fs;
-        use std::io::Read;
-
         // Check file size
         if self.config.max_file_size > 0 {
             let metadata = fs::metadata(path)?;
@@ -750,11 +778,19 @@ impl OntologyParser for OwlXmlParser {
             }
         }
 
-        let mut file = fs::File::open(path)?;
-        let mut content = String::new();
-        file.read_to_string(&mut content)?;
+        // Many ".owl"/".xml" files are RDF/XML, so delegate to the RDF/XML parser to use streaming.
+        if Self::env_truthy("OWL2_REASONER_LARGE_PARSE") && Self::might_be_rdf_xml(path) {
+            let rdf_parser = RdfXmlParser::with_config(self.config.clone());
+            return rdf_parser.parse_file(path);
+        }
 
-        self.parse_str(&content)
+        let mut file = fs::File::open(path)?;
+        let capacity = fs::metadata(path).map(|m| m.len() as usize).unwrap_or(0);
+        let mut content = String::with_capacity(capacity.saturating_add(1));
+        file.read_to_string(&mut content)?;
+        let mut parser_copy = OwlXmlParser::with_config(self.config.clone());
+        parser_copy.namespaces = self.namespaces.clone();
+        parser_copy.parse_content(&content)
     }
 
     fn format_name(&self) -> &'static str {

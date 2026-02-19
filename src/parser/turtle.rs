@@ -13,6 +13,12 @@ use hashbrown::HashMap;
 use smallvec::SmallVec;
 use std::path::Path;
 use std::sync::Arc;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+
+use rio_api::model::{Literal as RioLiteral, Subject as RioSubject, Term as RioTerm, Triple as RioTriple};
+use rio_api::parser::TriplesParser;
+use rio_turtle::{TurtleError, TurtleParser as RioTurtleParser};
 
 /// Static string constants to avoid allocations
 static PREFIX_OWL: &str = "owl";
@@ -1000,6 +1006,10 @@ impl OntologyParser for TurtleParser {
             }
         }
 
+        if self.should_use_streaming(path) {
+            return self.parse_file_streaming(path);
+        }
+
         let mut file = fs::File::open(path)?;
         let mut content = String::new();
         file.read_to_string(&mut content)?;
@@ -1019,6 +1029,136 @@ impl Default for TurtleParser {
 }
 
 impl TurtleParser {
+    fn env_truthy(key: &str) -> bool {
+        match std::env::var(key) {
+            Ok(value) => {
+                let value = value.trim().to_ascii_lowercase();
+                !(value.is_empty() || value == "0" || value == "false" || value == "no")
+            }
+            Err(_) => false,
+        }
+    }
+
+    fn should_use_streaming(&self, path: &Path) -> bool {
+        if Self::env_truthy("OWL2_REASONER_LARGE_PARSE") {
+            return true;
+        }
+        if let Ok(metadata) = std::fs::metadata(path) {
+            return metadata.len() > 32 * 1024 * 1024;
+        }
+        false
+    }
+
+    fn parse_file_streaming(&self, path: &Path) -> OwlResult<Ontology> {
+        use std::fs::File;
+        use std::io::BufReader;
+
+        let file = File::open(path).map_err(crate::core::error::OwlError::IoError)?;
+        let reader = BufReader::new(file);
+
+        let base_iri = oxiri::Iri::parse(format!("file:{}", path.display())).ok();
+        let mut parser = RioTurtleParser::new(reader, base_iri);
+
+        let mut ontology = Ontology::new();
+        let mut handler = |triple: RioTriple| -> Result<(), TurtleError> {
+            self.process_rio_triple(&mut ontology, triple).map_err(|err| {
+                let io_err = std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("{:?}", err),
+                );
+                TurtleError::from(io_err)
+            })
+        };
+
+        parser.parse_all(&mut handler).map_err(|err| {
+            crate::core::error::OwlError::ParseError(format!("Turtle parse error: {}", err))
+        })?;
+
+        self.validate_ontology(&ontology)?;
+        Ok(ontology)
+    }
+
+    fn process_rio_triple(&self, ontology: &mut Ontology, triple: RioTriple) -> OwlResult<()> {
+        let subject = self.rio_subject_to_iri(&triple.subject)?;
+        let predicate = IRI::new(triple.predicate.iri)?;
+        let object = self.rio_term_to_object(&triple.object)?;
+        self.process_triple(ontology, subject, predicate, object)
+    }
+
+    fn rio_subject_to_iri(&self, subject: &RioSubject) -> OwlResult<IRI> {
+        match subject {
+            RioSubject::NamedNode(node) => IRI::new(node.iri),
+            RioSubject::BlankNode(node) => IRI::new(format!("_:{}", node.id)),
+            RioSubject::Triple(triple) => self.rio_reified_iri(triple),
+        }
+    }
+
+    fn rio_term_to_object(&self, term: &RioTerm) -> OwlResult<ObjectValue> {
+        match term {
+            RioTerm::NamedNode(node) => Ok(ObjectValue::IRI(IRI::new(node.iri)?)),
+            RioTerm::BlankNode(node) => Ok(ObjectValue::BlankNode(node.id.to_string())),
+            RioTerm::Literal(literal) => Ok(ObjectValue::Literal(self.rio_literal_to_literal(literal)?)),
+            RioTerm::Triple(triple) => Ok(ObjectValue::IRI(self.rio_reified_iri(triple)?)),
+        }
+    }
+
+    fn rio_literal_to_literal(&self, literal: &RioLiteral) -> OwlResult<Literal> {
+        Ok(match literal {
+            RioLiteral::Simple { value } => Literal::simple((*value).to_string()),
+            RioLiteral::LanguageTaggedString { value, language } => {
+                Literal::lang_tagged((*value).to_string(), (*language).to_string())
+            }
+            RioLiteral::Typed { value, datatype } => {
+                let datatype_iri = IRI::new(datatype.iri)?;
+                Literal::typed((*value).to_string(), datatype_iri)
+            }
+        })
+    }
+
+    fn rio_reified_iri(&self, triple: &RioTriple) -> OwlResult<IRI> {
+        let mut hasher = DefaultHasher::new();
+        self.rio_subject_key(&triple.subject).hash(&mut hasher);
+        triple.predicate.iri.hash(&mut hasher);
+        self.rio_term_key(&triple.object).hash(&mut hasher);
+        let id = format!("_:reified_{}", hasher.finish());
+        IRI::new(id)
+    }
+
+    fn rio_subject_key(&self, subject: &RioSubject) -> String {
+        match subject {
+            RioSubject::NamedNode(node) => node.iri.to_string(),
+            RioSubject::BlankNode(node) => format!("_:{:?}", node.id),
+            RioSubject::Triple(triple) => format!(
+                "triple:{}:{}:{}",
+                self.rio_subject_key(&triple.subject),
+                triple.predicate.iri,
+                self.rio_term_key(&triple.object)
+            ),
+        }
+    }
+
+    fn rio_term_key(&self, term: &RioTerm) -> String {
+        match term {
+            RioTerm::NamedNode(node) => node.iri.to_string(),
+            RioTerm::BlankNode(node) => format!("_:{:?}", node.id),
+            RioTerm::Literal(literal) => match literal {
+                RioLiteral::Simple { value } => format!("\"{}\"", value),
+                RioLiteral::LanguageTaggedString { value, language } => {
+                    format!("\"{}\"@{}", value, language)
+                }
+                RioLiteral::Typed { value, datatype } => {
+                    format!("\"{}\"^^{}", value, datatype.iri)
+                }
+            },
+            RioTerm::Triple(triple) => format!(
+                "triple:{}:{}:{}",
+                self.rio_subject_key(&triple.subject),
+                triple.predicate.iri,
+                self.rio_term_key(&triple.object)
+            ),
+        }
+    }
+
     /// Comprehensive parser input validation
     fn validate_parser_input(&self, content: &str) -> OwlResult<()> {
         // Size validation
@@ -1031,31 +1171,40 @@ impl TurtleParser {
     }
 
     /// Validate input size constraints
-    #[allow(clippy::unused_self)]
     fn validate_input_size(&self, content: &str) -> OwlResult<()> {
-        const MAX_FILE_SIZE: usize = 50 * 1024 * 1024; // 50MB limit
-        const MAX_LINE_LENGTH: usize = 65536; // 64KB per line
+        let max_file_size = if self.config.max_file_size == 0 {
+            usize::MAX
+        } else {
+            self.config.max_file_size
+        };
+        let max_line_length = if max_file_size == usize::MAX {
+            usize::MAX
+        } else {
+            max_file_size
+        };
 
-        if content.len() > MAX_FILE_SIZE {
+        if content.len() > max_file_size {
             return Err(OwlError::ResourceLimitExceeded {
                 resource_type: "file_size".to_string(),
-                limit: MAX_FILE_SIZE,
+                limit: max_file_size,
                 message: format!(
                     "Input size {} exceeds maximum allowed size {}",
                     content.len(),
-                    MAX_FILE_SIZE
+                    max_file_size
                 ),
             });
         }
 
         // Check for extremely long lines that could indicate parsing issues
-        for (line_num, line) in content.lines().enumerate() {
-            if line.len() > MAX_LINE_LENGTH {
-                return Err(OwlError::ParseError(format!(
-                    "Line {} exceeds maximum length of {} characters",
-                    line_num + 1,
-                    MAX_LINE_LENGTH
-                )));
+        if max_line_length != usize::MAX {
+            for (line_num, line) in content.lines().enumerate() {
+                if line.len() > max_line_length {
+                    return Err(OwlError::ParseError(format!(
+                        "Line {} exceeds maximum length of {} characters",
+                        line_num + 1,
+                        max_line_length
+                    )));
+                }
             }
         }
         Ok(())

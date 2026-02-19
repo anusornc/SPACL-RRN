@@ -37,6 +37,9 @@ use crate::core::error::OwlResult;
 use crate::core::iri::IRI;
 use crate::core::ontology::Ontology;
 use crate::parser::rdf_xml_common::{RDF_TYPE, RDFS_SUBCLASSOF};
+use rio_api::model::{Literal as RioLiteral, Subject as RioSubject, Term as RioTerm};
+use rio_turtle::TurtleError;
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 /// Parser trait for different serialization formats
@@ -55,35 +58,75 @@ pub trait OntologyParser {
 pub struct ParserFactory;
 
 impl ParserFactory {
+    fn env_truthy(key: &str) -> bool {
+        match std::env::var(key) {
+            Ok(value) => {
+                let value = value.trim().to_ascii_lowercase();
+                !(value.is_empty() || value == "0" || value == "false" || value == "no")
+            }
+            Err(_) => false,
+        }
+    }
+
+    fn config_from_env() -> ParserConfig {
+        let mut config = ParserConfig::default();
+
+        if Self::env_truthy("OWL2_REASONER_LARGE_PARSE") {
+            config.max_file_size = 0;
+            config.use_arena_allocation = true;
+            config.arena_capacity = 16 * 1024 * 1024;
+            config.max_arena_size = 256 * 1024 * 1024;
+        }
+
+        if let Ok(value) = std::env::var("OWL2_REASONER_MAX_FILE_SIZE") {
+            if let Ok(bytes) = value.trim().parse::<usize>() {
+                config.max_file_size = bytes;
+            }
+        }
+
+        config
+    }
+
     /// Create a parser based on file extension
     pub fn for_file_extension(ext: &str) -> Option<Box<dyn OntologyParser>> {
+        let config = Self::config_from_env();
         match ext.to_lowercase().as_str() {
-            "ttl" | "turtle" => Some(Box::new(TurtleParser::new())),
-            "rdf" | "rdfs" => Some(Box::new(RdfXmlParser::new())),
-            "owl" | "ofn" => Some(Box::new(OwlFunctionalSyntaxParser::new())), // OWL Functional Syntax files
-            "owx" | "xml" => Some(Box::new(OwlXmlParser::new())),
+            "ttl" | "turtle" => Some(Box::new(TurtleParser::with_config(config))),
+            "rdf" | "rdfs" => Some(Box::new(RdfXmlParser::with_config(config))),
+            "owl" | "ofn" => {
+                Some(Box::new(OwlFunctionalSyntaxParser::with_config(config)))
+            }
+            "owx" | "xml" => Some(Box::new(OwlXmlParser::with_config(config))),
             "nt" => Some(Box::new(NtriplesParser::new())),
-            "jsonld" | "json-ld" | "json" => Some(Box::new(JsonLdParser::new())),
-            "man" | "mn" | "manchester" => Some(Box::new(ManchesterParser::new())),
+            "jsonld" | "json-ld" | "json" => Some(Box::new(JsonLdParser::with_config(config))),
+            "man" | "mn" | "manchester" => Some(Box::new(ManchesterParser::with_config(config))),
             _ => None,
         }
     }
 
     /// Create a parser based on content type
     pub fn for_content_type(content_type: &str) -> Option<Box<dyn OntologyParser>> {
+        let config = Self::config_from_env();
         match content_type {
-            "text/turtle" | "application/x-turtle" => Some(Box::new(TurtleParser::new())),
-            "application/rdf+xml" => Some(Box::new(RdfXmlParser::new())),
-            "application/owl+xml" => Some(Box::new(OwlXmlParser::new())),
+            "text/turtle" | "application/x-turtle" => {
+                Some(Box::new(TurtleParser::with_config(config)))
+            }
+            "application/rdf+xml" => Some(Box::new(RdfXmlParser::with_config(config))),
+            "application/owl+xml" => Some(Box::new(OwlXmlParser::with_config(config))),
             "application/n-triples" | "text/plain" => Some(Box::new(NtriplesParser::new())),
-            "application/ld+json" | "application/json" => Some(Box::new(JsonLdParser::new())),
-            "text/manchester" | "application/manchester" => Some(Box::new(ManchesterParser::new())),
+            "application/ld+json" | "application/json" => {
+                Some(Box::new(JsonLdParser::with_config(config)))
+            }
+            "text/manchester" | "application/manchester" => {
+                Some(Box::new(ManchesterParser::with_config(config)))
+            }
             _ => None,
         }
     }
 
     /// Auto-detect format and create appropriate parser
     pub fn auto_detect(content: &str) -> Option<Box<dyn OntologyParser>> {
+        let config = Self::config_from_env();
         let content_trimmed = content.trim();
 
         // Check for JSON-LD (highest priority due to distinct format)
@@ -92,21 +135,21 @@ impl ParserFactory {
             || content_trimmed.contains("@graph")
             || (content_trimmed.starts_with('{') && content_trimmed.contains("\"@id\""))
         {
-            Some(Box::new(JsonLdParser::new()))
+            Some(Box::new(JsonLdParser::with_config(config.clone())))
         }
         // Check for XML-based formats first (RDF/XML, OWL/XML) to avoid false positives
         else if content_trimmed.starts_with("<?xml") || content_trimmed.starts_with("<rdf:RDF") {
             // RDF/XML has rdf:RDF root and uses XML namespaces
             if content.contains("<rdf:RDF") || content.contains("<rdf:Description") {
-                Some(Box::new(RdfXmlParser::new()))
+                Some(Box::new(RdfXmlParser::with_config(config.clone())))
             } else if content.contains("<Ontology") || content.contains("<owl:Ontology") {
                 // Could be OWL/XML or RDF/XML with Ontology element
-                Some(Box::new(RdfXmlParser::new()))
+                Some(Box::new(RdfXmlParser::with_config(config.clone())))
             } else {
-                Some(Box::new(OwlXmlParser::new()))
+                Some(Box::new(OwlXmlParser::with_config(config.clone())))
             }
         } else if content_trimmed.starts_with("<rdf:Description") {
-            Some(Box::new(RdfXmlParser::new()))
+            Some(Box::new(RdfXmlParser::with_config(config.clone())))
         }
         // Check for Manchester Syntax (high priority for readability)
         else if content_trimmed.starts_with("Prefix:")
@@ -114,16 +157,16 @@ impl ParserFactory {
             || content_trimmed.contains("ObjectProperty:")
             || content_trimmed.contains("Individual:")
         {
-            Some(Box::new(ManchesterParser::new()))
+            Some(Box::new(ManchesterParser::with_config(config.clone())))
         }
         // Check for OWL Functional Syntax - must NOT be XML, starts with Prefix(
         else if content_trimmed.starts_with("Prefix(")
             || (content_trimmed.starts_with("Ontology(") && !content_trimmed.starts_with("<"))
             || (content_trimmed.starts_with("Document(") && content_trimmed.contains("Prefix("))
         {
-            Some(Box::new(OwlFunctionalSyntaxParser::new()))
+            Some(Box::new(OwlFunctionalSyntaxParser::with_config(config.clone())))
         } else if content_trimmed.starts_with("@prefix") || content_trimmed.starts_with("PREFIX") {
-            Some(Box::new(TurtleParser::new()))
+            Some(Box::new(TurtleParser::with_config(config)))
         } else if content
             .lines()
             .next()
@@ -205,6 +248,10 @@ impl OntologyParser for NtriplesParser {
     }
 
     fn parse_file(&self, path: &std::path::Path) -> OwlResult<Ontology> {
+        if Self::should_use_streaming(path) {
+            return self.parse_file_streaming(path);
+        }
+
         use std::fs::File;
         use std::io::Read;
 
@@ -216,6 +263,178 @@ impl OntologyParser for NtriplesParser {
 
     fn format_name(&self) -> &'static str {
         "N-Triples"
+    }
+}
+
+impl NtriplesParser {
+    fn env_truthy(key: &str) -> bool {
+        match std::env::var(key) {
+            Ok(value) => {
+                let value = value.trim().to_ascii_lowercase();
+                !(value.is_empty() || value == "0" || value == "false" || value == "no")
+            }
+            Err(_) => false,
+        }
+    }
+
+    fn should_use_streaming(path: &std::path::Path) -> bool {
+        if Self::env_truthy("OWL2_REASONER_LARGE_PARSE") {
+            return true;
+        }
+        if let Ok(metadata) = std::fs::metadata(path) {
+            return metadata.len() > 32 * 1024 * 1024;
+        }
+        false
+    }
+
+    fn parse_file_streaming(&self, path: &std::path::Path) -> OwlResult<Ontology> {
+        use rio_api::parser::TriplesParser;
+        use rio_turtle::NTriplesParser as RioNTriplesParser;
+        use std::fs::File;
+        use std::io::BufReader;
+
+        let file = File::open(path).map_err(crate::core::error::OwlError::IoError)?;
+        let reader = BufReader::new(file);
+        let mut parser = RioNTriplesParser::new(reader);
+
+        let mut ontology = Ontology::new();
+        let mut handler = |triple: rio_api::model::Triple| -> Result<(), TurtleError> {
+            let subject = Self::rio_subject_to_term(&triple.subject)?;
+            let predicate = NtriplesTerm::IRI(
+                IRI::new(triple.predicate.iri).map_err(|e| {
+                    let io_err = std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("{:?}", e),
+                    );
+                    TurtleError::from(io_err)
+                })?,
+            );
+            let object = Self::rio_term_to_term(&triple.object)?;
+            let ntriple = NtriplesTriple {
+                subject,
+                predicate,
+                object,
+            };
+            self.add_triple_to_ontology(&mut ontology, &ntriple)
+                .map_err(|err| {
+                    let io_err = std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("{:?}", err),
+                    );
+                    TurtleError::from(io_err)
+                })
+        };
+
+        parser.parse_all(&mut handler).map_err(|err| {
+            crate::core::error::OwlError::ParseError(format!("N-Triples parse error: {}", err))
+        })?;
+
+        Ok(ontology)
+    }
+
+    fn rio_subject_to_term(subject: &RioSubject) -> Result<NtriplesTerm, TurtleError> {
+        match subject {
+            RioSubject::NamedNode(node) => Ok(NtriplesTerm::IRI(
+                IRI::new(node.iri).map_err(|e| {
+                    std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e))
+                })?,
+            )),
+            RioSubject::BlankNode(node) => Ok(NtriplesTerm::BlankNode(node.id.to_string())),
+            RioSubject::Triple(triple) => {
+                let mut hasher = std::collections::hash_map::DefaultHasher::new();
+                Self::rio_subject_key(&triple.subject).hash(&mut hasher);
+                triple.predicate.iri.hash(&mut hasher);
+                Self::rio_term_key(&triple.object).hash(&mut hasher);
+                let id = format!("_:reified_{}", hasher.finish());
+                Ok(NtriplesTerm::IRI(
+                    IRI::new(id).map_err(|e| {
+                        std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e))
+                    })?,
+                ))
+            }
+        }
+    }
+
+    fn rio_term_to_term(term: &RioTerm) -> Result<NtriplesTerm, TurtleError> {
+        match term {
+            RioTerm::NamedNode(node) => Ok(NtriplesTerm::IRI(
+                IRI::new(node.iri).map_err(|e| {
+                    std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e))
+                })?,
+            )),
+            RioTerm::BlankNode(node) => Ok(NtriplesTerm::BlankNode(node.id.to_string())),
+            RioTerm::Literal(literal) => Ok(match literal {
+                RioLiteral::Simple { value } => NtriplesTerm::Literal {
+                    value: (*value).to_string(),
+                    language: None,
+                    datatype: None,
+                },
+                RioLiteral::LanguageTaggedString { value, language } => NtriplesTerm::Literal {
+                    value: (*value).to_string(),
+                    language: Some((*language).to_string()),
+                    datatype: None,
+                },
+                RioLiteral::Typed { value, datatype } => NtriplesTerm::Literal {
+                    value: (*value).to_string(),
+                    language: None,
+                    datatype: Some(
+                        IRI::new(datatype.iri).map_err(|e| {
+                            std::io::Error::new(
+                                std::io::ErrorKind::InvalidData,
+                                format!("{:?}", e),
+                            )
+                        })?,
+                    ),
+                },
+            }),
+            RioTerm::Triple(triple) => {
+                let mut hasher = std::collections::hash_map::DefaultHasher::new();
+                Self::rio_subject_key(&triple.subject).hash(&mut hasher);
+                triple.predicate.iri.hash(&mut hasher);
+                Self::rio_term_key(&triple.object).hash(&mut hasher);
+                let id = format!("_:reified_{}", hasher.finish());
+                Ok(NtriplesTerm::IRI(
+                    IRI::new(id).map_err(|e| {
+                        std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{:?}", e))
+                    })?,
+                ))
+            }
+        }
+    }
+
+    fn rio_subject_key(subject: &RioSubject) -> String {
+        match subject {
+            RioSubject::NamedNode(node) => node.iri.to_string(),
+            RioSubject::BlankNode(node) => format!("_:{:?}", node.id),
+            RioSubject::Triple(triple) => format!(
+                "triple:{}:{}:{}",
+                Self::rio_subject_key(&triple.subject),
+                triple.predicate.iri,
+                Self::rio_term_key(&triple.object)
+            ),
+        }
+    }
+
+    fn rio_term_key(term: &RioTerm) -> String {
+        match term {
+            RioTerm::NamedNode(node) => node.iri.to_string(),
+            RioTerm::BlankNode(node) => format!("_:{:?}", node.id),
+            RioTerm::Literal(literal) => match literal {
+                RioLiteral::Simple { value } => format!("\"{}\"", value),
+                RioLiteral::LanguageTaggedString { value, language } => {
+                    format!("\"{}\"@{}", value, language)
+                }
+                RioLiteral::Typed { value, datatype } => {
+                    format!("\"{}\"^^{}", value, datatype.iri)
+                }
+            },
+            RioTerm::Triple(triple) => format!(
+                "triple:{}:{}:{}",
+                Self::rio_subject_key(&triple.subject),
+                triple.predicate.iri,
+                Self::rio_term_key(&triple.object)
+            ),
+        }
     }
 }
 

@@ -17,7 +17,9 @@ pub struct QLProfileValidator {
 impl QLProfileValidator {
     /// Create a new QL profile validator
     pub fn new(ontology: Arc<Ontology>) -> Self {
-        Self { _ontology: ontology }
+        Self {
+            _ontology: ontology,
+        }
     }
 
     /// Check if a construct is allowed in QL
@@ -25,22 +27,22 @@ impl QLProfileValidator {
     fn is_allowed_in_ql(&self, construct: &str) -> bool {
         matches!(
             construct,
-            "Class" |
-            "ObjectIntersectionOf" |
-            "ObjectSomeValuesFrom" |
-            "ObjectAllValuesFrom" |
-            "ObjectProperty" |
-            "SubClassOf" |
-            "EquivalentClasses" |
-            "DisjointClasses" |
-            "ObjectPropertyDomain" |
-            "ObjectPropertyRange" |
-            "InverseObjectProperties" |
-            "SymmetricObjectProperty" |
-            "AsymmetricObjectProperty" |
-            "ClassAssertion" |
-            "ObjectPropertyAssertion" |
-            "NegativeObjectPropertyAssertion"
+            "Class"
+                | "ObjectIntersectionOf"
+                | "ObjectSomeValuesFrom"
+                | "ObjectAllValuesFrom"
+                | "ObjectProperty"
+                | "SubClassOf"
+                | "EquivalentClasses"
+                | "DisjointClasses"
+                | "ObjectPropertyDomain"
+                | "ObjectPropertyRange"
+                | "InverseObjectProperties"
+                | "SymmetricObjectProperty"
+                | "AsymmetricObjectProperty"
+                | "ClassAssertion"
+                | "ObjectPropertyAssertion"
+                | "NegativeObjectPropertyAssertion"
         )
     }
 }

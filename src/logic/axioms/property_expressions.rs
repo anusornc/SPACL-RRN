@@ -3,9 +3,10 @@
 //! Defines complex property expressions for building property hierarchies.
 
 use crate::core::entities::{DataProperty, ObjectProperty};
+use serde::{Deserialize, Serialize};
 
 /// Object property expressions
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ObjectPropertyExpression {
     /// Named object property
     ObjectProperty(Box<ObjectProperty>),
@@ -47,7 +48,7 @@ impl From<ObjectProperty> for ObjectPropertyExpression {
 }
 
 /// Data property expressions
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DataPropertyExpression {
     /// Named data property
     DataProperty(DataProperty),

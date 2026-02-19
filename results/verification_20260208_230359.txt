@@ -1,0 +1,28 @@
+HermiT vs SPACL Quick Verification
+=====================================
+
+Testing: disjunctive_simple.owl
+File size: 12K
+
+HermiT: 4377ms
+{"duration_ms": 1657, "status": "completed"}
+
+SPACL: 107ms
+✓ Consistency check complete in 872.819µs
+Result: ✅ CONSISTENT
+
+Speedup: 40.9x
+
+Testing: disjunctive_test.owl
+File size: 8.0K
+
+HermiT: 3537ms
+{"duration_ms": 1137, "status": "completed"}
+
+SPACL: 5ms
+✓ Consistency check complete in 277.343µs
+Result: ✅ CONSISTENT
+
+Speedup: 707.4x
+
+Verification complete. Results saved to: results/verification_20260208_230359.txt

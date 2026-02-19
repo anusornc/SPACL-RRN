@@ -1,28 +1,10 @@
-# Pellet OWL 2 Reasoner (using Openllet - Java 8 compatible version)
+# Pellet legacy placeholder.
+# This image intentionally reports not_available to avoid conflating Pellet with Openllet.
 
-FROM eclipse-temurin:8-jdk-alpine
+FROM alpine:3.20
 
 WORKDIR /opt/reasoner
 
-# Install curl
-RUN apk add --no-cache curl
-
-# Download core dependencies (Openllet 2.5.1 for Java 8 compatibility)
-RUN mkdir -p /opt/reasoner/libs && \
-    cd /opt/reasoner/libs && \
-    curl -L -o owlapi.jar "https://repo1.maven.org/maven2/net/sourceforge/owlapi/owlapi-distribution/4.5.26/owlapi-distribution-4.5.26.jar" && \
-    curl -L -o openllet-owlapi.jar "https://repo1.maven.org/maven2/com/github/galigator/openllet/openllet-owlapi/2.5.1/openllet-owlapi-2.5.1.jar" && \
-    curl -L -o openllet-core.jar "https://repo1.maven.org/maven2/com/github/galigator/openllet/openllet-core/2.5.1/openllet-core-2.5.1.jar" && \
-    curl -L -o slf4j-api.jar "https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar" && \
-    curl -L -o slf4j-simple.jar "https://repo1.maven.org/maven2/org/slf4j/slf4j-simple/1.7.36/slf4j-simple-1.7.36.jar" && \
-    curl -L -o guava.jar "https://repo1.maven.org/maven2/com/google/guava/guava/31.1-jre/guava-31.1-jre.jar" && \
-    curl -L -o gson.jar "https://repo1.maven.org/maven2/com/google/code/gson/gson/2.10.1/gson-2.10.1.jar"
-
-# Copy and compile Java wrapper
-COPY benchmarks/competitors/docker/PelletConsistency.java /opt/reasoner/
-RUN cd /opt/reasoner && javac -cp "libs/*" PelletConsistency.java
-
-# Copy benchmark script
 COPY benchmarks/competitors/docker/benchmark-pellet.sh /opt/reasoner/benchmark.sh
 RUN chmod +x /opt/reasoner/benchmark.sh
 

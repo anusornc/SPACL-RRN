@@ -19,10 +19,11 @@ pub use core::*;
 pub use core::{CollectionItem, CollectionAxiom, ImportAxiom};
 pub use property_expressions::*;
 pub use types::*;
+use serde::{Deserialize, Serialize};
 
 
 /// The main Axiom enum that wraps all axiom types
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Axiom {
     SubClassOf(Box<SubClassOfAxiom>),
     EquivalentClasses(Box<EquivalentClassesAxiom>),

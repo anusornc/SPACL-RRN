@@ -39,11 +39,11 @@
 //! # Ok::<(), owl2_reasoner::OwlError>(())
 //! ```
 
-use crate::logic::axioms;
-use crate::logic::axioms::class_expressions::ClassExpression;
 use crate::core::entities::*;
 use crate::core::error::{OwlError, OwlResult};
 use crate::core::iri::{IRIRegistry, IRI};
+use crate::logic::axioms;
+use crate::logic::axioms::class_expressions::ClassExpression;
 use crate::parser::import_resolver::ImportResolver;
 use hashbrown::HashMap;
 use std::collections::HashSet;
@@ -147,12 +147,16 @@ pub struct Ontology {
     imports: HashSet<Arc<IRI>>,
     /// All classes in the ontology
     classes: HashSet<Arc<Class>>,
+    /// Fast IRI index for class deduplication
+    class_iris: HashSet<Arc<IRI>>,
     /// All object properties in the ontology
     object_properties: HashSet<Arc<ObjectProperty>>,
     /// All data properties in the ontology
     data_properties: HashSet<Arc<DataProperty>>,
     /// All named individuals in the ontology
     named_individuals: HashSet<Arc<NamedIndividual>>,
+    /// Fast IRI index for named individual deduplication
+    named_individual_iris: HashSet<Arc<IRI>>,
     /// All anonymous individuals in the ontology
     anonymous_individuals: HashSet<Arc<AnonymousIndividual>>,
     /// All annotation properties in the ontology
@@ -161,11 +165,11 @@ pub struct Ontology {
     axioms: Vec<Arc<axioms::Axiom>>,
 
     // Indexed axiom storage for performance
-    subclass_axioms: Vec<Arc<axioms::SubClassOfAxiom>>,
-    equivalent_classes_axioms: Vec<Arc<axioms::EquivalentClassesAxiom>>,
-    disjoint_classes_axioms: Vec<Arc<axioms::DisjointClassesAxiom>>,
-    class_assertions: Vec<Arc<axioms::ClassAssertionAxiom>>,
-    property_assertions: Vec<Arc<axioms::PropertyAssertionAxiom>>,
+    subclass_axioms: Vec<usize>,
+    equivalent_classes_axioms: Vec<usize>,
+    disjoint_classes_axioms: Vec<usize>,
+    class_assertions: Vec<usize>,
+    property_assertions: Vec<usize>,
     data_property_assertions: Vec<Arc<axioms::DataPropertyAssertionAxiom>>,
     subobject_property_axioms: Vec<Arc<axioms::SubObjectPropertyAxiom>>,
     equivalent_object_properties_axioms: Vec<Arc<axioms::EquivalentObjectPropertiesAxiom>>,
@@ -243,9 +247,11 @@ impl Ontology {
             version_iri: None,
             imports: HashSet::new(),
             classes: HashSet::new(),
+            class_iris: HashSet::new(),
             object_properties: HashSet::new(),
             data_properties: HashSet::new(),
             named_individuals: HashSet::new(),
+            named_individual_iris: HashSet::new(),
             anonymous_individuals: HashSet::new(),
             annotation_properties: HashSet::new(),
             axioms: Vec::new(),
@@ -343,30 +349,33 @@ impl Ontology {
 
     /// Add a class to the ontology
     pub fn add_class(&mut self, class: Class) -> OwlResult<()> {
+        let class_iri = class.iri().clone();
+
         // Validate class IRI
-        self.validate_class_iri(class.iri())?;
+        self.validate_class_iri(&class_iri)?;
 
         // Check for duplicate classes
-        if self.classes.iter().any(|c| c.iri() == class.iri()) {
+        if self.class_iris.contains(&class_iri) {
             // Gracefully accept duplicate additions (idempotent)
             return Ok(());
         }
 
         // Validate class against OWL2 built-in classes
-        self.validate_builtin_class_usage(class.iri())?;
+        self.validate_builtin_class_usage(&class_iri)?;
 
         let class_arc = Arc::new(class);
         self.classes.insert(class_arc);
+        self.class_iris.insert(class_iri);
         Ok(())
     }
 
     /// Add multiple classes to the ontology in bulk (optimized for large imports)
-    /// 
+    ///
     /// This method is significantly faster than calling `add_class` repeatedly because:
     /// - It skips redundant validation when loading from trusted sources
     /// - It pre-allocates capacity and minimizes HashSet operations
     /// - It handles deduplication efficiently
-    /// 
+    ///
     /// # Arguments
     /// * `classes` - Iterator of classes to add
     /// * `validate` - If false, skips IRI validation (use for trusted sources like binary files)
@@ -377,36 +386,37 @@ impl Ontology {
     ) -> OwlResult<usize> {
         // Collect classes into a vec first to know the count
         let classes_vec: Vec<Class> = classes.collect();
-        
+
         // Pre-allocate HashSet capacity for better performance
         let additional = classes_vec.len();
         self.classes.reserve(additional);
+        self.class_iris.reserve(additional);
 
         let mut added = 0;
-        
+
         for class in classes_vec {
+            let iri = class.iri().clone();
+
+            if self.class_iris.contains(&iri) {
+                continue;
+            }
+
             // Only validate if requested (skip for trusted sources like binary files)
             if validate {
-                let iri = class.iri();
-                // For validate=true, we need to check duplicates
-                if self.classes.iter().any(|c| c.iri() == iri) {
-                    continue;
-                }
-                self.validate_class_iri(iri)?;
-                self.validate_builtin_class_usage(iri)?;
+                self.validate_class_iri(&iri)?;
+                self.validate_builtin_class_usage(&iri)?;
             }
-            // For validate=false, skip duplicate check (trust the source)
 
-            let class_arc = Arc::new(class);
-            self.classes.insert(class_arc);
+            self.class_iris.insert(iri);
+            self.classes.insert(Arc::new(class));
             added += 1;
         }
 
         Ok(added)
     }
-    
+
     /// Add multiple classes in bulk for trusted sources (maximum speed, no validation)
-    /// 
+    ///
     /// This is the fastest method for loading from binary format where:
     /// - Data comes from a trusted source
     /// - No duplicates exist in the input
@@ -414,15 +424,17 @@ impl Ontology {
     pub fn add_classes_bulk_trusted(&mut self, classes: Vec<Class>) -> usize {
         // Pre-allocate capacity
         self.classes.reserve(classes.len());
-        
-        // Convert to Arc and extend in one operation
-        let class_arcs: Vec<Arc<Class>> = classes.into_iter()
-            .map(Arc::new)
-            .collect();
-        
-        let count = class_arcs.len();
-        self.classes.extend(class_arcs);
-        count
+        self.class_iris.reserve(classes.len());
+
+        let mut added = 0;
+        for class in classes {
+            let iri = class.iri().clone();
+            if self.class_iris.insert(iri) {
+                self.classes.insert(Arc::new(class));
+                added += 1;
+            }
+        }
+        added
     }
 
     /// Add multiple object properties in bulk (optimized for large imports)
@@ -442,9 +454,7 @@ impl Ontology {
     /// Add object properties in bulk for trusted sources (maximum speed)
     pub fn add_object_properties_bulk_trusted(&mut self, properties: Vec<ObjectProperty>) -> usize {
         self.object_properties.reserve(properties.len());
-        let prop_arcs: Vec<Arc<ObjectProperty>> = properties.into_iter()
-            .map(Arc::new)
-            .collect();
+        let prop_arcs: Vec<Arc<ObjectProperty>> = properties.into_iter().map(Arc::new).collect();
         let count = prop_arcs.len();
         self.object_properties.extend(prop_arcs);
         count
@@ -467,9 +477,7 @@ impl Ontology {
     /// Add data properties in bulk for trusted sources (maximum speed)
     pub fn add_data_properties_bulk_trusted(&mut self, properties: Vec<DataProperty>) -> usize {
         self.data_properties.reserve(properties.len());
-        let prop_arcs: Vec<Arc<DataProperty>> = properties.into_iter()
-            .map(Arc::new)
-            .collect();
+        let prop_arcs: Vec<Arc<DataProperty>> = properties.into_iter().map(Arc::new).collect();
         let count = prop_arcs.len();
         self.data_properties.extend(prop_arcs);
         count
@@ -480,29 +488,46 @@ impl Ontology {
         &mut self,
         individuals: impl Iterator<Item = NamedIndividual>,
     ) -> usize {
+        self.named_individual_iris
+            .reserve(individuals.size_hint().0);
         let mut added = 0;
         for individual in individuals {
-            let individual_arc = Arc::new(individual);
-            self.named_individuals.insert(individual_arc);
-            added += 1;
+            let iri = individual.iri().clone();
+            if self.named_individual_iris.insert(iri) {
+                let individual_arc = Arc::new(individual);
+                self.named_individuals.insert(individual_arc);
+                added += 1;
+            }
         }
         added
     }
 
     /// Add named individuals in bulk for trusted sources (maximum speed)
-    pub fn add_named_individuals_bulk_trusted(&mut self, individuals: Vec<NamedIndividual>) -> usize {
+    pub fn add_named_individuals_bulk_trusted(
+        &mut self,
+        individuals: Vec<NamedIndividual>,
+    ) -> usize {
         self.named_individuals.reserve(individuals.len());
-        let ind_arcs: Vec<Arc<NamedIndividual>> = individuals.into_iter()
-            .map(Arc::new)
-            .collect();
-        let count = ind_arcs.len();
-        self.named_individuals.extend(ind_arcs);
-        count
+        self.named_individual_iris.reserve(individuals.len());
+        let mut added = 0;
+        for individual in individuals {
+            let iri = individual.iri().clone();
+            if self.named_individual_iris.insert(iri) {
+                self.named_individuals.insert(Arc::new(individual));
+                added += 1;
+            }
+        }
+        added
     }
 
     /// Get all classes in the ontology
     pub fn classes(&self) -> &HashSet<Arc<Class>> {
         &self.classes
+    }
+
+    /// Check whether a class IRI is already present.
+    pub fn contains_class_iri(&self, iri: &IRI) -> bool {
+        self.class_iris.contains(iri)
     }
 
     /// Add an object property to the ontology
@@ -531,8 +556,11 @@ impl Ontology {
 
     /// Add a named individual to the ontology
     pub fn add_named_individual(&mut self, individual: NamedIndividual) -> OwlResult<()> {
-        let individual_arc = Arc::new(individual);
-        self.named_individuals.insert(individual_arc);
+        let iri = individual.iri().clone();
+        if self.named_individual_iris.insert(iri) {
+            let individual_arc = Arc::new(individual);
+            self.named_individuals.insert(individual_arc);
+        }
         Ok(())
     }
 
@@ -555,6 +583,11 @@ impl Ontology {
         &self.named_individuals
     }
 
+    /// Check whether a named individual IRI is already present.
+    pub fn contains_named_individual_iri(&self, iri: &IRI) -> bool {
+        self.named_individual_iris.contains(iri)
+    }
+
     /// Get all anonymous individuals in the ontology
     pub fn anonymous_individuals(&self) -> &HashSet<Arc<AnonymousIndividual>> {
         &self.anonymous_individuals
@@ -571,57 +604,54 @@ impl Ontology {
 
         // Add to general axioms list
         self.axioms.push(axiom_arc.clone());
+        let axiom_index = self.axioms.len() - 1;
 
+        self.index_axiom_structures(&axiom_arc, axiom_index, true);
+
+        Ok(())
+    }
+
+    /// Add multiple axioms from a trusted source (e.g. binary loader) with deferred index rebuild.
+    ///
+    /// This avoids per-axiom hash-map churn on hot load paths by:
+    /// - Appending all axioms first
+    /// - Building variant storage vectors
+    /// - Rebuilding runtime indexes once at the end
+    pub fn add_axioms_bulk_trusted(&mut self, axioms: Vec<axioms::Axiom>) -> OwlResult<usize> {
+        if axioms.is_empty() {
+            return Ok(0);
+        }
+
+        let added = axioms.len();
+        self.axioms.reserve(axioms.len());
+
+        for axiom in axioms {
+            let axiom_arc = Arc::new(axiom);
+            self.axioms.push(axiom_arc.clone());
+            let axiom_index = self.axioms.len() - 1;
+            self.index_axiom_structures(&axiom_arc, axiom_index, false);
+        }
+
+        self.rebuild_runtime_axiom_indexes();
+        Ok(added)
+    }
+
+    fn index_axiom_structures(
+        &mut self,
+        axiom_arc: &Arc<axioms::Axiom>,
+        axiom_index: usize,
+        update_runtime_indexes: bool,
+    ) {
         // Add to indexed storage based on axiom type
         match axiom_arc.as_ref() {
-            axioms::Axiom::SubClassOf(axiom) => {
-                let subclass_arc = Arc::new((**axiom).clone());
-                self.subclass_axioms.push(subclass_arc);
-            }
-            axioms::Axiom::EquivalentClasses(axiom) => {
-                let equiv_arc = Arc::new((**axiom).clone());
-                self.equivalent_classes_axioms.push(equiv_arc);
-            }
-            axioms::Axiom::DisjointClasses(axiom) => {
-                let disjoint_arc = Arc::new((**axiom).clone());
-                self.disjoint_classes_axioms.push(disjoint_arc);
-            }
-            axioms::Axiom::ClassAssertion(axiom) => {
-                let assertion_arc = Arc::new((**axiom).clone());
-                self.class_assertions.push(assertion_arc);
-                // Update class instances index
-                if let Some(class_iri) = axiom.class_expr().as_named().map(|c| (**c.iri()).clone())
-                {
-                    self.class_instances
-                        .entry((**axiom.individual()).clone())
-                        .or_default()
-                        .push(class_iri);
-                }
-            }
-            axioms::Axiom::PropertyAssertion(axiom) => {
-                let assertion_arc = Arc::new((**axiom).clone());
-                self.property_assertions.push(assertion_arc);
-                // Update property domains and ranges indexes
-                self.property_domains
-                    .entry((**axiom.property()).clone())
-                    .or_default()
-                    .push((**axiom.subject()).clone());
-                // Only index named objects (IRIs) into property_ranges
-                if let crate::logic::axioms::PropertyAssertionObject::Named(object_iri) = axiom.object() {
-                    self.property_ranges
-                        .entry((**axiom.property()).clone())
-                        .or_default()
-                        .push((**object_iri).clone());
-                }
-            }
+            axioms::Axiom::SubClassOf(_) => self.subclass_axioms.push(axiom_index),
+            axioms::Axiom::EquivalentClasses(_) => self.equivalent_classes_axioms.push(axiom_index),
+            axioms::Axiom::DisjointClasses(_) => self.disjoint_classes_axioms.push(axiom_index),
+            axioms::Axiom::ClassAssertion(_) => self.class_assertions.push(axiom_index),
+            axioms::Axiom::PropertyAssertion(_) => self.property_assertions.push(axiom_index),
             axioms::Axiom::DataPropertyAssertion(axiom) => {
                 let assertion_arc = Arc::new((**axiom).clone());
                 self.data_property_assertions.push(assertion_arc);
-                // We don't index literals into property_ranges (IRI-only index)
-                self.property_domains
-                    .entry((**axiom.property()).clone())
-                    .or_default()
-                    .push((**axiom.subject()).clone());
             }
             axioms::Axiom::SubObjectProperty(axiom) => {
                 let subprop_arc = Arc::new((**axiom).clone());
@@ -789,22 +819,72 @@ impl Ontology {
             }
             axioms::Axiom::Collection(_axiom) => {
                 // Collection axioms are stored in the general axioms list
-                // Additional indexing could be added here if needed
             }
             axioms::Axiom::Container(_axiom) => {
                 // Container axioms are stored in the general axioms list
-                // Additional indexing could be added here if needed
             }
             axioms::Axiom::Reification(_axiom) => {
                 // Reification axioms are stored in the general axioms list
-                // Additional indexing could be added here if needed
             }
+        }
+
+        if update_runtime_indexes {
+            self.update_runtime_indexes_for_axiom(axiom_arc);
+        }
+    }
+
+    fn update_runtime_indexes_for_axiom(&mut self, axiom_arc: &Arc<axioms::Axiom>) {
+        match axiom_arc.as_ref() {
+            axioms::Axiom::ClassAssertion(axiom) => {
+                // Update class instances index
+                if let Some(class_iri) = axiom.class_expr().as_named().map(|c| (**c.iri()).clone())
+                {
+                    self.class_instances
+                        .entry((**axiom.individual()).clone())
+                        .or_default()
+                        .push(class_iri);
+                }
+            }
+            axioms::Axiom::PropertyAssertion(axiom) => {
+                // Update property domains and ranges indexes
+                self.property_domains
+                    .entry((**axiom.property()).clone())
+                    .or_default()
+                    .push((**axiom.subject()).clone());
+                // Only index named objects (IRIs) into property_ranges
+                if let crate::logic::axioms::PropertyAssertionObject::Named(object_iri) =
+                    axiom.object()
+                {
+                    self.property_ranges
+                        .entry((**axiom.property()).clone())
+                        .or_default()
+                        .push((**object_iri).clone());
+                }
+            }
+            axioms::Axiom::DataPropertyAssertion(axiom) => {
+                // We don't index literals into property_ranges (IRI-only index)
+                self.property_domains
+                    .entry((**axiom.property()).clone())
+                    .or_default()
+                    .push((**axiom.subject()).clone());
+            }
+            _ => {}
         }
 
         // Update multi-indexes for fast queries
         self.update_multi_indexes(axiom_arc.clone());
+    }
 
-        Ok(())
+    fn rebuild_runtime_axiom_indexes(&mut self) {
+        self.class_instances.clear();
+        self.property_domains.clear();
+        self.property_ranges.clear();
+        self.axiom_type_index.clear();
+
+        for idx in 0..self.axioms.len() {
+            let axiom_arc = Arc::clone(&self.axioms[idx]);
+            self.update_runtime_indexes_for_axiom(&axiom_arc);
+        }
     }
 
     /// Update multi-indexes for a new axiom
@@ -828,7 +908,9 @@ impl Ontology {
     }
 
     /// Get all data property assertions
-    pub fn data_property_assertions(&self) -> Vec<&crate::logic::axioms::DataPropertyAssertionAxiom> {
+    pub fn data_property_assertions(
+        &self,
+    ) -> Vec<&crate::logic::axioms::DataPropertyAssertionAxiom> {
         self.data_property_assertions
             .iter()
             .map(|axiom| axiom.as_ref())
@@ -873,27 +955,24 @@ impl Ontology {
     }
 
     /// Fast lookup for subclass axioms (optimized for classification)
-    pub fn subclass_axioms_fast(&self) -> &[Arc<axioms::SubClassOfAxiom>] {
-        &self.subclass_axioms
+    pub fn subclass_axioms_fast(&self) -> Vec<&axioms::SubClassOfAxiom> {
+        self.subclass_axioms()
     }
 
     /// Fast lookup for class assertions (optimized for instance checking)
-    pub fn class_assertions_fast(&self) -> &[Arc<axioms::ClassAssertionAxiom>] {
-        &self.class_assertions
+    pub fn class_assertions_fast(&self) -> Vec<&axioms::ClassAssertionAxiom> {
+        self.class_assertions()
     }
 
     /// Fast lookup for property assertions (optimized for property checking)
-    pub fn property_assertions_fast(&self) -> &[Arc<axioms::PropertyAssertionAxiom>] {
-        &self.property_assertions
+    pub fn property_assertions_fast(&self) -> Vec<&axioms::PropertyAssertionAxiom> {
+        self.property_assertions()
     }
 
     /// Get all subclass axioms where a class appears as subclass (placeholder implementation)
     pub fn subclass_axioms_for_subclass(&self, _class_iri: &IRI) -> Vec<&axioms::SubClassOfAxiom> {
         // Would filter by subclass in full implementation
-        self.subclass_axioms
-            .iter()
-            .map(|axiom| axiom.as_ref())
-            .collect()
+        self.subclass_axioms()
     }
 
     /// Get all subclass axioms where a class appears as superclass (placeholder implementation)
@@ -902,10 +981,7 @@ impl Ontology {
         _class_iri: &IRI,
     ) -> Vec<&axioms::SubClassOfAxiom> {
         // Would filter by superclass in full implementation
-        self.subclass_axioms
-            .iter()
-            .map(|axiom| axiom.as_ref())
-            .collect()
+        self.subclass_axioms()
     }
 
     /// Get all instances of a specific class (using the class_instances index)
@@ -980,7 +1056,10 @@ impl Ontology {
     pub fn subclass_axioms(&self) -> Vec<&crate::logic::axioms::SubClassOfAxiom> {
         self.subclass_axioms
             .iter()
-            .map(|axiom| axiom.as_ref())
+            .filter_map(|idx| match self.axioms[*idx].as_ref() {
+                axioms::Axiom::SubClassOf(axiom) => Some(axiom.as_ref()),
+                _ => None,
+            })
             .collect()
     }
 
@@ -988,7 +1067,10 @@ impl Ontology {
     pub fn equivalent_classes_axioms(&self) -> Vec<&crate::logic::axioms::EquivalentClassesAxiom> {
         self.equivalent_classes_axioms
             .iter()
-            .map(|axiom| axiom.as_ref())
+            .filter_map(|idx| match self.axioms[*idx].as_ref() {
+                axioms::Axiom::EquivalentClasses(axiom) => Some(axiom.as_ref()),
+                _ => None,
+            })
             .collect()
     }
 
@@ -996,7 +1078,10 @@ impl Ontology {
     pub fn disjoint_classes_axioms(&self) -> Vec<&crate::logic::axioms::DisjointClassesAxiom> {
         self.disjoint_classes_axioms
             .iter()
-            .map(|axiom| axiom.as_ref())
+            .filter_map(|idx| match self.axioms[*idx].as_ref() {
+                axioms::Axiom::DisjointClasses(axiom) => Some(axiom.as_ref()),
+                _ => None,
+            })
             .collect()
     }
 
@@ -1004,7 +1089,10 @@ impl Ontology {
     pub fn class_assertions(&self) -> Vec<&crate::logic::axioms::ClassAssertionAxiom> {
         self.class_assertions
             .iter()
-            .map(|axiom| axiom.as_ref())
+            .filter_map(|idx| match self.axioms[*idx].as_ref() {
+                axioms::Axiom::ClassAssertion(axiom) => Some(axiom.as_ref()),
+                _ => None,
+            })
             .collect()
     }
 
@@ -1012,7 +1100,10 @@ impl Ontology {
     pub fn property_assertions(&self) -> Vec<&crate::logic::axioms::PropertyAssertionAxiom> {
         self.property_assertions
             .iter()
-            .map(|axiom| axiom.as_ref())
+            .filter_map(|idx| match self.axioms[*idx].as_ref() {
+                axioms::Axiom::PropertyAssertion(axiom) => Some(axiom.as_ref()),
+                _ => None,
+            })
             .collect()
     }
 
@@ -1045,7 +1136,9 @@ impl Ontology {
     }
 
     /// Get all functional property axioms
-    pub fn functional_property_axioms(&self) -> Vec<&crate::logic::axioms::FunctionalPropertyAxiom> {
+    pub fn functional_property_axioms(
+        &self,
+    ) -> Vec<&crate::logic::axioms::FunctionalPropertyAxiom> {
         self.functional_property_axioms
             .iter()
             .map(|axiom| axiom.as_ref())
@@ -1071,7 +1164,9 @@ impl Ontology {
     }
 
     /// Get all irreflexive property axioms
-    pub fn irreflexive_property_axioms(&self) -> Vec<&crate::logic::axioms::IrreflexivePropertyAxiom> {
+    pub fn irreflexive_property_axioms(
+        &self,
+    ) -> Vec<&crate::logic::axioms::IrreflexivePropertyAxiom> {
         self.irreflexive_property_axioms
             .iter()
             .map(|axiom| axiom.as_ref())
@@ -1087,7 +1182,9 @@ impl Ontology {
     }
 
     /// Get all asymmetric property axioms
-    pub fn asymmetric_property_axioms(&self) -> Vec<&crate::logic::axioms::AsymmetricPropertyAxiom> {
+    pub fn asymmetric_property_axioms(
+        &self,
+    ) -> Vec<&crate::logic::axioms::AsymmetricPropertyAxiom> {
         self.asymmetric_property_axioms
             .iter()
             .map(|axiom| axiom.as_ref())
@@ -1095,7 +1192,9 @@ impl Ontology {
     }
 
     /// Get all transitive property axioms
-    pub fn transitive_property_axioms(&self) -> Vec<&crate::logic::axioms::TransitivePropertyAxiom> {
+    pub fn transitive_property_axioms(
+        &self,
+    ) -> Vec<&crate::logic::axioms::TransitivePropertyAxiom> {
         self.transitive_property_axioms
             .iter()
             .map(|axiom| axiom.as_ref())
@@ -1149,7 +1248,9 @@ impl Ontology {
     }
 
     /// Get all different individuals axioms
-    pub fn different_individuals_axioms(&self) -> Vec<&crate::logic::axioms::DifferentIndividualsAxiom> {
+    pub fn different_individuals_axioms(
+        &self,
+    ) -> Vec<&crate::logic::axioms::DifferentIndividualsAxiom> {
         self.different_individuals_axioms
             .iter()
             .map(|axiom| axiom.as_ref())
@@ -1165,7 +1266,9 @@ impl Ontology {
     }
 
     /// Get all annotation assertion axioms
-    pub fn annotation_assertion_axioms(&self) -> Vec<&crate::logic::axioms::AnnotationAssertionAxiom> {
+    pub fn annotation_assertion_axioms(
+        &self,
+    ) -> Vec<&crate::logic::axioms::AnnotationAssertionAxiom> {
         self.annotation_assertion_axioms
             .iter()
             .map(|axiom| axiom.as_ref())
@@ -1624,7 +1727,9 @@ impl Default for Ontology {
 
 impl Ontology {
     /// Get all object property domain axioms
-    pub fn object_property_domain_axioms(&self) -> Vec<&crate::logic::axioms::ObjectPropertyDomainAxiom> {
+    pub fn object_property_domain_axioms(
+        &self,
+    ) -> Vec<&crate::logic::axioms::ObjectPropertyDomainAxiom> {
         self.object_property_domain_axioms
             .iter()
             .map(|axiom| axiom.as_ref())
@@ -1632,7 +1737,9 @@ impl Ontology {
     }
 
     /// Get all object property range axioms
-    pub fn object_property_range_axioms(&self) -> Vec<&crate::logic::axioms::ObjectPropertyRangeAxiom> {
+    pub fn object_property_range_axioms(
+        &self,
+    ) -> Vec<&crate::logic::axioms::ObjectPropertyRangeAxiom> {
         self.object_property_range_axioms
             .iter()
             .map(|axiom| axiom.as_ref())
@@ -1640,7 +1747,9 @@ impl Ontology {
     }
 
     /// Get all data property domain axioms
-    pub fn data_property_domain_axioms(&self) -> Vec<&crate::logic::axioms::DataPropertyDomainAxiom> {
+    pub fn data_property_domain_axioms(
+        &self,
+    ) -> Vec<&crate::logic::axioms::DataPropertyDomainAxiom> {
         self.data_property_domain_axioms
             .iter()
             .map(|axiom| axiom.as_ref())

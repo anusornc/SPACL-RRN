@@ -1,18 +1,9 @@
 #!/bin/sh
-ONTOLOGY_FILE="$1"
+set -eu
+
+ONTOLOGY_FILE="${1:-unknown.owl}"
 OPERATION="${2:-consistency}"
 
-echo "{\"reasoner\": \"Pellet/Openllet\", \"version\": \"2.5.1", \"operation\": \"$OPERATION\", \"ontology\": \"$ONTOLOGY_FILE\"}"
-
-start_time=$(date +%s%N)
-
-if [ "$OPERATION" = "consistency" ]; then
-    java -cp ".:target/dependency/*" PelletConsistency "$ONTOLOGY_FILE" 2>&1
-else
-    echo "Operation $OPERATION not yet supported"
-fi
-
-end_time=$(date +%s%N)
-duration_ms=$(( (end_time - start_time) / 1000000 ))
-
-echo "{\"duration_ms\": $duration_ms, \"status\": \"completed\"}"
+echo "{\"reasoner\": \"Pellet\", \"version\": \"2.x\", \"operation\": \"$OPERATION\", \"ontology\": \"$ONTOLOGY_FILE\"}"
+echo "{\"duration_ms\": -1, \"status\": \"not_available\", \"reasoning_result\": \"unknown\", \"message\": \"Pellet 2.x is not reproducibly available in this containerized setup; use Openllet and JFact for open-source head-to-head results.\"}"
+exit 0

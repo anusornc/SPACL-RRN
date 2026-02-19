@@ -6,6 +6,7 @@
 use crate::core::entities::AnonymousIndividual;
 use crate::core::iri::IRI;
 use crate::{util::constants::*, core::error::{OwlError, OwlResult}};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 /// Creates an IRI safely with proper error handling.
@@ -43,7 +44,7 @@ pub fn create_blank_node_iri(node_id: &str) -> OwlResult<Arc<IRI>> {
 }
 
 /// Object value for property assertions
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PropertyAssertionObject {
     /// Named individual (IRI)
     Named(Arc<IRI>),
@@ -52,7 +53,7 @@ pub enum PropertyAssertionObject {
 }
 
 /// OWL2 Axiom type identifiers for indexing and classification
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AxiomType {
     SubClassOf,
     EquivalentClasses,

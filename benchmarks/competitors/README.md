@@ -1,16 +1,19 @@
 # OWL2 Reasoner Competitor Benchmarks
 
-This directory contains Docker-based benchmarking infrastructure for comparing **Tableauxx** with major OWL2 DL reasoners.
+This directory contains Docker-based benchmarking infrastructure for comparing **Tableauxx** with major OWL reasoners using a single, status-checked harness.
 
 ## Competitors
 
-| Reasoner | Type | Language | Approach |
-|----------|------|----------|----------|
-| **HermiT** | Tableau | Java | Hypertableau calculus |
-| **Konclude** | Saturation | C++ | Optimized saturation + indexing |
-| **Pellet** | Tableau | Java | Standard tableau + SWRL |
-| **FaCT++** | Tableau | C++ | Optimized tableau |
-| **Tableauxx** | Speculative Parallel | Rust | SPACL: Speculative Parallelism + Conflict Learning |
+| Reasoner | Type | Language | Benchmark Status |
+|----------|------|----------|------------------|
+| **Tableauxx** | Tableau + Speculative Parallelism | Rust | ✅ Direct |
+| **HermiT** | Hypertableau | Java | ✅ Direct |
+| **Konclude** | Saturation/Tableau hybrid | C++ | ✅ Direct |
+| **Openllet** | Tableau | Java | ✅ Direct |
+| **ELK** | Consequence-based (EL profile) | Java | ✅ Direct |
+| **JFact** | Tableau | Java | ✅ Direct |
+| **Pellet** | Tableau | Java | ⚠️ Reported as `not_available` (legacy packaging) |
+| **FaCT++** | Tableau | C++ | ⚠️ Optional (`INCLUDE_FACTPP=1`, may be unavailable by environment) |
 
 ## Quick Start
 
@@ -20,10 +23,25 @@ cd benchmarks/competitors
 ./scripts/run_benchmarks.sh
 
 # Or step by step:
-./scripts/run_benchmarks.sh prepare   # Copy test ontologies
+./scripts/run_benchmarks.sh prepare   # Stage suite ontologies into an isolated run dir
 ./scripts/run_benchmarks.sh build     # Build Docker images
 ./scripts/run_benchmarks.sh run       # Run benchmarks
 ./scripts/run_benchmarks.sh report    # Generate report
+
+# Optional: large real-world suite (PATO/DOID/UBERON/GO/ChEBI)
+ONTOLOGY_SUITE=large SKIP_BUILD=1 TIMEOUT_SECONDS=900 ./scripts/run_benchmarks.sh all
+
+# Optional: override reasoners or timeout
+REASONERS_OVERRIDE=tableauxx,hermit,konclude,openllet,elk,jfact,pellet TIMEOUT_SECONDS=600 ./scripts/run_benchmarks.sh all
+INCLUDE_FACTPP=1 ./scripts/run_benchmarks.sh all
+
+# Stage split for fair analysis (Tableauxx parse-only vs reason-only)
+./scripts/run_stage_benchmark.sh go-basic.owl
+REPEAT_WARM=5 TIMEOUT_SECONDS=1800 ./scripts/run_stage_benchmark.sh chebi.owl
+
+# Batch stage split across large suite
+./scripts/run_stage_suite.sh
+REPEAT_WARM=5 CHEBI_TIMEOUT_SECONDS=2400 ./scripts/run_stage_suite.sh doid.owl go-basic.owl uberon.owl
 ```
 
 ## Individual Reasoner Testing
@@ -47,52 +65,101 @@ benchmarks/competitors/
 ├── docker/                  # Dockerfiles for each reasoner
 │   ├── Dockerfile.hermit
 │   ├── Dockerfile.konclude
+│   ├── Dockerfile.openllet
+│   ├── Dockerfile.elk
+│   ├── Dockerfile.jfact
 │   ├── Dockerfile.pellet
 │   ├── Dockerfile.factpp
 │   └── Dockerfile.tableauxx
 ├── scripts/
-│   └── run_benchmarks.sh   # Main benchmark orchestration
-├── ontologies/             # Shared volume for test ontologies
-├── results/                # Benchmark output
+│   ├── run_benchmarks.sh   # Main benchmark orchestration
+│   ├── run_stage_benchmark.sh
+│   └── run_stage_suite.sh
+├── ontologies/             # Baseline/synthetic ontologies
+├── results/                # Benchmark output (run-scoped under results/history/<run_id>)
 └── docker-compose.yml      # Compose setup (optional)
 ```
 
 ## Test Ontologies
 
-The benchmark uses ontologies from `tests/data/`:
+Suites:
 
-- `univ-bench.owl` - Small university benchmark
-- `disjunctive_test.owl` - Tests disjunctive reasoning
-- `hierarchy_*.owl` - Scalable hierarchy tests (100-100K classes)
+- `ONTOLOGY_SUITE=standard` (default): `benchmarks/competitors/ontologies/*.owl` + `tests/data/*.owl`
+- `ONTOLOGY_SUITE=large`: `benchmarks/ontologies/other/*.owl` (set `INCLUDE_CHEBI=0` to skip ChEBI)
+- `ONTOLOGY_SUITE=all`: union of standard + large
+
+Examples in the large suite:
+
+- `pato.owl`
+- `doid.owl`
+- `uberon.owl`
+- `go-basic.owl`
+- `chebi.owl` (very large)
 
 ## Metrics
 
-Each reasoner is tested on:
+Each reasoner is tested on one operation per run:
 
-1. **Consistency Checking** - Determine if ontology is consistent
-2. **Classification** - Compute class hierarchy (when supported)
+1. **Consistency Checking** - Determine if ontology is consistent (`OPERATION=consistency`)
 
 Measured:
-- Wall-clock time (ms)
+- Wall-clock time around container run (ms) - **primary comparison metric**
 - Success/failure status
 - Error messages (if any)
+- Engine-reported duration when available (diagnostic only)
+
+For `Tableauxx`, stage timing (`parse_time_ms`, `reason_time_ms`) is also emitted.
+Use stage scripts to avoid mixing parse and reason effects when comparing optimization work.
+
+## Latest Parser Snapshot (2026-02-19)
+
+Structural parser mode (`OWL2_REASONER_STRUCTURAL_XML_PARSER=1`) with stage harness showed:
+
+- `doid.owl` parse-only: `27307 ms -> 11284 ms` (`-58.68%`)
+ - `doid.owl` parse-only: `27307 ms -> 830 ms` (`-96.96%`)
+  - `benchmarks/competitors/results/history/stages_doid_20260218_183604/stage_summary.csv`
+  - `benchmarks/competitors/results/history/stages_doid_20260219_130432/stage_summary.csv`
+- `go-basic.owl` parse-only: `158306 ms -> 3472 ms` (`-97.81%`)
+  - `benchmarks/competitors/results/history/stages_go_basic_20260218_185126/stage_summary.csv`
+  - `benchmarks/competitors/results/history/stages_go_basic_20260219_130710/stage_summary.csv`
+- `uberon.owl` parse-only: `145843 ms -> 2952 ms` (`-97.98%`)
+  - `benchmarks/competitors/results/history/stages_uberon_20260218_185933/stage_summary.csv`
+  - `benchmarks/competitors/results/history/stages_uberon_20260219_130942/stage_summary.csv`
+
+Mean parse-only improvement across these large ontologies: `-97.58%`.
+
+## Status Semantics
+
+Each result JSON is classified as one of:
+
+- `success`: Reasoner executed and returned a completed status
+- `failed`: Runtime or command failure
+- `timeout`: Exceeded `TIMEOUT_SECONDS`
+- `not_available`: Reasoner intentionally not benchmarkable in the current setup
+
+This prevents false-positive "success" rows when a reasoner fails to start.
 
 ## Notes
 
-- **FaCT++**: Limited standalone CLI; primarily designed for OWL API integration
-- **Timeouts**: Each test has a 5-minute timeout
-- **Hardware**: Results depend on Docker resource limits
+- **Pellet vs Openllet**: Openllet is benchmarked directly. Pellet is reported as `not_available` unless a reproducible Pellet 2.x packaging path is added.
+- **Konclude input format**: The current corpus is RDF/XML `.owl`; this Konclude CLI path reports parser errors (`OWL2/XML` expectation) and is therefore marked `failed` in result JSONs.
+- **`univ-bench.owl` in this repo**: The bundled file is truncated (49 lines) and behaves as a parser-failure robustness test for many OWLAPI-based reasoners, not a full-fidelity performance target.
+- **FaCT++**: Standalone CLI availability is environment-dependent; use `INCLUDE_FACTPP=1` to attempt it.
+- **Timeouts**: Default timeout is 5 minutes per reasoner/ontology run.
+- **Hardware**: Results depend on host CPU/RAM and Docker limits.
 
-## Expected Results
+## Output Artifacts
 
-Based on literature:
+For each run:
 
-| Ontology Type | Expected Leader |
-|--------------|-----------------|
-| EL profile (SNOMED CT-like) | ELK > Konclude > HermiT |
-| Disjunctive (unions) | Konclude ≈ HermiT > Pellet |
-| Very large hierarchies | Konclude > FaCT++ > HermiT |
-| **With disjunctions + SPACL** | **Tableauxx (with parallelism)** |
+- `benchmarks/competitors/results/history/<run_id>/run_metadata.json`
+- `benchmarks/competitors/results/history/<run_id>/*.json` (one per reasoner+ontology)
+- `benchmarks/competitors/results/history/<run_id>/benchmark_report.md`
+- `benchmarks/competitors/results/history/<run_id>/results.csv`
+- `benchmarks/competitors/results/history/<run_id>/paper_table.md`
+- `benchmarks/competitors/results/history/<run_id>/paper_table.tex`
+
+`benchmarks/competitors/results/latest` points to the most recent completed run.
 
 ## References
 

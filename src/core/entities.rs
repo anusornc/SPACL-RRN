@@ -6,6 +6,7 @@
 use crate::core::error::OwlResult;
 use crate::core::iri::IRI;
 use crate::util::cache_manager;
+use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -81,7 +82,7 @@ pub fn force_global_entity_cache_eviction(count: usize) -> OwlResult<usize> {
 }
 
 /// A named class in OWL2
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Class {
     /// The IRI of the class
     iri: Arc<IRI>,
@@ -175,7 +176,7 @@ impl Class {
 }
 
 /// An object property in OWL2
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ObjectProperty {
     /// The IRI of the property
     iri: Arc<IRI>,
@@ -296,7 +297,7 @@ impl ObjectProperty {
 }
 
 /// Characteristics of object properties
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ObjectPropertyCharacteristic {
     /// Functional property (each subject has at most one object)
     Functional,
@@ -315,7 +316,7 @@ pub enum ObjectPropertyCharacteristic {
 }
 
 /// A data property in OWL2
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DataProperty {
     /// The IRI of the property
     iri: Arc<IRI>,
@@ -431,7 +432,7 @@ impl std::hash::Hash for DataProperty {
 }
 
 /// A annotation property in OWL2
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct AnnotationProperty {
     /// The IRI of the property
     iri: Arc<IRI>,
@@ -475,14 +476,14 @@ impl Entity for AnnotationProperty {
 }
 
 /// Characteristics of data properties
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DataPropertyCharacteristic {
     /// Functional property (each subject has at most one value)
     Functional,
 }
 
 /// A named individual in OWL2
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct NamedIndividual {
     /// The IRI of the individual
     iri: Arc<IRI>,
@@ -547,7 +548,7 @@ impl NamedIndividual {
 }
 
 /// An annotation in OWL2
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Annotation {
     /// The annotation property
     property: Arc<IRI>,
@@ -577,7 +578,7 @@ impl Annotation {
 }
 
 /// Annotation values in OWL2
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AnnotationValue {
     /// IRI reference
     IRI(Arc<IRI>),
@@ -618,7 +619,7 @@ impl From<&str> for AnnotationValue {
 }
 
 /// A literal value in OWL2
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Literal {
     /// The lexical value
     lexical_form: String,
@@ -692,7 +693,7 @@ impl Literal {
 }
 
 /// Anonymous individual (blank node)
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct AnonymousIndividual {
     /// The node ID
     node_id: String,
@@ -726,7 +727,7 @@ impl AnonymousIndividual {
 }
 
 /// Any individual (named or anonymous)
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Individual {
     /// Named individual
     Named(NamedIndividual),

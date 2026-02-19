@@ -236,10 +236,7 @@ pub struct OptimizationHint {
 }
 
 impl OptimizationHint {
-    pub fn new(
-        optimization_type: OptimizationType,
-        description: impl Into<String>,
-    ) -> Self {
+    pub fn new(optimization_type: OptimizationType, description: impl Into<String>) -> Self {
         Self {
             optimization_type,
             description: description.into(),

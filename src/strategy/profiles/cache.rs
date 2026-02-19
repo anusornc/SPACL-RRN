@@ -160,7 +160,7 @@ impl ProfileValidationCache {
     /// Get a cached validation result
     pub fn get(&self, key: &str) -> Option<ProfileValidationResult> {
         let start = Instant::now();
-        
+
         let result = {
             let mut cache = match self.cache.write() {
                 Ok(c) => c,
@@ -171,7 +171,7 @@ impl ProfileValidationCache {
                     return None;
                 }
             };
-            
+
             let entry = match cache.get_mut(key) {
                 Some(e) => e,
                 None => {
@@ -182,7 +182,7 @@ impl ProfileValidationCache {
                     return None;
                 }
             };
-            
+
             if entry.is_expired() {
                 cache.remove(key);
                 drop(cache);
@@ -191,13 +191,13 @@ impl ProfileValidationCache {
                 }
                 return None;
             }
-            
+
             entry.record_access();
             Some(entry.result.clone())
         };
 
         let elapsed = start.elapsed().as_micros() as f64;
-        
+
         if let Ok(mut stats) = self.stats.write() {
             if result.is_some() {
                 stats.record_hit();
@@ -206,7 +206,7 @@ impl ProfileValidationCache {
             }
             // Update average retrieval time
             let total = stats.hits + stats.misses;
-            stats.avg_retrieval_time_us = 
+            stats.avg_retrieval_time_us =
                 (stats.avg_retrieval_time_us * (total - 1) as f64 + elapsed) / total as f64;
         }
 
@@ -214,12 +214,7 @@ impl ProfileValidationCache {
     }
 
     /// Insert a validation result into the cache
-    pub fn insert(
-        &self,
-        key: String,
-        result: ProfileValidationResult,
-        priority: CachePriority,
-    ) {
+    pub fn insert(&self, key: String, result: ProfileValidationResult, priority: CachePriority) {
         // Check if we need to evict entries
         self.maybe_evict();
 
@@ -324,9 +319,7 @@ impl ProfileValidationCache {
                 .collect();
 
             // Sort by priority (ascending) then by access count (ascending)
-            entries.sort_by(|a, b| {
-                a.1.cmp(&b.1).then_with(|| a.2.cmp(&b.2))
-            });
+            entries.sort_by(|a, b| a.1.cmp(&b.1).then_with(|| a.2.cmp(&b.2)));
 
             // Remove lowest priority, least accessed entries
             let to_remove = cache.len() - self.config.max_entries / 2;
@@ -359,19 +352,19 @@ mod tests {
     #[test]
     fn test_cache_basic_operations() {
         let cache = ProfileValidationCache::new();
-        
+
         assert!(cache.is_empty());
-        
+
         let result = ProfileValidationResult::valid(Owl2Profile::EL);
         cache.insert_default("test_key".to_string(), result.clone());
-        
+
         assert!(!cache.is_empty());
         assert!(cache.contains("test_key"));
-        
+
         let retrieved = cache.get("test_key");
         assert!(retrieved.is_some());
         assert_eq!(retrieved.unwrap().profile, Owl2Profile::EL);
-        
+
         cache.remove("test_key");
         assert!(!cache.contains("test_key"));
     }
@@ -379,16 +372,16 @@ mod tests {
     #[test]
     fn test_cache_statistics() {
         let cache = ProfileValidationCache::new();
-        
+
         let stats = cache.get_statistics();
         assert_eq!(stats.hits, 0);
         assert_eq!(stats.misses, 0);
-        
+
         // Miss
         let _ = cache.get("nonexistent");
         let stats = cache.get_statistics();
         assert_eq!(stats.misses, 1);
-        
+
         // Hit
         let result = ProfileValidationResult::valid(Owl2Profile::EL);
         cache.insert_default("test".to_string(), result);

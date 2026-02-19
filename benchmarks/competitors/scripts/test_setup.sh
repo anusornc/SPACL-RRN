@@ -55,7 +55,7 @@ done
 # Check Dockerfiles
 echo
 echo "Checking Dockerfiles..."
-for dockerfile in docker/Dockerfile.{hermit,konclude,pellet,factpp,tableauxx}; do
+for dockerfile in docker/Dockerfile.{hermit,konclude,openllet,elk,jfact,pellet,factpp,tableauxx}; do
     if [ -f "$BENCHMARK_DIR/$dockerfile" ]; then
         echo "✓ $dockerfile exists"
     else

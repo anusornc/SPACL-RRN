@@ -1,0 +1,5 @@
+ontology,baseline_wall_ms,experimental_wall_ms,speedup_base_over_exp,status_base,status_exp,reasoning_base,reasoning_exp
+doid.owl,56560,49171,1.150,success,success,consistent,consistent
+go-basic.owl,272080,269065,1.011,success,success,consistent,consistent
+pato.owl,41770,44634,0.936,success,success,consistent,consistent
+uberon.owl,260139,254569,1.022,success,success,consistent,consistent

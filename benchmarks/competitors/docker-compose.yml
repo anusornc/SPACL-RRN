@@ -27,6 +27,33 @@ services:
       - ./ontologies:/ontologies:ro
       - ./results:/results
     command: ["/ontologies/test.owl", "consistency"]
+
+  openllet:
+    build:
+      context: ../..
+      dockerfile: benchmarks/competitors/docker/Dockerfile.openllet
+    volumes:
+      - ./ontologies:/ontologies:ro
+      - ./results:/results
+    command: ["/ontologies/test.owl", "consistency"]
+
+  elk:
+    build:
+      context: ../..
+      dockerfile: benchmarks/competitors/docker/Dockerfile.elk
+    volumes:
+      - ./ontologies:/ontologies:ro
+      - ./results:/results
+    command: ["/ontologies/test.owl", "consistency"]
+
+  jfact:
+    build:
+      context: ../..
+      dockerfile: benchmarks/competitors/docker/Dockerfile.jfact
+    volumes:
+      - ./ontologies:/ontologies:ro
+      - ./results:/results
+    command: ["/ontologies/test.owl", "consistency"]
     
   factpp:
     build:

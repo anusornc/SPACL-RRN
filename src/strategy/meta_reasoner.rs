@@ -4,7 +4,9 @@
 //! dynamically selects the most appropriate reasoning approach based on
 //! ontology characteristics and reasoning tasks.
 
-use crate::reasoner::{OntologyFeatures, ReasoningTask, ExpressivenessLevel as ExpressionLevel, ComplexityLevel};
+use crate::reasoner::{
+    ComplexityLevel, ExpressivenessLevel as ExpressionLevel, OntologyFeatures, ReasoningTask,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -132,9 +134,10 @@ impl MetaReasoner {
         _task: ReasoningTask,
     ) -> Option<ReasoningStrategy> {
         let ontology_hash = self.compute_ontology_hash(features);
-        
+
         // Find similar ontologies in history
-        let similar_records: Vec<_> = self.performance_history
+        let similar_records: Vec<_> = self
+            .performance_history
             .values()
             .filter(|record| record.success && record.ontology_hash == ontology_hash)
             .collect();
@@ -145,9 +148,11 @@ impl MetaReasoner {
 
         // Find the strategy with best average performance
         let mut strategy_performance: HashMap<ReasoningStrategy, (u64, usize)> = HashMap::new();
-        
+
         for record in similar_records {
-            let entry = strategy_performance.entry(record.strategy).or_insert((0, 0));
+            let entry = strategy_performance
+                .entry(record.strategy)
+                .or_insert((0, 0));
             entry.0 += record.execution_time_ms;
             entry.1 += 1;
         }
@@ -208,24 +213,24 @@ impl DecisionTree {
                 strategy: ReasoningStrategy::Saturation,
                 confidence: 0.9,
             },
-            
             // Small ontologies with low complexity -> Transformation
             DecisionRule {
                 condition: RuleCondition::And(vec![
-                    RuleCondition::NumClasses { min: 0, max: Some(1000) },
+                    RuleCondition::NumClasses {
+                        min: 0,
+                        max: Some(1000),
+                    },
                     RuleCondition::ComplexityLevel(ComplexityLevel::Low),
                 ]),
                 strategy: ReasoningStrategy::Transformation,
                 confidence: 0.8,
             },
-            
             // Medium complexity -> Hybrid approach
             DecisionRule {
                 condition: RuleCondition::ComplexityLevel(ComplexityLevel::Medium),
                 strategy: ReasoningStrategy::Hybrid,
                 confidence: 0.7,
             },
-            
             // High complexity or has nominals -> Tableaux
             DecisionRule {
                 condition: RuleCondition::Or(vec![
@@ -236,7 +241,6 @@ impl DecisionTree {
                 strategy: ReasoningStrategy::Tableaux,
                 confidence: 0.85,
             },
-            
             // Default fallback -> Hybrid
             DecisionRule {
                 condition: RuleCondition::NumClasses { min: 0, max: None },
@@ -249,13 +253,19 @@ impl DecisionTree {
     }
 
     /// Select strategy based on rules
-    pub fn select_strategy(&self, features: &OntologyFeatures, _task: ReasoningTask) -> ReasoningStrategy {
+    pub fn select_strategy(
+        &self,
+        features: &OntologyFeatures,
+        _task: ReasoningTask,
+    ) -> ReasoningStrategy {
         // Find the first rule that matches with highest confidence
         let mut best_match = None;
         let mut best_confidence = 0.0;
 
         for rule in &self.rules {
-            if self.evaluate_condition(&rule.condition, features) && rule.confidence > best_confidence {
+            if self.evaluate_condition(&rule.condition, features)
+                && rule.confidence > best_confidence
+            {
                 best_match = Some(rule.strategy);
                 best_confidence = rule.confidence;
             }
@@ -268,22 +278,24 @@ impl DecisionTree {
     fn evaluate_condition(&self, condition: &RuleCondition, features: &OntologyFeatures) -> bool {
         match condition {
             RuleCondition::ExpressionLevel(level) => {
-                std::mem::discriminant(&features.expressiveness_level) == std::mem::discriminant(level)
-            },
+                std::mem::discriminant(&features.expressiveness_level)
+                    == std::mem::discriminant(level)
+            }
             RuleCondition::ComplexityLevel(level) => {
-                std::mem::discriminant(&features.estimated_complexity) == std::mem::discriminant(level)
-            },
+                std::mem::discriminant(&features.estimated_complexity)
+                    == std::mem::discriminant(level)
+            }
             RuleCondition::NumClasses { min, max } => {
-                features.num_classes >= *min && 
-                max.map_or(true, |max_val| features.num_classes <= max_val)
-            },
+                features.num_classes >= *min
+                    && max.map_or(true, |max_val| features.num_classes <= max_val)
+            }
             RuleCondition::HasNominals(expected) => features.has_nominals == *expected,
-            RuleCondition::And(conditions) => {
-                conditions.iter().all(|cond| self.evaluate_condition(cond, features))
-            },
-            RuleCondition::Or(conditions) => {
-                conditions.iter().any(|cond| self.evaluate_condition(cond, features))
-            },
+            RuleCondition::And(conditions) => conditions
+                .iter()
+                .all(|cond| self.evaluate_condition(cond, features)),
+            RuleCondition::Or(conditions) => conditions
+                .iter()
+                .any(|cond| self.evaluate_condition(cond, features)),
         }
     }
 }
@@ -301,7 +313,7 @@ mod tests {
     #[test]
     fn test_strategy_selection() {
         let meta_reasoner = MetaReasoner::new().unwrap();
-        
+
         let features = OntologyFeatures {
             num_classes: 100,
             num_properties: 50,
@@ -312,7 +324,8 @@ mod tests {
             estimated_complexity: ComplexityLevel::Low,
         };
 
-        let strategy = meta_reasoner.select_reasoning_strategy(&features, ReasoningTask::ConsistencyCheck);
+        let strategy =
+            meta_reasoner.select_reasoning_strategy(&features, ReasoningTask::ConsistencyCheck);
         assert!(strategy.is_ok());
         assert_eq!(strategy.unwrap(), ReasoningStrategy::Saturation);
     }
@@ -320,7 +333,7 @@ mod tests {
     #[test]
     fn test_decision_tree() {
         let tree = DecisionTree::new();
-        
+
         let features = OntologyFeatures {
             num_classes: 500,
             num_properties: 100,

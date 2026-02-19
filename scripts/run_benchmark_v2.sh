@@ -15,9 +15,9 @@ TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 DATE=$(date +"%Y-%m-%d %H:%M:%S")
 HOSTNAME=$(hostname)
 
-# Expected hardware (from paper claims)
-EXPECTED_CPU="AMD Ryzen 9 5900X"
-EXPECTED_ARCH="AMD"
+# Expected hardware (from paper claims - CORRECTED)
+EXPECTED_CPU="Intel Xeon Silver 4214"
+EXPECTED_ARCH="Intel"
 
 echo "========================================"
 echo "  Benchmark Runner V2"

@@ -55,6 +55,10 @@ cargo run --bin owl2-reasoner -- stats tests/data/univ-bench.owl
 
 # Compare Sequential vs SPACL performance
 cargo run --bin owl2-reasoner -- compare tests/data/univ-bench.owl
+
+# Production-style load path for large ontologies
+OWL2_REASONER_LARGE_PARSE=1 OWL2_REASONER_AUTO_CACHE=1 \
+cargo run --bin owl2-reasoner -- check benchmarks/ontologies/other/go-basic.owl
 ```
 
 ### 2. EPCIS Supply Chain Reasoner
@@ -70,6 +74,12 @@ cargo run --bin epcis-reasoner -- check-consistency
 
 # Show EPCIS statistics
 cargo run --bin epcis-reasoner -- stats
+
+# Check consistency from ontology file using shared loader/cache features
+OWL2_REASONER_LARGE_PARSE=1 cargo run --bin epcis-reasoner -- check-file tests/data/univ-bench.owl
+
+# Convert ontology to .owlbin for fast reload
+cargo run --bin epcis-reasoner -- convert-file input.owl output.owlbin
 ```
 
 The EPCIS demo tracks a pharmaceutical product through the supply chain:
@@ -78,6 +88,21 @@ The EPCIS demo tracks a pharmaceutical product through the supply chain:
 - **Receiving** at Hospital C
 
 Verifies logical consistency of the trace using OWL2 reasoning.
+
+### 3. OWL2 Validation CLI
+
+Minimal validation/consistency utility for application integration:
+
+```bash
+# Validate and check consistency
+cargo run --bin owl2_validation -- check tests/data/univ-bench.owl
+
+# Print ontology statistics
+cargo run --bin owl2_validation -- stats tests/data/univ-bench.owl
+
+# Convert to binary cache
+cargo run --bin owl2_validation -- convert input.owl output.owlbin
+```
 
 ## 📁 Project Structure
 
@@ -105,6 +130,23 @@ This project has been organized into a clean, modular structure:
 - **Profile Optimization**: Automatic EL/QL/RL optimizations
 - **Meta-reasoning**: ML-based strategy selection
 - **Evolutionary Optimization**: Self-tuning parameters
+
+**Supported Formats**
+- `RDF/XML` (`.rdf`, `.rdfs`, many `.owl`)
+- `OWL/XML` (`.owx`, `.xml`)
+- `OWL Functional Syntax` (`.ofn`, some `.owl`)
+- `Turtle / TTL` (`.ttl`, `.turtle`)
+- `N-Triples` (`.nt`)
+- `JSON-LD` (`.jsonld`, `.json`)
+- `Manchester Syntax` (`.man`, `.mn`)
+
+**Large Ontology Handling**
+- Streaming RDF/XML parsing via `rio-xml` for large files
+- Streaming Turtle / N-Triples parsing via `rio_turtle` when large parse is enabled
+- OWL/XML large-file path delegates RDF/XML documents to the streaming RDF/XML parser
+- OWL Functional / Manchester use memory-optimized file parsing with preallocated buffers and no extra content cloning
+- Optional binary cache format (`.owlbin`) for fast reloads
+- Env controls (set as needed): `OWL2_REASONER_LARGE_PARSE=1`, `OWL2_REASONER_MAX_FILE_SIZE=<bytes>`, `OWL2_REASONER_FORCE_TEXT=1`, `OWL2_REASONER_BIN_ONLY=1`, `OWL2_REASONER_AUTO_CACHE=1`
 
 ## 🧪 Testing
 

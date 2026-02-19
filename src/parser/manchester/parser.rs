@@ -14,11 +14,15 @@ use crate::core::ontology::Ontology;
 use crate::parser::{OntologyParser, ParserConfig};
 use smallvec;
 use smallvec::SmallVec;
+use std::fs;
+use std::io::{BufReader, Read};
 use std::path::Path;
 use std::sync::Arc;
 
 /// Manchester Syntax Parser
 pub struct ManchesterParser {
+    /// Parser configuration
+    config: ParserConfig,
     /// The tokenizer for lexical analysis
     tokenizer: ManchesterTokenizer,
 
@@ -50,11 +54,16 @@ impl ManchesterParser {
 
     /// Create a new parser for the given input
     pub fn with_input(input: String) -> Self {
+        Self::with_input_and_config(input, ParserConfig::default())
+    }
+
+    fn with_input_and_config(input: String, config: ParserConfig) -> Self {
         let context = ErrorContext::new(input.clone());
         let error_reporter = ErrorReporter::new(context);
         let tokenizer = ManchesterTokenizer::new(input);
 
         ManchesterParser {
+            config,
             tokenizer,
             error_reporter,
             current_token: None,
@@ -63,8 +72,37 @@ impl ManchesterParser {
     }
 
     /// Create a new parser with custom configuration
-    pub fn with_config(_config: ParserConfig) -> Self {
-        Self::with_input(String::new())
+    pub fn with_config(config: ParserConfig) -> Self {
+        Self::with_input_and_config(String::new(), config)
+    }
+
+    fn ast_to_ontology(ast: Vec<ManchesterAST>) -> Ontology {
+        let mut ontology = Ontology::new();
+
+        // Placeholder conversion. Keeps compatibility with current behavior.
+        for node in ast {
+            match node {
+                ManchesterAST::ClassDeclaration { name, .. } => {
+                    if let Ok(iri) = crate::core::iri::IRI::new(format!("http://example.org/{}", name)) {
+                        let class = crate::core::entities::Class::new(Arc::new(iri));
+                        if ontology.add_class(class).is_err() {
+                            // Ignore duplicates in placeholder path.
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        ontology
+    }
+
+    fn parse_owned_input(input: String, config: ParserConfig) -> OwlResult<Ontology> {
+        let mut parser = ManchesterParser::with_input_and_config(input, config);
+        let ast = parser
+            .parse()
+            .map_err(|e| crate::core::error::OwlError::ParseError(e.to_string()))?;
+        Ok(Self::ast_to_ontology(ast))
     }
 
     /// Parse the entire input into an AST
@@ -784,49 +822,27 @@ impl ManchesterParser {
 
 impl OntologyParser for ManchesterParser {
     fn parse_str(&self, content: &str) -> OwlResult<Ontology> {
-        // Create a new parser with the input content
-        let mut parser = ManchesterParser::with_input(content.to_string());
-
-        // Parse the AST
-        let ast = parser
-            .parse()
-            .map_err(|e| crate::core::error::OwlError::ParseError(e.to_string()))?;
-
-        // Convert AST to ontology (placeholder implementation)
-        let mut ontology = Ontology::new();
-
-        // For now, create a basic ontology structure
-        // This would need to be implemented to properly convert Manchester AST to OWL ontology
-        for node in ast {
-            match node {
-                ManchesterAST::ClassDeclaration { name, .. } => {
-                    // This is a simplified conversion - real implementation would be more comprehensive
-                    if let Ok(iri) = crate::core::iri::IRI::new(format!("http://example.org/{}", name)) {
-                        let class = crate::core::entities::Class::new(Arc::new(iri));
-                        if ontology.add_class(class).is_err() {
-                            // Handle duplicate class names
-                        }
-                    }
-                }
-                // Other AST variants would be handled here
-                _ => {
-                    // Other node types would be processed here
-                }
-            }
-        }
-
-        Ok(ontology)
+        Self::parse_owned_input(content.to_string(), self.config.clone())
     }
 
     fn parse_file(&self, path: &Path) -> OwlResult<Ontology> {
-        use std::fs;
-        use std::io::Read;
+        if self.config.max_file_size > 0 {
+            let metadata = fs::metadata(path)?;
+            if metadata.len() > self.config.max_file_size as u64 {
+                return Err(crate::core::error::OwlError::ParseError(format!(
+                    "File size exceeds maximum allowed size: {} bytes",
+                    self.config.max_file_size
+                )));
+            }
+        }
 
-        let mut file = fs::File::open(path)?;
-        let mut content = String::new();
-        file.read_to_string(&mut content)?;
+        let file = fs::File::open(path)?;
+        let mut reader = BufReader::new(file);
+        let capacity = fs::metadata(path).map(|m| m.len() as usize).unwrap_or(0);
+        let mut content = String::with_capacity(capacity.saturating_add(1));
+        reader.read_to_string(&mut content)?;
 
-        self.parse_str(&content)
+        Self::parse_owned_input(content, self.config.clone())
     }
 
     fn format_name(&self) -> &'static str {

@@ -1,0 +1,18 @@
+Hierarchy Benchmark Verification
+=================================
+
+Testing: hierarchy_100.owl (8.0K)
+  HermiT: 3845ms (reasoning: 1151ms)
+  SPACL:  10ms
+  Speedup: 384.50x
+
+Testing: hierarchy_1000.owl (52K)
+  HermiT: 3614ms (reasoning: 1328ms)
+  SPACL:  43ms
+  Speedup: 84.04x
+
+Testing: hierarchy_10000.owl (516K)
+  HermiT: 4170ms (reasoning: 2005ms)
+  SPACL:  5968ms
+  Speedup: .69x
+

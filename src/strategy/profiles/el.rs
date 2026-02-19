@@ -17,7 +17,9 @@ pub struct ELProfileValidator {
 impl ELProfileValidator {
     /// Create a new EL profile validator
     pub fn new(ontology: Arc<Ontology>) -> Self {
-        Self { _ontology: ontology }
+        Self {
+            _ontology: ontology,
+        }
     }
 
     /// Check if a construct is allowed in EL
@@ -25,16 +27,16 @@ impl ELProfileValidator {
     fn is_allowed_in_el(&self, construct: &str) -> bool {
         matches!(
             construct,
-            "Class" |
-            "ObjectIntersectionOf" |
-            "ObjectSomeValuesFrom" |
-            "ObjectProperty" |
-            "SubClassOf" |
-            "EquivalentClasses" |
-            "ObjectPropertyDomain" |
-            "ObjectPropertyRange" |
-            "ClassAssertion" |
-            "ObjectPropertyAssertion"
+            "Class"
+                | "ObjectIntersectionOf"
+                | "ObjectSomeValuesFrom"
+                | "ObjectProperty"
+                | "SubClassOf"
+                | "EquivalentClasses"
+                | "ObjectPropertyDomain"
+                | "ObjectPropertyRange"
+                | "ClassAssertion"
+                | "ObjectPropertyAssertion"
         )
     }
 }

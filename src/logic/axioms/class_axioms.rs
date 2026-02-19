@@ -5,10 +5,11 @@
 
 use crate::logic::axioms::class_expressions;
 use crate::core::iri::IRI;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 /// Subclass axiom: C ⊑ D
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SubClassOfAxiom {
     sub_class: class_expressions::ClassExpression,
     super_class: class_expressions::ClassExpression,
@@ -43,7 +44,7 @@ impl SubClassOfAxiom {
 }
 
 /// Equivalent classes axiom: C ≡ D
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EquivalentClassesAxiom {
     classes: Vec<Arc<IRI>>,
 }
@@ -66,7 +67,7 @@ impl EquivalentClassesAxiom {
 }
 
 /// Disjoint classes axiom: C ⊓ D ⊑ ⊥
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DisjointClassesAxiom {
     classes: Vec<Arc<IRI>>,
 }
@@ -89,7 +90,7 @@ impl DisjointClassesAxiom {
 }
 
 /// Class assertion axiom: a ∈ C
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClassAssertionAxiom {
     individual: Arc<IRI>,
     class_expr: class_expressions::ClassExpression,
