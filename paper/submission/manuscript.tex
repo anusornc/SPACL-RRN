@@ -1254,27 +1254,7 @@ We presented SPACL, an open-source ALC/SHOIQ reasoner combining speculative para
 \subsection{Availability}
 \label{sec:availability}
 
-SPACL is available at \url{https://github.com/anusornc/tableauxx} under the MIT license. All benchmarks and test data are included for reproducibility.
-
-\subsection{Submission Reproducibility Checklist}
-\label{sec:repro-checklist}
-
-\begin{enumerate}
-    \item \textbf{Source and build}: Use the repository state corresponding to this manuscript revision and build with Rust release profile (\texttt{-C opt-level=3 -C lto=fat}).
-    \item \textbf{Hardware disclosure}: Record CPU model, core/thread count, RAM size, OS version, and container runtime version.
-    \item \textbf{Primary head-to-head run}: Reproduce the large-suite benchmark using run ID \texttt{head2head\_round4\_large\_full\_20260219\_rerun}; compare against \texttt{benchmarks/competitors/results/history/head2head\_round4\_large\_full\_20260219\_rerun/results.csv}.
-    \item \textbf{Stage-level parser A/B}: Reproduce stage pairs for DOID/GO\_Basic/UBERON:
-    \begin{itemize}
-        \item old: \texttt{stages\_doid\_20260218\_183604}, \texttt{stages\_go\_basic\_20260218\_185126}, \texttt{stages\_uberon\_20260218\_185933}
-        \item new: \texttt{stages\_doid\_20260219\_130432}, \texttt{stages\_go\_basic\_20260219\_130710}, \texttt{stages\_uberon\_20260219\_130942}
-    \end{itemize}
-    \item \textbf{Parser configuration}: For structural parser results, set \texttt{OWL2\_REASONER\_STRUCTURAL\_XML\_PARSER=1}. For full text-path forcing, set \texttt{OWL2\_REASONER\_FORCE\_TEXT=1}, \texttt{OWL2\_REASONER\_BIN\_ONLY=0}, and \texttt{OWL2\_REASONER\_AUTO\_CACHE=0}.
-    \item \textbf{Timeout policy}: Use \texttt{TIMEOUT\_SECONDS=900} for large-suite comparisons; report \texttt{success}, \texttt{timeout}, \texttt{failed}, and \texttt{not\_available} exactly as emitted by the harness.
-    \item \textbf{Metric policy}: Treat container wall time as primary cross-engine metric; keep internal reported time as secondary diagnostics only.
-    \item \textbf{Artifacts to archive}: Preserve \texttt{results.csv}, per-reasoner JSON outputs, \texttt{paper\_table.tex}, and \texttt{benchmark\_report.md} for each run.
-    \item \textbf{Paper build}: Compile this manuscript with \texttt{paper/submission/compile.sh} and verify successful generation of \texttt{manuscript.pdf}.
-    \item \textbf{Claim scope}: Restrict comparative claims to this disclosed run set and configuration; do not generalize to unmatched profiles or undisclosed environments.
-\end{enumerate}
+SPACL is available at \url{https://github.com/anusornc/tableauxx} under the MIT license. Reproducibility artifacts for this paper revision are included in the repository, including the primary head-to-head run (\texttt{benchmarks/competitors/results/history/head2head\_round4\_large\_full\_20260219\_rerun}) and stage-level parser A/B outputs referenced in Section~\ref{sec:realworld}. A detailed reproduction checklist is provided as supplementary project documentation (\texttt{paper/submission/LITERATURE\_REVIEW\_TODO\_CHECKLIST.md} and benchmark scripts under \texttt{benchmarks/competitors/scripts/}).
 
 %% ============================================
 %% ACKNOWLEDGMENTS
