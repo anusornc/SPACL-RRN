@@ -147,6 +147,7 @@ ALC/SHOIQ \sep Tableaux Reasoning \sep Parallel Algorithms \sep Nogood Learning 
 Description Logics (DLs) provide the formal basis of the Semantic Web, and OWL2 DL is the corresponding W3C standard ontology language \cite{owl2}. Tableaux methods are still widely used for OWL2 DL reasoning because they provide sound and complete procedures for expressive TBox and ABox tasks \cite{dlhandbook}. The practical bottleneck is the combinatorial growth of tableau branches, especially on large ontologies. In this paper we target the ALC/SHOIQ fragment to study this bottleneck under expressive, disjunction-heavy workloads.
 
 Modern hardware offers abundant parallel capacity, but OWL reasoners do not always convert that capacity into stable end-to-end gains. Some strong parallel systems are not openly developed (e.g., Konclude) \cite{konclude}, which limits reproducibility and extensibility. Many widely used open implementations (e.g., Pellet/Openllet and HermiT) remain primarily sequential in their core exploration loop \cite{pellet,openllet,hermit}. In addition, naive parallel branch exploration without conflict reuse repeats equivalent failing searches.
+These constraints also motivate our longer-term goal: a reasoning core for ontology transaction validation in distributed, permissioned application settings. This paper focuses on the reasoning and parsing foundations required for that deployment path.
 
 \subsection{Research Questions}
 \label{sec:questions}
@@ -154,27 +155,24 @@ Modern hardware offers abundant parallel capacity, but OWL reasoners do not alwa
 This work addresses the following research questions:
 
 \begin{enumerate}[RQ1:]
-    \item Can speculative parallelism improve DL reasoning performance without excessive overhead?
-    \item How can nogood learning from failed branches reduce search space?
-    \item What is the optimal threshold for switching between sequential and parallel processing?
-    \item Can these techniques be combined in a production-quality implementation?
+    \item Can speculative parallel tableaux with conflict-driven nogood learning improve OWL2 DL consistency checking performance?
+    \item Can adaptive parallelism reduce overhead on small workloads while preserving scalability on larger workloads?
+    \item For large RDF/XML ontologies, which stages dominate end-to-end runtime, and how much can structural parsing/materialization optimization reduce this bottleneck while preserving OWL axiom fidelity?
 \end{enumerate}
 
 \subsection{Contributions}
 \label{sec:contributions}
 
-We address these challenges through SPACL, with five main contributions:
+We address these questions through SPACL, with four main contributions:
 
 \begin{enumerate}[C1:]
-    \item \textbf{Speculative Parallelism with Work-Stealing}: SPACL employs a work-stealing scheduler that dynamically distributes tableau branches across worker threads. When a disjunction is encountered, both branches are speculatively explored in parallel, with workers stealing tasks from each other to maintain load balance (Section \ref{sec:workstealing}).
+    \item \textbf{Speculative parallel tableaux with conflict learning}: SPACL combines work-stealing branch exploration with nogood extraction and reuse, reducing redundant failure exploration in non-deterministic search (Sections \ref{sec:workstealing}, \ref{sec:nogood}).
     
-    \item \textbf{Conflict-Driven Nogood Learning}: When a branch leads to contradiction, SPACL learns a "nogood" clause recording the conflicting assertions. These nogoods prune future branches that would lead to the same contradiction, significantly reducing the search space. Thread-local caching minimizes synchronization overhead while maintaining learning effectiveness (Section \ref{sec:nogood}).
+    \item \textbf{Adaptive overhead control}: We integrate threshold-based strategy selection with a global thread pool, reducing small-workload parallel overhead while preserving speedup at larger scales (Sections \ref{sec:adaptive}, \ref{sec:threadpool}).
     
-    \item \textbf{Adaptive Parallelism Threshold}: Rather than always using parallel processing (which incurs overhead), SPACL automatically selects the optimal strategy based on estimated problem complexity. Small ontologies use sequential processing; large ontologies benefit from parallel exploration. Our cost-based model achieves 18--73$\times$ speedup over naive parallelization for small cases (Section \ref{sec:adaptive}).
+    \item \textbf{Full-fidelity structural RDF/XML pipeline}: We implement a structural parsing/materialization path that preserves OWL axiom fidelity and substantially reduces parser-dominated runtime on large ontologies (Section \ref{sec:structural-parser}).
     
-    \item \textbf{Global Thread Pool Optimization}: We replaced per-call thread spawning with a global rayon thread pool, reducing parallelization overhead from 235$\mu$s to 112$\mu$s (2.1$\times$ improvement) for simple disjunctions (Section \ref{sec:threadpool}).
-    
-    \item \textbf{Comprehensive Parser Suite}: We provide production-quality parsers for RDF/XML, OWL2 Functional Syntax, Manchester Syntax, and JSON-LD, enabling interoperability with existing ontology engineering tools and supporting complex expression constructs including ObjectUnionOf, ObjectIntersectionOf, and ObjectComplementOf (Section \ref{sec:parsers}).
+    \item \textbf{Reproducible end-to-end evaluation}: We provide a containerized benchmark protocol and artifacts for stage-level analysis and multi-reasoner head-to-head comparison (Sections \ref{sec:benchmark-protocol}, \ref{sec:competitor-benchmarks}).
 \end{enumerate}
 
 In Rust, these design choices translate into measurable gains: $5\times$ speedup at 10,000 classes, sub-microsecond per-class processing, and under $2\times$ overhead on small ontologies. On synthetic scalability workloads, SPACL reaches 26.2 million tableau operations per second.
@@ -1213,17 +1211,14 @@ Hierarchical & $45.6 \pm 2.3$ & $45.1 \pm 2.1$ & $0.1\%$ & $95.2\%$ \\
 \subsection{Answering Research Questions}
 \label{sec:answers}
 
-\textbf{RQ1: Can speculative parallelism improve performance?}  
-\textbf{Answer}: Yes. SPACL achieves 4.88$\times$ speedup at 10,000 classes (Section \ref{sec:scalability}).
+\textbf{RQ1: Can speculative parallel tableaux with conflict-driven nogood learning improve consistency-checking performance?}  
+\textbf{Answer}: Yes. SPACL achieves up to 4.88$\times$ speedup at 10,000 classes in scalability tests, and nogood mechanisms reduce redundant branch exploration in inconsistent disjunctive workloads (Sections \ref{sec:scalability}, \ref{sec:nogood-eval}).
 
-\textbf{RQ2: How does nogood learning reduce search space?}  
-\textbf{Answer}: Nogood learning prunes 15-30\% of branches, with 85\% of hits from local cache (Section \ref{sec:nogood-eval}).
+\textbf{RQ2: Can adaptive parallelism reduce overhead on small workloads while preserving scalability?}  
+\textbf{Answer}: Yes. The adaptive strategy avoids unnecessary parallel execution on small cases (18--73$\times$ improvement versus always-parallel baselines) while retaining scalability on larger cases (Sections \ref{sec:adaptive}, \ref{sec:threshold-tuning}).
 
-\textbf{RQ3: What is the optimal threshold?}  
-\textbf{Answer}: $\tau = 100$ provides crossover at $\sim$1,000 classes (Section \ref{sec:threshold-tuning}).
-
-\textbf{RQ4: Can these be combined in production?}  
-\textbf{Answer}: Yes for the tested consistency workload. The combined system is production-usable and, in our latest reproducible large-suite run, completes 5/5 ontologies with best wall-clock among tested reasoners (Section \ref{sec:competitor-benchmarks}).
+\textbf{RQ3: For large RDF/XML ontologies, which stages dominate runtime, and can structural parsing/materialization reduce the bottleneck with full fidelity?}  
+\textbf{Answer}: Parsing/materialization dominates large-ontology runtime in the baseline. The structural pipeline substantially reduces this cost while preserving full OWL axiom handling, with stage-level A/B reductions reported in Section \ref{sec:realworld}.
 
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
@@ -1234,12 +1229,10 @@ We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative 
 \label{sec:summary}
 
 \begin{enumerate}
-    \item Speculative work-stealing tableaux algorithm with dynamic load balancing
-    \item Thread-local nogood caching for reduced synchronization (80\% reduction)
-    \item Adaptive threshold for automatic strategy selection achieving 18--73$\times$ speedup over naive parallelization
-    \item Global thread pool optimization reducing parallel overhead by 2.1$\times$
-    \item Comprehensive parser suite (RDF/XML, OWL2 Functional, Manchester, JSON-LD) with full complex expression support
-    \item Production-quality Rust implementation with comprehensive benchmarks
+    \item Speculative work-stealing tableaux with conflict-driven nogood learning
+    \item Adaptive overhead control via thresholding and global thread-pool execution
+    \item Full-fidelity structural RDF/XML parsing/materialization for large ontologies
+    \item Reproducible containerized benchmarking and head-to-head evaluation protocol
 \end{enumerate}
 
 \subsection{Limitations}
@@ -1269,7 +1262,8 @@ We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative 
     \item \textbf{Distributed Reasoning}: Extend to cluster environments
     \item \textbf{Incremental Reasoning}: Support evolving ontologies efficiently
     \item \textbf{ABox Optimization}: Apply speculative techniques to instance checking
-    \item \textbf{Tool Integration}: OWL API and Protégé plugin development
+    \item \textbf{Ontology Transaction Deployment}: Evaluate SPACL as a reasoning core for ontology transaction validation in distributed application workflows
+    \item \textbf{Tool Integration}: Provide stable API/SDK interfaces for application-level integration
 \end{enumerate}
 
 \subsection{Availability}
