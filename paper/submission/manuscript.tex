@@ -27,10 +27,21 @@
 \usepackage{subcaption}
 \usepackage{xcolor}
 \usepackage{hyperref}
+\usepackage{xurl}
+\usepackage{microtype}
 \usepackage{listings}
 \usepackage{caption}
 \usepackage{tikz}
 \usetikzlibrary{shapes,arrows,positioning,fit,backgrounds}
+
+%% Layout tuning for fewer overfull lines and cleaner float spacing
+\setlength{\emergencystretch}{2em}
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.8}
 
 %% Setup hyperref
 \hypersetup{
@@ -95,11 +106,11 @@
 %% ABSTRACT
 %% ============================================
 \begin{abstract}
-We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), a novel ALC/SHOIQ reasoner that achieves significant performance improvements through speculative parallelism combined with conflict-driven learning. To the best of our knowledge, SPACL is among the first open implementations to combine work-stealing parallelism with nogood learning for this setting, addressing the challenge of exponential search spaces in tableau-based reasoning.
+We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. To our knowledge, SPACL is one of the few open implementations that integrates work-stealing parallelism with nogood learning in this setting, targeting exponential search behavior in tableau-based reasoning.
 
-Our key contributions include: (1) a speculative parallel tableaux algorithm that explores branches concurrently using work-stealing; (2) an adaptive threshold mechanism that automatically selects between sequential and parallel processing based on problem complexity, achieving 18--73$\times$ speedup over naive parallelization for small ontologies; (3) thread-local nogood caching that reduces synchronization overhead by 80\%; (4) a global thread pool optimization reducing overhead by 2.1$\times$; and (5) a production-quality Rust implementation with comprehensive parser support for RDF/XML, OWL2 Functional, Manchester, and JSON-LD syntaxes. SPACL demonstrates $5\times$ speedup at 10,000 classes while maintaining $<2\times$ overhead for small ontologies.
+Our key contributions are: (1) a speculative parallel tableaux algorithm that explores branches concurrently with work-stealing; (2) an adaptive threshold mechanism that selects sequential or parallel execution based on estimated complexity, yielding 18--73$\times$ speedup over naive always-parallel execution on small ontologies; (3) thread-local nogood caching that reduces synchronization overhead by 80\%; (4) a global thread pool optimization that reduces overhead by 2.1$\times$; and (5) a Rust implementation with parser support for RDF/XML, OWL2 Functional, Manchester, and JSON-LD syntaxes. SPACL reaches $5\times$ speedup at 10,000 classes while keeping overhead below $2\times$ on small ontologies.
 
-Benchmarks demonstrate \textbf{40--707$\times$ wall-clock speedup} on small disjunctive ontologies ($<$1,000 classes) vs HermiT; however, this includes significant JVM startup overhead ($\sim$3--4s). For pure reasoning time (excluding JVM startup), algorithmic speedup is 15--30$\times$. In our latest large-suite head-to-head run (\texttt{head2head\_round4\_large\_full\_20260219\_rerun}), SPACL records the best wall-clock result on all five tested ontologies (chebi, doid, go-basic, pato, uberon) under an identical 900s timeout protocol. This improvement is driven by a full-fidelity structural RDF/XML parser and optimized materialization path: stage-level A/B runs show parse-only reductions of 96.96--97.98\% on doid/go-basic/uberon relative to the previous structural baseline.
+Benchmarks demonstrate \textbf{40--707$\times$ wall-clock speedup} on small disjunctive ontologies ($<$1,000 classes) vs HermiT; however, this includes significant JVM startup overhead ($\sim$3--4s). For pure reasoning time (excluding JVM startup), algorithmic speedup is 15--30$\times$. In our latest large-suite head-to-head run (\path{head2head_round4_large_full_20260219_rerun}), SPACL records the best wall-clock result on all five tested ontologies (chebi, doid, go-basic, pato, uberon) under an identical 900s timeout protocol. This improvement is driven by a full-fidelity structural RDF/XML parser and optimized materialization path: stage-level A/B runs show parse-only reductions of 96.96--97.98\% on doid/go-basic/uberon relative to the previous structural baseline.
 \end{abstract}
 
 %% ============================================
@@ -115,15 +126,15 @@ ALC/SHOIQ \sep Tableaux Reasoning \sep Parallel Algorithms \sep Nogood Learning 
 %% HIGHLIGHTS
 %% ============================================
 \begin{highlights}
-\item To our knowledge, one of the first open ALC/SHOIQ implementations combining speculative parallelism with nogood learning
-\item Adaptive threshold mechanism achieving 18--73$\times$ speedup over naive parallelization
+\item Open ALC/SHOIQ implementation combining work-stealing parallel tableaux with nogood learning
+\item Adaptive thresholding yields 18--73$\times$ speedup over always-parallel execution on small cases
 \item Thread-local caching reduces synchronization overhead by 80\%
 \item Global thread pool optimization reduces parallel overhead by 2.1$\times$
-\item $5\times$ speedup at 10,000 classes (synthetic disjunctive ontologies)
-\item Structural RDF/XML parser + full-fidelity materialization reduces parse-only time by 96.96--97.98\% on large ontologies
+\item $5\times$ speedup at 10,000 classes on synthetic disjunctive ontologies
+\item Structural RDF/XML parsing with full-fidelity materialization reduces parse-only time by 96.96--97.98\% in A/B runs
 \item Large-suite head-to-head (2026-02-19): best wall-clock time on 5/5 ontologies in this reproducible run set
 \item Comprehensive parser support: RDF/XML, OWL2 Functional, Manchester Syntax, JSON-LD
-\item Production-quality Rust implementation with honest evaluation of strengths and limitations
+\item Rust implementation with explicit reporting of scope limits and benchmark constraints
 \end{highlights}
 
 %% ============================================
@@ -133,9 +144,9 @@ ALC/SHOIQ \sep Tableaux Reasoning \sep Parallel Algorithms \sep Nogood Learning 
 \section{Introduction}
 \label{sec:intro}
 
-Description Logics (DLs) provide the formal foundation for the Semantic Web, with OWL2 DL serving as the W3C standard ontology language \cite{owl2}. Tableaux algorithms remain a widely used approach for OWL2 DL reasoning, offering completeness and soundness for complex TBox and ABox reasoning tasks \cite{dlhandbook}. However, the exponential nature of tableau expansion creates significant performance challenges for large-scale ontologies. This work focuses on the ALC/SHOIQ fragment, which forms the basis of most OWL2 ontologies and captures the core challenges of disjunctive reasoning.
+Description Logics (DLs) provide the formal basis of the Semantic Web, and OWL2 DL is the corresponding W3C standard ontology language \cite{owl2}. Tableaux methods are still widely used for OWL2 DL reasoning because they provide sound and complete procedures for expressive TBox and ABox tasks \cite{dlhandbook}. The practical bottleneck is the combinatorial growth of tableau branches, especially on large ontologies. In this paper we target the ALC/SHOIQ fragment to study this bottleneck under expressive, disjunction-heavy workloads.
 
-While modern hardware provides abundant parallel processing capabilities, existing DL reasoners have not effectively exploited this potential. Commercial reasoners like Konclude provide parallel reasoning but remain closed-source \cite{konclude}, limiting reproducibility and extension. Open-source alternatives like Pellet \cite{pellet}, its actively maintained fork Openllet \cite{openllet}, and HermiT \cite{hermit} rely primarily on sequential algorithms. Furthermore, parallel exploration of search spaces without learning from failures leads to redundant computation---a missed optimization opportunity.
+Modern hardware offers abundant parallel capacity, but OWL reasoners do not always convert that capacity into stable end-to-end gains. Some strong parallel systems are not openly developed (e.g., Konclude) \cite{konclude}, which limits reproducibility and extensibility. Many widely used open implementations (e.g., Pellet/Openllet and HermiT) remain primarily sequential in their core exploration loop \cite{pellet,openllet,hermit}. In addition, naive parallel branch exploration without conflict reuse repeats equivalent failing searches.
 
 \subsection{Research Questions}
 \label{sec:questions}
@@ -152,7 +163,7 @@ This work addresses the following research questions:
 \subsection{Contributions}
 \label{sec:contributions}
 
-We address these challenges through SPACL, which makes five novel contributions:
+We address these challenges through SPACL, with five main contributions:
 
 \begin{enumerate}[C1:]
     \item \textbf{Speculative Parallelism with Work-Stealing}: SPACL employs a work-stealing scheduler that dynamically distributes tableau branches across worker threads. When a disjunction is encountered, both branches are speculatively explored in parallel, with workers stealing tasks from each other to maintain load balance (Section \ref{sec:workstealing}).
@@ -166,7 +177,7 @@ We address these challenges through SPACL, which makes five novel contributions:
     \item \textbf{Comprehensive Parser Suite}: We provide production-quality parsers for RDF/XML, OWL2 Functional Syntax, Manchester Syntax, and JSON-LD, enabling interoperability with existing ontology engineering tools and supporting complex expression constructs including ObjectUnionOf, ObjectIntersectionOf, and ObjectComplementOf (Section \ref{sec:parsers}).
 \end{enumerate}
 
-Our implementation in Rust demonstrates these contributions translate to practical performance gains: $5\times$ speedup at 10,000 classes, sub-microsecond per-class processing, and $<2\times$ overhead even for small ontologies. SPACL achieves 26.2 million operations per second---orders of magnitude faster than Java-based alternatives.
+In Rust, these design choices translate into measurable gains: $5\times$ speedup at 10,000 classes, sub-microsecond per-class processing, and under $2\times$ overhead on small ontologies. On synthetic scalability workloads, SPACL reaches 26.2 million tableau operations per second.
 
 \subsection{Paper Organization}
 \label{sec:organization}
@@ -259,7 +270,7 @@ Key findings include:
 
 SPACL directly addresses the documented gap between parallel OWL reasoning and adaptive learning. Prior parallelization work focuses on task delegation, partitioning, or materialization without integrated adaptive conflict/nogood reuse across parallel speculative branches~\cite{quan2017parallel,quan2019framework,liu2017spowl,gu2015cichlid}. Conversely, NACRE-style nogood machinery exists for CSP/SAT but has not been shown applied to tableau DL reasoning~\cite{glorian2020nacre}.
 
-\textbf{To the best of our knowledge, SPACL is among the first open systems to integrate work-stealing parallelism with nogood learning for ALC/SHOIQ tableau reasoning}, combining the throughput benefits of speculative parallelism with the search-space reduction of conflict-driven learning.
+\textbf{To our knowledge, SPACL is among the first openly available systems to integrate work-stealing parallelism with nogood learning for ALC/SHOIQ tableau reasoning}, combining speculative throughput gains with conflict-driven search-space reduction.
 
 \subsubsection{Key Innovations}
 
@@ -463,6 +474,8 @@ SPACL combines three core mechanisms illustrated in Figure \ref{fig:architecture
     \centering
     \begin{tikzpicture}[
         node distance=0.8cm and 1.2cm,
+        scale=0.92,
+        every node/.style={transform shape},
         box/.style={rectangle, draw, fill=blue!10, minimum width=2.5cm, minimum height=0.8cm, align=center, font=\small},
         worker/.style={rectangle, draw, fill=green!10, minimum width=2cm, minimum height=0.7cm, align=center, font=\small},
         arrow/.style={->, thick},
@@ -486,7 +499,7 @@ SPACL combines three core mechanisms illustrated in Figure \ref{fig:architecture
         \node[box, below=of scheduler, yshift=-2cm, fill=red!10] (nogood) {Nogood\\Database};
         
         % Output
-        \node[box, right=of scheduler, xshift=1cm] (output) {Result\\Output};
+        \node[box, right=of scheduler, xshift=0.3cm] (output) {Result\\Output};
         
         % Arrows
         \draw[arrow] (input) -- (adaptive);
@@ -566,7 +579,7 @@ A nogood is a set of class expressions that cannot be simultaneously satisfied.
 
 \begin{definition}[Nogood]
 \label{def:nogood}
-A nogood is a set of class assertions $\{C_1(a), C_2(a), \ldots, C_n(a)\}$ such that their conjunction is unsatisfiable:
+A nogood is a set of class assertions $\{C_i(a)\}_{i=1}^{n}$ such that their conjunction is unsatisfiable:
 \begin{equation}
 \bigsqcap_{i=1}^{n} C_i \sqsubseteq \bot
 \end{equation}
@@ -718,7 +731,7 @@ Thread-local caches limit contention while maintaining bounded memory. The imple
 \subsection{Parser Implementations}
 \label{sec:parsers}
 
-Tableauxx provides comprehensive parser support for OWL2 syntaxes:
+Tableauxx provides parser support for OWL2 syntaxes:
 
 \textbf{OWL2 Functional Syntax}: Full support for OWL2 Functional Grammar
 \begin{itemize}
@@ -744,7 +757,7 @@ Tableauxx provides comprehensive parser support for OWL2 syntaxes:
     \item Value object parsing with type coercion
 \end{itemize}
 
-All parsers support import resolution, comprehensive error reporting with source locations, and streaming processing for large ontologies.
+All parsers support import resolution, source-location error reporting, and streaming operation on large ontologies.
 
 \subsection{Structural RDF/XML Parser and Materialization}
 \label{sec:structural-parser}
@@ -863,7 +876,12 @@ where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text
     \item \textbf{Timeout}: 900 seconds (15 minutes)
     \item \textbf{Metrics}: Wall-clock time (loading + parsing + reasoning)
     \item \textbf{Status recording}: success / timeout / failed / not\_available
-    \item \textbf{Reproducibility}: Primary artifact set for this paper revision is \texttt{benchmarks/competitors/results/history/head2head\_round4\_large\_full\_20260219\_rerun} (CSV, markdown/LaTeX tables, and raw per-reasoner JSON outputs). Parser-stage A/B artifacts are \texttt{stages\_doid\_20260218\_183604} vs \texttt{stages\_doid\_20260219\_130432}, \texttt{stages\_go\_basic\_20260218\_185126} vs \texttt{stages\_go\_basic\_20260219\_130710}, and \texttt{stages\_uberon\_20260218\_185933} vs \texttt{stages\_uberon\_20260219\_130942}.
+    \item \textbf{Reproducibility}: Primary artifact set for this paper revision is
+    \path{benchmarks/competitors/results/history/head2head_round4_large_full_20260219_rerun}
+    (CSV, markdown/LaTeX tables, and raw per-reasoner JSON outputs). Parser-stage A/B artifacts are:
+    doid (\path{stages_doid_20260218_183604} vs \path{stages_doid_20260219_130432}),
+    go-basic (\path{stages_go_basic_20260218_185126} vs \path{stages_go_basic_20260219_130710}),
+    and uberon (\path{stages_uberon_20260218_185933} vs \path{stages_uberon_20260219_130942}).
 \end{enumerate}
 
 \textbf{Binary Format}: Pre-converted .owlbin files for Tableauxx binary tests
@@ -877,6 +895,7 @@ Table \ref{tab:scalability} presents scalability results.
 \centering
 \caption{Scalability Results}
 \label{tab:scalability}
+\resizebox{\linewidth}{!}{
 \begin{tabular}{r|r|r|r|r}
 \toprule
 \textbf{Classes} & \textbf{Sequential ($\mu$s)} & \textbf{SPACL ($\mu$s)} & \textbf{Speedup} & \textbf{Throughput (M ops/s)} \\
@@ -888,9 +907,10 @@ Table \ref{tab:scalability} presents scalability results.
 10,000 & 1,865.3 & 382.3 & \textbf{4.88$\times$} & \textbf{26.2} \\
 \bottomrule
 \end{tabular}
+}
 \end{table}
 
-\textbf{Key Findings}:
+\textbf{Observations}:
 \begin{itemize}
     \item Crossover point at $\sim$1,000 classes (confirming Equation \ref{eq:estimate})
     \item Super-linear speedup at scale (4.88$\times$ at 10K)
@@ -965,7 +985,7 @@ Medium (5 unions) & 9.1$\mu$s & 58.9$\mu$s & 1,116$\mu$s & \textbf{18.9$\times$}
 \end{tabular}
 \end{table}
 
-\textbf{Key Findings}:
+\textbf{Observations}:
 \begin{itemize}
     \item Adaptive mode is 18--73$\times$ faster than always-parallel for small cases
     \item Only 1.3--2$\times$ overhead vs pure sequential for trivial cases
@@ -981,6 +1001,7 @@ We evaluated SPACL on large biomedical ontologies used in production-style consi
 \centering
 \caption{Stage-Level A/B on Real-World Ontologies (cold .owl runs)}
 \label{tab:realworld}
+\resizebox{\linewidth}{!}{
 \begin{tabular}{l|r|r|r|r|r|r}
 \toprule
 \textbf{Ontology} & \textbf{Parse Old} & \textbf{Parse New} & \textbf{Parse Red.} & \textbf{E2E Old} & \textbf{E2E New} & \textbf{E2E Red.} \\
@@ -990,6 +1011,7 @@ GO\_Basic & 158306 & 3472 & 97.81\% & 162519 & 7409 & 95.44\% \\
 UBERON & 145843 & 2952 & 97.98\% & 149850 & 6632 & 95.57\% \\
 \bottomrule
 \end{tabular}
+}
 \end{table}
 
 \textbf{Analysis}:
@@ -1071,13 +1093,12 @@ uberon.owl & \textbf{7054} & 103484 & FAIL & TO & 16737 & FAIL & NA \\
 \end{tabular}
 }
 \end{table}
-\vspace{1mm}
 \noindent\footnotesize\textit{Legend}: TO = timeout at 900s, FAIL = runtime/parser failure in this harness, NA = not available in this setup. Bold indicates best wall time per ontology.
 \normalsize
 
-\textbf{Key Findings}:
+\textbf{Observations}:
 \begin{itemize}
-    \item SPACL is fastest on 5/5 ontologies in this run set (\texttt{head2head\_round4\_large\_full\_20260219\_rerun})
+    \item SPACL is fastest on 5/5 ontologies in this run set (\path{head2head_round4_large_full_20260219_rerun})
     \item SPACL, HermiT, and ELK complete 5/5 ontologies within timeout; Openllet completes 3/5 (timeouts on PATO and UBERON)
     \item JFact completes 3/5, times out on PATO, and fails on UBERON
     \item Konclude reports FAIL for all 5 ontologies in this container/parser configuration
@@ -1179,7 +1200,7 @@ Hierarchical & $45.6 \pm 2.3$ & $45.1 \pm 2.1$ & $0.1\%$ & $95.2\%$ \\
 \end{tabular}
 \end{table}
 
-\textbf{Key Findings}:
+\textbf{Observations}:
 \begin{itemize}
     \item \textbf{Inconsistent ontologies}: 24\% speedup, 28\% branches pruned
     \item \textbf{Consistent ontologies}: Minimal overhead (2\%), nogoods rarely triggered
@@ -1207,7 +1228,7 @@ Hierarchical & $45.6 \pm 2.3$ & $45.1 \pm 2.1$ & $0.1\%$ & $95.2\%$ \\
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-We presented SPACL, an open-source ALC/SHOIQ reasoner combining speculative parallelism with conflict-driven learning. On small disjunctive ontologies, SPACL shows large wall-clock gains versus HermiT (up to 707$\times$), with algorithmic gains estimated at 15--30$\times$ after controlling for JVM startup effects. For large biomedical RDF/XML ontologies, the revised structural parser/materialization pipeline substantially changes end-to-end behavior: in the reproducible run set \texttt{head2head\_round4\_large\_full\_20260219\_rerun}, SPACL achieves the best wall-clock result on all five tested ontologies while completing all runs within timeout.
+We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. On small disjunctive ontologies, SPACL shows large wall-clock gains versus HermiT (up to 707$\times$), while estimated algorithmic gains are 15--30$\times$ after accounting for JVM startup effects. On large biomedical RDF/XML ontologies, the revised structural parser/materialization pipeline substantially improves end-to-end behavior: in the reproducible run set \path{head2head_round4_large_full_20260219_rerun}, SPACL records the best wall-clock time on all five tested ontologies within the configured timeout protocol.
 
 \subsection{Summary of Contributions}
 \label{sec:summary}
@@ -1254,7 +1275,14 @@ We presented SPACL, an open-source ALC/SHOIQ reasoner combining speculative para
 \subsection{Availability}
 \label{sec:availability}
 
-SPACL is available at \url{https://github.com/anusornc/tableauxx} under the MIT license. Reproducibility artifacts for this paper revision are included in the repository, including the primary head-to-head run (\texttt{benchmarks/competitors/results/history/head2head\_round4\_large\_full\_20260219\_rerun}) and stage-level parser A/B outputs referenced in Section~\ref{sec:realworld}. A detailed reproduction checklist is provided as supplementary project documentation (\texttt{paper/submission/LITERATURE\_REVIEW\_TODO\_CHECKLIST.md} and benchmark scripts under \texttt{benchmarks/competitors/scripts/}).
+SPACL is available at \url{https://github.com/anusornc/tableauxx} under the MIT license.
+Reproducibility artifacts for this paper revision are included in the repository:
+\path{benchmarks/competitors/results/history/head2head_round4_large_full_20260219_rerun}
+and the stage-level parser A/B outputs referenced in Section~\ref{sec:realworld}.
+A detailed reproduction checklist is provided as supplementary project documentation:
+\path{paper/submission/LITERATURE_REVIEW_TODO_CHECKLIST.md}
+and benchmark scripts under
+\path{benchmarks/competitors/scripts/}.
 
 %% ============================================
 %% ACKNOWLEDGMENTS
