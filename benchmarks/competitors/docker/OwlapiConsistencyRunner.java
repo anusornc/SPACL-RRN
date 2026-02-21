@@ -9,14 +9,19 @@ import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 public final class OwlapiConsistencyRunner {
     private OwlapiConsistencyRunner() {}
 
-    private static String factoryClassFor(String reasonerKey) {
+    private static String[] factoryClassesFor(String reasonerKey) {
         switch (reasonerKey) {
             case "openllet":
-                return "openllet.owlapi.OpenlletReasonerFactory";
+                return new String[] {"openllet.owlapi.OpenlletReasonerFactory"};
             case "elk":
-                return "org.semanticweb.elk.owlapi.ElkReasonerFactory";
+                return new String[] {"org.semanticweb.elk.owlapi.ElkReasonerFactory"};
             case "jfact":
-                return "uk.ac.manchester.cs.jfact.JFactFactory";
+                return new String[] {"uk.ac.manchester.cs.jfact.JFactFactory"};
+            case "pellet":
+                return new String[] {
+                    "com.clarkparsia.pellet.owlapiv3.PelletReasonerFactory",
+                    "org.mindswap.pellet.owlapi.ReasonerFactory"
+                };
             default:
                 return null;
         }
@@ -54,23 +59,34 @@ public final class OwlapiConsistencyRunner {
     }
 
     private static OWLReasonerFactory resolveFactory(String reasonerKey) throws Exception {
-        String factoryClassName = factoryClassFor(reasonerKey);
-        if (factoryClassName == null) {
+        String[] factoryClassNames = factoryClassesFor(reasonerKey);
+        if (factoryClassNames == null) {
             throw new IllegalArgumentException("Unsupported reasoner: " + reasonerKey);
         }
 
-        Class<?> factoryClass = Class.forName(factoryClassName);
-        try {
-            Object singleton = factoryClass.getMethod("getInstance").invoke(null);
-            return (OWLReasonerFactory) singleton;
-        } catch (NoSuchMethodException ignored) {
-            return (OWLReasonerFactory) factoryClass.getDeclaredConstructor().newInstance();
+        ClassNotFoundException lastClassNotFound = null;
+        for (String factoryClassName : factoryClassNames) {
+            try {
+                Class<?> factoryClass = Class.forName(factoryClassName);
+                try {
+                    Object singleton = factoryClass.getMethod("getInstance").invoke(null);
+                    return (OWLReasonerFactory) singleton;
+                } catch (NoSuchMethodException ignored) {
+                    return (OWLReasonerFactory) factoryClass.getDeclaredConstructor().newInstance();
+                }
+            } catch (ClassNotFoundException cnfe) {
+                lastClassNotFound = cnfe;
+            }
         }
+        if (lastClassNotFound != null) {
+            throw lastClassNotFound;
+        }
+        throw new IllegalStateException("No factory class resolved for reasoner: " + reasonerKey);
     }
 
     public static void main(String[] args) {
         if (args.length < 2) {
-            System.err.println("Usage: OwlapiConsistencyRunner <openllet|elk|jfact> <ontology.owl> [operation]");
+            System.err.println("Usage: OwlapiConsistencyRunner <openllet|elk|jfact|pellet> <ontology.owl> [operation]");
             System.exit(2);
         }
 

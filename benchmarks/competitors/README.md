@@ -12,7 +12,7 @@ This directory contains Docker-based benchmarking infrastructure for comparing *
 | **Openllet** | Tableau | Java | ✅ Direct |
 | **ELK** | Consequence-based (EL profile) | Java | ✅ Direct |
 | **JFact** | Tableau | Java | ✅ Direct |
-| **Pellet** | Tableau | Java | ⚠️ Reported as `not_available` (legacy packaging) |
+| **Pellet** | Tableau | Java | ✅ Direct (legacy Pellet 2.3.3 artifacts) |
 | **FaCT++** | Tableau | C++ | ⚠️ Optional (`INCLUDE_FACTPP=1`, may be unavailable by environment) |
 
 ## Quick Start
@@ -141,7 +141,8 @@ This prevents false-positive "success" rows when a reasoner fails to start.
 
 ## Notes
 
-- **Pellet vs Openllet**: Openllet is benchmarked directly. Pellet is reported as `not_available` unless a reproducible Pellet 2.x packaging path is added.
+- **Pellet vs Openllet**: Both are benchmarked directly. Pellet uses legacy `2.3.3` artifacts (`pellet-owlapiv3`) from `maven.aksw.org`.
+- **Pellet availability caveat**: If `maven.aksw.org` is unreachable in a given environment, Pellet image build may fail and benchmark rows will become `not_available`.
 - **Konclude input format**: The current corpus is RDF/XML `.owl`; this Konclude CLI path reports parser errors (`OWL2/XML` expectation) and is therefore marked `failed` in result JSONs.
 - **`univ-bench.owl` in this repo**: The bundled file is truncated (49 lines) and behaves as a parser-failure robustness test for many OWLAPI-based reasoners, not a full-fidelity performance target.
 - **FaCT++**: Standalone CLI availability is environment-dependent; use `INCLUDE_FACTPP=1` to attempt it.

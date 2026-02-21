@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 #
 # OWL reasoner head-to-head benchmark harness.
-# Includes: Tableauxx, HermiT, Konclude, Openllet, ELK, JFact.
-# Pellet is tracked as not_available unless a reproducible build path is added.
+# Includes: Tableauxx, HermiT, Konclude, Openllet, ELK, JFact, Pellet.
 #
 # Fairness policy:
 # - Every reasoner runs the same operation (`consistency` by default).
@@ -76,8 +75,12 @@ FORWARDED_OWL_ENV_VARS=(
     OWL2_REASONER_EXPERIMENTAL_XML_WORKERS
     OWL2_REASONER_EXPERIMENTAL_XML_CACHE
     OWL2_REASONER_STRUCTURAL_XML_PARSER
+    OWL2_REASONER_STRUCTURAL_XML_AUTO
+    OWL2_REASONER_STRUCTURAL_XML_AUTO_THRESHOLD
     OWL2_REASONER_STRUCTURAL_XML_INTERNER
     OWL2_REASONER_STRUCTURAL_BREAKDOWN
+    OWL2_REASONER_LARGE_PROFILE_AUTO
+    OWL2_REASONER_LARGE_PROFILE_THRESHOLD
     OWL2_REASONER_STAGE_TIMING
 )
 
@@ -809,7 +812,7 @@ generate_report() {
         echo
         echo "- Wall time is the primary metric for cross-engine comparison."
         echo "- OWLAPI/Konclude internal reported times are kept as secondary diagnostics."
-        echo "- \`pellet\` may appear as \`not_available\` when image/build path is unavailable."
+        echo "- \`pellet\` may appear as \`not_available\` when legacy artifact repositories are unavailable."
     } > "$report_file"
 
     generate_csv

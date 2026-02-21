@@ -59,6 +59,8 @@ const OWL_DISJOINT_WITH_IRI: &str = "http://www.w3.org/2002/07/owl#disjointWith"
 const OWL_EQUIVALENT_CLASS_IRI: &str = "http://www.w3.org/2002/07/owl#equivalentClass";
 #[cfg(feature = "rio-xml")]
 const RDF_XML_BUF_CAPACITY: usize = 1024 * 1024;
+#[cfg(feature = "rio-xml")]
+const STRUCTURAL_AUTO_THRESHOLD_BYTES_DEFAULT: u64 = 4 * 1024 * 1024;
 
 #[cfg(feature = "rio-xml")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -638,6 +640,13 @@ impl RdfXmlStreamingParser {
         }
     }
 
+    fn env_is_set(key: &str) -> bool {
+        match std::env::var(key) {
+            Ok(value) => !value.trim().is_empty(),
+            Err(_) => false,
+        }
+    }
+
     fn parse_io_progress_bytes() -> u64 {
         std::env::var("OWL2_REASONER_PARSE_IO_PROGRESS_BYTES")
             .ok()
@@ -648,6 +657,36 @@ impl RdfXmlStreamingParser {
     #[cfg(feature = "rio-xml")]
     fn structural_enabled() -> bool {
         Self::env_truthy("OWL2_REASONER_STRUCTURAL_XML_PARSER")
+    }
+
+    #[cfg(feature = "rio-xml")]
+    fn structural_auto_enabled() -> bool {
+        if Self::env_is_set("OWL2_REASONER_STRUCTURAL_XML_AUTO") {
+            return Self::env_truthy("OWL2_REASONER_STRUCTURAL_XML_AUTO");
+        }
+        true
+    }
+
+    #[cfg(feature = "rio-xml")]
+    fn structural_auto_threshold_bytes() -> u64 {
+        std::env::var("OWL2_REASONER_STRUCTURAL_XML_AUTO_THRESHOLD")
+            .ok()
+            .and_then(|v| v.trim().parse::<u64>().ok())
+            .filter(|&v| v > 0)
+            .unwrap_or(STRUCTURAL_AUTO_THRESHOLD_BYTES_DEFAULT)
+    }
+
+    #[cfg(feature = "rio-xml")]
+    fn structural_enabled_for_path(path: &Path) -> bool {
+        if Self::env_is_set("OWL2_REASONER_STRUCTURAL_XML_PARSER") {
+            return Self::structural_enabled();
+        }
+        if !Self::structural_auto_enabled() {
+            return false;
+        }
+        std::fs::metadata(path)
+            .map(|meta| meta.len() >= Self::structural_auto_threshold_bytes())
+            .unwrap_or(false)
     }
 
     #[cfg(feature = "rio-xml")]
@@ -1702,7 +1741,7 @@ impl RdfXmlStreamingParser {
         if Self::experimental_enabled() {
             return self.parse_file_experimental(path);
         }
-        if Self::structural_enabled() {
+        if Self::structural_enabled_for_path(path) {
             return self.parse_file_structural(path);
         }
 

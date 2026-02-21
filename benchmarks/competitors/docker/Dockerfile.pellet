@@ -1,9 +1,17 @@
-# Pellet legacy placeholder.
-# This image intentionally reports not_available to avoid conflating Pellet with Openllet.
+# Pellet OWL reasoner (legacy packaging).
+# Uses Pellet OWLAPI v3 artifacts from AKSW repository.
 
-FROM alpine:3.20
+FROM maven:3.9-eclipse-temurin-17
 
 WORKDIR /opt/reasoner
+
+COPY benchmarks/competitors/docker/pellet-pom.xml /opt/reasoner/pom.xml
+COPY benchmarks/competitors/docker/OwlapiConsistencyRunner.java /opt/reasoner/OwlapiConsistencyRunner.java
+
+RUN mkdir -p src/main/java && \
+    mvn -q package -DskipTests && \
+    mkdir -p /opt/reasoner/bin && \
+    javac -cp "target/dependency/*" -d /opt/reasoner/bin /opt/reasoner/OwlapiConsistencyRunner.java
 
 COPY benchmarks/competitors/docker/benchmark-pellet.sh /opt/reasoner/benchmark.sh
 RUN chmod +x /opt/reasoner/benchmark.sh

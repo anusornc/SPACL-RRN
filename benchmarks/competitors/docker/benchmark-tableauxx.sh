@@ -12,8 +12,8 @@ fi
 LARGE_PARSE="${OWL2_REASONER_LARGE_PARSE:-1}"
 MAX_FILE_SIZE="${OWL2_REASONER_MAX_FILE_SIZE:-0}"
 AUTO_CACHE="${OWL2_REASONER_AUTO_CACHE:-0}"
-FORCE_TEXT="${OWL2_REASONER_FORCE_TEXT:-0}"
-BIN_ONLY="${OWL2_REASONER_BIN_ONLY:-0}"
+FORCE_TEXT="${OWL2_REASONER_FORCE_TEXT:-}"
+BIN_ONLY="${OWL2_REASONER_BIN_ONLY:-}"
 DISABLE_PARSE_FALLBACK="${OWL2_REASONER_DISABLE_PARSE_FALLBACK:-}"
 ENABLE_PARSE_FALLBACK="${OWL2_REASONER_ENABLE_PARSE_FALLBACK:-}"
 PARSE_PROGRESS_EVERY="${OWL2_REASONER_PARSE_PROGRESS_EVERY:-}"
@@ -24,7 +24,30 @@ EXPERIMENTAL_XML_BATCH="${OWL2_REASONER_EXPERIMENTAL_XML_BATCH:-}"
 EXPERIMENTAL_XML_QUEUE="${OWL2_REASONER_EXPERIMENTAL_XML_QUEUE:-}"
 EXPERIMENTAL_XML_WORKERS="${OWL2_REASONER_EXPERIMENTAL_XML_WORKERS:-}"
 EXPERIMENTAL_XML_CACHE="${OWL2_REASONER_EXPERIMENTAL_XML_CACHE:-}"
+STRUCTURAL_XML_AUTO="${OWL2_REASONER_STRUCTURAL_XML_AUTO:-}"
+STRUCTURAL_XML_AUTO_THRESHOLD="${OWL2_REASONER_STRUCTURAL_XML_AUTO_THRESHOLD:-}"
+LARGE_PROFILE_AUTO="${OWL2_REASONER_LARGE_PROFILE_AUTO:-}"
+LARGE_PROFILE_THRESHOLD="${OWL2_REASONER_LARGE_PROFILE_THRESHOLD:-}"
 STAGE_TIMING="${OWL2_REASONER_STAGE_TIMING:-}"
+
+truthy() {
+    local value
+    value="$(echo "${1:-}" | tr '[:upper:]' '[:lower:]' | xargs)"
+    case "$value" in
+        ""|"0"|"false"|"no") return 1 ;;
+        *) return 0 ;;
+    esac
+}
+
+looks_like_rdfxml() {
+    local file="$1"
+    if [[ ! -f "$file" ]]; then
+        return 1
+    fi
+    local head_sample
+    head_sample="$(head -c 4096 "$file" 2>/dev/null || true)"
+    [[ "$head_sample" == *"<?xml"* || "$head_sample" == *"<rdf:RDF"* ]]
+}
 
 INPUT_FILE="$ONTOLOGY_FILE"
 if [[ "$ONTOLOGY_FILE" == *.owl ]]; then
@@ -36,7 +59,23 @@ if [[ "$ONTOLOGY_FILE" == *.owl ]]; then
     if [ "$BIN_ONLY" = "1" ] && [ -f "$BIN_CANDIDATE" ]; then
         INPUT_FILE="$BIN_CANDIDATE"
     elif [ "$FORCE_TEXT" != "1" ] && [ -f "$BIN_CANDIDATE" ]; then
-        INPUT_FILE="$BIN_CANDIDATE"
+        # Auto large-profile default: prefer text RDF/XML for large files.
+        threshold="${LARGE_PROFILE_THRESHOLD:-4194304}"
+        if [[ "$threshold" =~ ^[0-9]+$ ]] && [ "$threshold" -gt 0 ]; then
+            :
+        else
+            threshold=4194304
+        fi
+        file_size="$(stat -c%s "$ONTOLOGY_FILE" 2>/dev/null || echo 0)"
+        auto_enabled=1
+        if [ -n "$LARGE_PROFILE_AUTO" ] && ! truthy "$LARGE_PROFILE_AUTO"; then
+            auto_enabled=0
+        fi
+        if [ "$auto_enabled" -eq 1 ] && [ "$file_size" -ge "$threshold" ] && looks_like_rdfxml "$ONTOLOGY_FILE"; then
+            INPUT_FILE="$ONTOLOGY_FILE"
+        else
+            INPUT_FILE="$BIN_CANDIDATE"
+        fi
     fi
 fi
 
@@ -73,6 +112,10 @@ if [ "$OPERATION" = "consistency" ]; then
         OWL2_REASONER_EXPERIMENTAL_XML_QUEUE="$EXPERIMENTAL_XML_QUEUE" \
         OWL2_REASONER_EXPERIMENTAL_XML_WORKERS="$EXPERIMENTAL_XML_WORKERS" \
         OWL2_REASONER_EXPERIMENTAL_XML_CACHE="$EXPERIMENTAL_XML_CACHE" \
+        OWL2_REASONER_STRUCTURAL_XML_AUTO="$STRUCTURAL_XML_AUTO" \
+        OWL2_REASONER_STRUCTURAL_XML_AUTO_THRESHOLD="$STRUCTURAL_XML_AUTO_THRESHOLD" \
+        OWL2_REASONER_LARGE_PROFILE_AUTO="$LARGE_PROFILE_AUTO" \
+        OWL2_REASONER_LARGE_PROFILE_THRESHOLD="$LARGE_PROFILE_THRESHOLD" \
         OWL2_REASONER_STAGE_TIMING="$STAGE_TIMING" \
         /opt/reasoner/owl2-reasoner check-auto "$INPUT_FILE"
     then
