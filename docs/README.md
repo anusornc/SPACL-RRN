@@ -1,87 +1,45 @@
-# Tableauxx Documentation
+# Documentation Hub
 
-Welcome to the Tableauxx OWL2 Reasoner documentation.
+This directory contains the active technical documentation for Tableauxx.
 
-## 📚 Documentation Index
+## Start here
 
-### Getting Started
-- [README.md](README.md) - Project overview and quick start
-- [DIRECTORY_STRUCTURE.md](DIRECTORY_STRUCTURE.md) - Project directory organization
-- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Source code structure
+- `docs/QUICK_START.md` - first commands to build, test, run, benchmark
+- `docs/PROJECT_STRUCTURE.md` - source-level architecture (`src/*`)
+- `docs/DIRECTORY_STRUCTURE.md` - repository-level layout and ownership
+- `docs/benchmarking/BENCHMARK_RUNBOOK.md` - benchmark protocol, run IDs, reproducibility
 
-### Algorithm & Research
-- [SPACL_ALGORITHM.md](SPACL_ALGORITHM.md) - **Novel SPACL Algorithm** (Speculative Parallel Tableaux)
-- [research/](research/) - Research papers and findings
-  - A Novel Hybrid and Evolutionary Approach to Ontology Reasoning
-  - Tableau Algorithm Research Findings
-  - research_findings.md
+## Core technical docs
 
-### Development
-- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) - Development roadmap
-- [REORGANIZATION_STATUS.md](REORGANIZATION_STATUS.md) - Project reorganization tracking
-- [FINAL_STATUS.md](FINAL_STATUS.md) - Current status summary
+- `docs/SPACL_ALGORITHM.md` - SPACL reasoning algorithm notes
+- `docs/HIERARCHICAL_CLASSIFICATION_IMPLEMENTATION.md` - hierarchy-path implementation details
+- `docs/LARGE_ONTOLOGY_OPTIMIZATION_PLAN.md` - large ontology optimization strategy
+- `docs/experiments/TABLEAUXX_PARSER_ALGORITHM_REFERENCE.md` - parser pipeline reference
+- `docs/experiments/PARSER_SPEED_DECISION_LOG.md` - parser optimization decision log
 
-### Reports
-- [reports/](reports/) - Project reports
-  - รายงานการพัฒนา Tableau Reasoner (Thai)
-  - รายงานผลการทดสอบ Enhanced Reasoner (Thai)
-  - แนะนำ Ontology มาตรฐานสำหรับการทดสอบ (Thai)
-  - standard_ontology_benchmarks.md
+## Deployment and integration docs
 
-### Analysis
-- [codebase_analysis.md](codebase_analysis.md) - Codebase analysis
-- [AGENTS.md](AGENTS.md) - Agent configuration
-- [CLAUDE.md](CLAUDE.md) - Claude-specific instructions
+- `docs/BLOCKCHAIN_TRANSACTION_PROFILE_GUIDE.md` - ontology transaction integration guidance
 
-## 🚀 Quick Links
+## Reports and research
 
-| Topic | File |
-|-------|------|
-| **Novel Algorithm** | [SPACL_ALGORITHM.md](SPACL_ALGORITHM.md) |
-| **Directory Layout** | [DIRECTORY_STRUCTURE.md](DIRECTORY_STRUCTURE.md) |
-| **Source Structure** | [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) |
-| **Development Plan** | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) |
+- `docs/reports/` - report artifacts and summaries
+- `docs/research/` - research notes and findings
 
-## 🔬 SPACL Algorithm
+## Archive policy
 
-The **Speculative Parallel Tableaux with Adaptive Conflict Learning (SPACL)** is a novel contribution:
+Legacy or superseded planning/status docs are moved to:
 
-- **Speculative Parallelism**: Explores branches in parallel using work-stealing
-- **Conflict-Driven Learning**: Learns from contradictions (nogoods)
-- **Adaptive Tuning**: Self-optimizing parameters using evolutionary algorithms
+- `docs/archive/legacy-status-2026q1/`
 
-See [SPACL_ALGORITHM.md](SPACL_ALGORITHM.md) for details.
+Rule:
+- keep active docs concise and current
+- move stale planning/status snapshots into archive instead of deleting historical context
 
-## 📊 Benchmarks
+## Updating docs
 
-Benchmarks are located in `../benches/`:
-- `spacl_vs_sequential.rs` - Compare SPACL vs sequential tableaux
+When code or benchmark behavior changes:
 
-Results are saved to `../results/`.
-
-## 🏗️ Project Organization
-
-```
-Project Root
-├── docs/          # This directory - all documentation
-├── src/           # Source code
-├── benches/       # Benchmarks
-├── scripts/       # Python scripts
-├── assets/        # Images and diagrams
-├── results/       # Benchmark results
-└── tests/data/    # Test ontologies
-```
-
-See [DIRECTORY_STRUCTURE.md](DIRECTORY_STRUCTURE.md) for complete layout.
-
-## 📝 Contributing to Documentation
-
-When adding new documentation:
-1. Place in appropriate subdirectory (`reports/`, `research/`, or root)
-2. Update this README with a link
-3. Follow existing naming conventions
-
----
-
-**Last Updated**: February 2025
-**Status**: Project reorganized and all tests passing ✅
+1. update `docs/QUICK_START.md` if command usage changed
+2. update `docs/benchmarking/BENCHMARK_RUNBOOK.md` if benchmark protocol/results changed
+3. update `docs/PROJECT_STRUCTURE.md` or `docs/DIRECTORY_STRUCTURE.md` if layout changed

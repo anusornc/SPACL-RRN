@@ -1,118 +1,70 @@
-# Tableauxx Project Directory Structure
+# Repository Directory Structure
 
-This document describes the organization of the Tableauxx OWL2 Reasoner project.
+This document describes the current top-level organization of the Tableauxx repository.
 
-## Root Directory Layout
+## Top-level layout
 
-```
+```text
 .
-├── .github/            # GitHub configurations (workflows, templates)
-├── .clinerules/        # Cline IDE rules
-├── .kilocode/          # Kilocode IDE configuration
-├── .traycer/           # Traycer IDE configuration
-├── archive/            # Archived/old files (kept for reference)
-├── assets/             # Images, diagrams, visual assets
-├── backup_tableauxx/   # Legacy backup (kept for safety)
-├── benches/            # Rust benchmark suites
-├── docs/               # Documentation
-│   ├── reports/        # Project reports (Thai and English)
-│   ├── research/       # Research papers and findings
-│   └── *.md            # Main documentation files
-├── results/            # Benchmark results (JSON files)
-├── scripts/            # Python scripts for testing/demo
-├── src/                # Main Rust source code
-│   ├── bin/            # Binary executables
-│   ├── core/           # Core types (IRI, entities, ontology)
-│   ├── logic/          # Logic definitions (axioms, datatypes)
-│   ├── parser/         # Input parsers
-│   ├── reasoner/       # Reasoning engines (tableaux, SPACL)
-│   ├── strategy/       # Strategy selection (meta, evolutionary)
-│   ├── util/           # Utilities (cache, memory, validation)
-│   └── app/            # Application-specific code
-├── target/             # Cargo build output
-├── tests/              # Test files
-│   └── data/           # Test ontologies (OWL files)
-├── Cargo.toml          # Rust project configuration
-├── Cargo.lock          # Dependency lock file
-└── .gitignore          # Git ignore rules
+├── src/                # Rust library and internal modules
+├── tests/              # Rust tests and ontology test data
+├── benches/            # Criterion benchmarks
+├── benchmarks/         # Head-to-head benchmark harness and datasets
+├── scripts/            # Utility scripts (benchmarking, validation, profiling)
+├── docs/               # Active technical documentation
+├── paper/              # Submission manuscript and paper assets
+├── specs/              # Interface/schema specs (including blockchain-related)
+├── results/            # Historical benchmark/result artifacts
+├── admin/              # Project management notes and revision logs
+├── assets/             # Static diagrams/images
+└── archive/            # Archived non-active materials
 ```
 
-## Directory Descriptions
+## Key directories
 
-### `src/` - Source Code
-Main Rust source code organized by module:
-- **core/**: Fundamental types (IRI, entities, ontology, errors)
-- **logic/**: OWL logic (axioms, class expressions, datatypes)
-- **parser/**: Input format parsers (Turtle, RDF/XML, etc.)
-- **reasoner/**: Reasoning engines including the novel SPACL algorithm
-- **strategy/**: Strategy selection and optimization
-- **util/**: Utility modules (caching, memory, validation)
-- **app/**: Application-specific implementations (EPCIS)
+### `src/`
 
-### `docs/` - Documentation
-- **README.md**: Main project documentation
-- **PROJECT_STRUCTURE.md**: Source code structure guide
-- **SPACL_ALGORITHM.md**: Novel algorithm documentation
-- **IMPLEMENTATION_PLAN.md**: Development roadmap
-- **reports/**: Project reports in Thai and English
-- **research/**: Research papers and algorithm findings
+Main Rust codebase:
 
-### `benches/` - Benchmarks
-Rust benchmark suites using Criterion:
-- `spacl_vs_sequential.rs`: Compares SPACL vs traditional tableaux
-- Other performance benchmarks
+- `src/core/`
+- `src/logic/`
+- `src/parser/`
+- `src/reasoner/`
+- `src/strategy/`
+- `src/serializer/`
+- `src/storage/`
+- `src/util/`
+- `src/bin/` (CLI binaries)
 
-### `scripts/` - Python Scripts
-- `tableau_reasoner.py`: Python tableau implementation
-- `test_tableau_reasoner.py`: Python tests
-- `simple_demo.py`: Simple demonstration
-- `benchmark_tableau.py`: Benchmarking script
-- `run_real_benchmarks.py`: Real-world benchmark runner
+### `benchmarks/`
 
-### `assets/` - Visual Assets
-PNG images from benchmarks:
-- `benchmark_results.png`
-- `detailed_ontology_performance.png`
-- `phase_comparison.png`
-- `standard_ontology_algorithm_comparison.png`
+Benchmark infrastructure:
 
-### `results/` - Benchmark Results
-JSON files with benchmark data:
-- `enhanced_reasoner_benchmark.json`
-- `real_benchmark_results.json`
-- `standard_ontology_test_results.json`
+- `benchmarks/competitors/` - competitor harness (`run_benchmarks.sh`) and run history
+- `benchmarks/external/owl2bench/` - external OWL2Bench wrapper
+- `benchmarks/ontologies/` - benchmark ontology sets
 
-### `tests/data/` - Test Data
-OWL ontology files for testing:
-- `univ-bench.owl`: LUBM benchmark ontology
+### `docs/`
 
-### `archive/` - Archived Files
-Old source files kept for reference:
-- Old Rust source files before reorganization
-- Previous versions of lib.rs
+Current active documentation and benchmark runbook.
+Legacy planning/status docs are moved under `docs/archive/`.
 
-## Key Files
+### `paper/`
 
-| File | Purpose |
-|------|---------|
-| `Cargo.toml` | Rust project configuration |
-| `docs/README.md` | Main project documentation |
-| `src/lib.rs` | Library root with public exports |
-| `src/reasoner/speculative.rs` | SPACL novel algorithm |
-| `benches/spacl_vs_sequential.rs` | Performance benchmark |
+Submission files and build script:
 
-## Quick Navigation
+- `paper/submission/manuscript.tex`
+- `paper/submission/compile.sh`
 
-- **Documentation**: `docs/`
-- **Source Code**: `src/`
-- **Benchmarks**: `benches/`
-- **Test Data**: `tests/data/`
-- **Results**: `results/`
-- **Python Scripts**: `scripts/`
-- **Images**: `assets/`
+## Generated artifacts
 
-## Notes
+Not part of source architecture:
 
-- The `archive/` directory contains old files kept for reference only
-- The `backup_tableauxx/` directory is a legacy backup
-- Build artifacts are in `target/` (managed by Cargo)
+- `target/` - Cargo build output
+- benchmark result directories under `benchmarks/competitors/results/history/`
+
+## Maintenance rule
+
+- keep active docs in `docs/`
+- move stale planning/status snapshots into `docs/archive/`
+- keep reproducibility artifacts in benchmark history directories, not in root docs
