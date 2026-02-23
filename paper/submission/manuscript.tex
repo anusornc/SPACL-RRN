@@ -106,7 +106,7 @@
 %% ABSTRACT
 %% ============================================
 \begin{abstract}
-We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. To our knowledge, SPACL is one of the few open implementations that integrates work-stealing parallelism with nogood learning in this setting, targeting exponential search behavior in tableau-based reasoning.
+We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. The reference implementation and repository are named \textit{Tableauxx}; throughout this manuscript, we use \textit{SPACL} for the algorithm/system and \textit{Tableauxx} only when referring to the software artifact. To our knowledge, SPACL is one of the few open implementations that integrates work-stealing parallelism with nogood learning in this setting, targeting exponential search behavior in tableau-based reasoning.
 
 Our key contributions are: (1) a speculative parallel tableaux algorithm that explores branches concurrently with work-stealing; (2) an adaptive threshold mechanism that selects sequential or parallel execution based on estimated complexity, yielding 18--73$\times$ speedup over naive always-parallel execution on small ontologies; (3) thread-local nogood caching that reduces synchronization overhead by 80\%; (4) a global thread pool optimization that reduces overhead by 2.1$\times$; and (5) a Rust implementation with parser support for RDF/XML, OWL2 Functional, Manchester, and JSON-LD syntaxes. SPACL reaches $5\times$ speedup at 10,000 classes while keeping overhead below $2\times$ on small ontologies.
 
@@ -650,7 +650,7 @@ Thread-local caches limit contention while maintaining bounded memory. The imple
 \subsection{Parser Implementations}
 \label{sec:parsers}
 
-Tableauxx provides parser support for OWL2 syntaxes:
+The reference implementation (Tableauxx) provides parser support for OWL2 syntaxes:
 
 \textbf{OWL2 Functional Syntax}: Full support for OWL2 Functional Grammar
 \begin{itemize}
@@ -784,7 +784,7 @@ where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text
     \item \textbf{JFact}: Docker image family \texttt{owl-reasoner-jfact} (tag used at benchmark run time)
     \item \textbf{Konclude}: Docker image family \texttt{owl-reasoner-konclude} (tag used at benchmark run time)
     \item \textbf{Pellet}: v2.3.3 (legacy OWLAPI v3 packaging; benchmarked directly in this setup)
-    \item \textbf{Tableauxx}: Rust v1.84.0, release profile with LTO
+    \item \textbf{SPACL (Tableauxx implementation)}: Rust v1.84.0, release profile with LTO
 \end{itemize}
 
 \textbf{Head-to-Head Protocol (primary reproducible runs in this revision)}:
@@ -793,7 +793,7 @@ where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text
     Small Workload Suite = disjunctive\_simple.owl, disjunctive\_test.owl, hierarchy\_100.owl, hierarchy\_1000.owl, hierarchy\_10000.owl, univ-bench.owl; 
     Large Head-to-Head = doid.owl, go-basic.owl, uberon.owl; 
     OWL2Bench Core Profile Suite = UNIV-BENCH-OWL2DL.owl, UNIV-BENCH-OWL2EL.owl, UNIV-BENCH-OWL2QL.owl, UNIV-BENCH-OWL2RL.owl
-    \item \textbf{Reasoners}: Tableauxx, HermiT, Konclude, Openllet, ELK, JFact, Pellet
+    \item \textbf{Reasoners}: SPACL (Tableauxx implementation), HermiT, Konclude, Openllet, ELK, JFact, Pellet
     \item \textbf{Measurement}: Single isolated container run per reasoner/ontology pair for Small and Large suites; OWL2Bench core profile suite is repeated for 3 independent clean runs
     \item \textbf{Timeout policy}: 180 seconds for Small Workload Suite; 900 seconds for Large Head-to-Head; 300 seconds for OWL2Bench Core Profile Suite
     \item \textbf{Metrics}: Wall-clock time (loading + parsing + reasoning)
@@ -817,7 +817,7 @@ where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text
 
 \textbf{Named benchmark sets in this paper}: \textit{Small Workload Suite} (synthetic/disjunctive workloads), \textit{Large Head-to-Head} (three large biomedical ontologies in the primary reproducible run set: doid, go-basic, uberon), and \textit{OWL2Bench Core Profile Suite} (UNIV-BENCH OWL2 DL/EL/QL/RL files).
 
-\textbf{Binary Format}: Pre-converted .owlbin files for Tableauxx binary tests
+\textbf{Binary Format}: Pre-converted .owlbin files for SPACL (Tableauxx implementation) binary tests
 
 \subsection{Scalability Results}
 \label{sec:scalability}
@@ -1075,7 +1075,7 @@ Konclude & 0 & 0\% & NA & NA \\
 \subsection{Analysis: JVM Startup Overhead}
 \label{sec:jvm-overhead}
 
-Small-workload wall-clock numbers should be interpreted as end-to-end deployment measurements rather than pure reasoning-kernel speed. In the Small Workload Suite, most JVM-based engines cluster around 2.7--4.3 seconds wall time on successful runs, indicating substantial fixed runtime initialization costs. Tableauxx completes all six small cases; four cases are near 2.0--2.2 seconds, \texttt{disjunctive\_simple.owl} is 3.82 seconds, and \texttt{hierarchy\_10000.owl} is 8.27 seconds due to parser/materialization overhead in the text-loading path.
+Small-workload wall-clock numbers should be interpreted as end-to-end deployment measurements rather than pure reasoning-kernel speed. In the Small Workload Suite, most JVM-based engines cluster around 2.7--4.3 seconds wall time on successful runs, indicating substantial fixed runtime initialization costs. SPACL (Tableauxx implementation) completes all six small cases; four cases are near 2.0--2.2 seconds, \texttt{disjunctive\_simple.owl} is 3.82 seconds, and \texttt{hierarchy\_10000.owl} is 8.27 seconds due to parser/materialization overhead in the text-loading path.
 
 \textbf{Takeaway}: Wall-clock comparisons in this section reflect startup + parsing + reasoning together. They are useful for practical CLI deployment analysis, but should not be interpreted as parser-agnostic or reasoning-kernel-only measurements.
 
@@ -1220,7 +1220,7 @@ We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative 
 \subsection{Availability}
 \label{sec:availability}
 
-SPACL is available at \url{https://github.com/anusornc/tableauxx} under the MIT license.
+SPACL is available as the Tableauxx open-source implementation at \url{https://github.com/anusornc/tableauxx} under the MIT license.
 Reproducibility artifacts for this paper revision are included in the repository:
 \path{benchmarks/competitors/results/history/small_workload_suite_real_20260221}
 and
