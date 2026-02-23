@@ -16,8 +16,8 @@ BENCHMARK_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROJECT_ROOT="$(cd "$BENCHMARK_DIR/../.." && pwd)"
 
 RESULTS_DIR="$BENCHMARK_DIR/results"
-ONTOLOGIES_DIR="$BENCHMARK_DIR/ontologies"
-LARGE_ONTOLOGIES_DIR="$PROJECT_ROOT/benchmarks/ontologies/other"
+ONTOLOGIES_DIR="${ONTOLOGIES_DIR_OVERRIDE:-$BENCHMARK_DIR/ontologies}"
+LARGE_ONTOLOGIES_DIR="${LARGE_ONTOLOGIES_DIR_OVERRIDE:-$PROJECT_ROOT/benchmarks/ontologies/other}"
 
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-300}"
 OPERATION="${OPERATION:-consistency}"
@@ -239,6 +239,8 @@ write_run_metadata() {
         --arg run_id "$RUN_ID" \
         --arg started_at "$(date -Iseconds)" \
         --arg ontology_suite "$ONTOLOGY_SUITE" \
+        --arg ontologies_dir "$ONTOLOGIES_DIR" \
+        --arg large_ontologies_dir "$LARGE_ONTOLOGIES_DIR" \
         --arg operation "$OPERATION" \
         --argjson timeout_seconds "$TIMEOUT_SECONDS" \
         --argjson include_chebi "$INCLUDE_CHEBI" \
@@ -248,6 +250,8 @@ write_run_metadata() {
             run_id: $run_id,
             started_at: $started_at,
             ontology_suite: $ontology_suite,
+            ontologies_dir: $ontologies_dir,
+            large_ontologies_dir: $large_ontologies_dir,
             operation: $operation,
             timeout_seconds: $timeout_seconds,
             include_chebi: ($include_chebi == 1),
@@ -900,6 +904,8 @@ main() {
             echo "    ONTOLOGY_SUITE=standard|large|all"
             echo "    ONTOLOGY_REGEX='(doid|pato)\\.owl'"
             echo "    INCLUDE_CHEBI=1"
+            echo "    ONTOLOGIES_DIR_OVERRIDE=/path/to/standard_owl_dir"
+            echo "    LARGE_ONTOLOGIES_DIR_OVERRIDE=/path/to/large_owl_dir"
             echo "    RUN_ID=<custom_run_id>"
             echo "    CLEAN_STALE_CONTAINERS=1"
             echo "    OWL2_REASONER_EXPERIMENTAL_XML_PARSER=1"

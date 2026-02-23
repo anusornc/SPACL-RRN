@@ -35,6 +35,9 @@ ONTOLOGY_SUITE=large SKIP_BUILD=1 TIMEOUT_SECONDS=900 ./scripts/run_benchmarks.s
 REASONERS_OVERRIDE=tableauxx,hermit,konclude,openllet,elk,jfact,pellet TIMEOUT_SECONDS=600 ./scripts/run_benchmarks.sh all
 INCLUDE_FACTPP=1 ./scripts/run_benchmarks.sh all
 
+# Optional: override ontology directories (for external benchmark sets)
+ONTOLOGIES_DIR_OVERRIDE=/path/to/custom_owl_dir ONTOLOGY_SUITE=standard ./scripts/run_benchmarks.sh all
+
 # Stage split for fair analysis (Tableauxx parse-only vs reason-only)
 ./scripts/run_stage_benchmark.sh go-basic.owl
 REPEAT_WARM=5 TIMEOUT_SECONDS=1800 ./scripts/run_stage_benchmark.sh chebi.owl
@@ -161,6 +164,17 @@ For each run:
 - `benchmarks/competitors/results/history/<run_id>/paper_table.tex`
 
 `benchmarks/competitors/results/latest` points to the most recent completed run.
+
+## External Validation (OWL2Bench)
+
+External benchmark wrappers are provided under:
+
+- `benchmarks/external/owl2bench/prepare.sh`
+- `benchmarks/external/owl2bench/run.sh`
+- `benchmarks/external/owl2bench/report.sh`
+
+These wrappers stage external `.owl` files and execute the same core harness for
+status-compatible reports (`success/failed/timeout/not_available`).
 
 ## References
 
