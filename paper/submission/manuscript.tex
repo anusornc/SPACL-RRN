@@ -110,7 +110,7 @@ We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning)
 
 Our key contributions are: (1) a speculative parallel tableaux algorithm that explores branches concurrently with work-stealing; (2) an adaptive threshold mechanism that selects sequential or parallel execution based on estimated complexity, yielding 18--73$\times$ speedup over naive always-parallel execution on small ontologies; (3) thread-local nogood caching that reduces synchronization overhead by 80\%; (4) a global thread pool optimization that reduces overhead by 2.1$\times$; and (5) a Rust implementation with parser support for RDF/XML, OWL2 Functional, Manchester, and JSON-LD syntaxes. SPACL reaches $5\times$ speedup at 10,000 classes while keeping overhead below $2\times$ on small ontologies.
 
-In the Small Workload Suite, SPACL records the best wall-clock time on 5/6 ontologies and is the only reasoner that completes all six cases in our containerized harness; the remaining case (\texttt{hierarchy\_10000.owl}) is faster on ELK and Pellet. In the Large Head-to-Head benchmark (doid/go-basic/uberon), SPACL records the best wall-clock result on all three tested ontologies under an identical 900s timeout protocol. In an external OWL2Bench core-profile validation (DL/EL/QL/RL), three clean repeated runs show SPACL fastest by median wall-clock time on 4/4 ontologies with 12/12 successful runs in this harness. Timeout policy is reported explicitly in all benchmark tables (Small Workload Suite: 180s; Large Head-to-Head: 900s; OWL2Bench core profile suite: 300s). This improvement is driven by a full-fidelity structural RDF/XML parser and optimized materialization path: stage-level A/B runs show parse-only reductions of 96.96--97.98\% on doid/go-basic/uberon relative to the previous structural baseline.
+In the Small Workload Suite, SPACL records the best wall-clock time on 4/6 ontologies and is the only reasoner that completes all six cases in our containerized harness; \texttt{disjunctive\_simple.owl} and \texttt{hierarchy\_10000.owl} are faster on Pellet (with ELK also faster on \texttt{hierarchy\_10000.owl}). In the Large Head-to-Head benchmark (doid/go-basic/uberon), SPACL records the best wall-clock result on all three tested ontologies under an identical 900s timeout protocol. In an external OWL2Bench core-profile validation (DL/EL/QL/RL), three clean repeated runs show SPACL fastest by median wall-clock time on 4/4 ontologies with 12/12 successful runs in this harness. Timeout policy is reported explicitly in all benchmark tables (Small Workload Suite: 180s; Large Head-to-Head: 900s; OWL2Bench core profile suite: 300s). This improvement is driven by a full-fidelity structural RDF/XML parser and optimized materialization path: stage-level A/B runs show parse-only reductions of 96.96--97.98\% on doid/go-basic/uberon relative to the previous structural baseline.
 \end{abstract}
 
 %% ============================================
@@ -183,118 +183,38 @@ In Rust, these design choices translate into measurable gains: $5\times$ speedup
 
 The remainder of this paper is organized as follows. Section \ref{sec:related} reviews related work in parallel reasoning and conflict learning. Section \ref{sec:algorithm} presents the SPACL algorithm and its components. Section \ref{sec:implementation} describes our Rust implementation. Section \ref{sec:evaluation} presents comprehensive benchmarks including scalability, thread scaling, and comparison with existing reasoners. Section \ref{sec:conclusion} concludes with limitations and future directions.
 
-\section{Research Relevance and Motivation}
+\section{Related Work}
 \label{sec:related}
 
-\subsection{Fundamental Challenges in OWL2 DL Reasoning}
+This section summarizes prior work on tableau-based OWL reasoning, parallel and distributed execution, conflict-driven learning, and speculative execution. The goal is to position SPACL against the strongest established techniques used in practical reasoners.
 
-OWL 2 DL (Web Ontology Language 2 Description Logic) reasoning remains fundamental to semantic web applications, knowledge graph construction, and biomedical informatics~\cite{hitzler2012owl}. However, tableau-based algorithms face severe scalability challenges due to the exponential nature of tableau expansion, particularly for large-scale ontologies with complex axioms~\cite{amir2017cedar}.
+\subsection{Tableau-Based Reasoning}
 
-\subsubsection{Exponential Search Space and Non-Determinism}
+Tableau calculi remain a central approach for expressive description logic reasoning. Practical systems such as Pellet and HermiT demonstrated that sound and complete reasoning can be delivered at scale when rule ordering, blocking, and caching are engineered carefully~\cite{pellet,hermit,motik2009hypertableau}. In particular, the hypertableau line of work reduces non-deterministic branching pressure compared with classical tableau expansion, and individual-reuse techniques reduce model blow-up in challenging ontologies~\cite{motik2009hypertableau}.
 
-The primary obstacle to scalable OWL2 DL reasoning is the exponential growth of the tableau search space. Faddoul and MacCaull~\cite{faddoul2015fork} discuss non-determinism as a major source of complexity in expressive description logics, where disjunctive axioms can multiply the number of branches. This exponential branching behavior means that even moderately sized ontologies can generate large numbers of potential tableau branches, overwhelming sequential reasoners.
+State-of-the-art systems also combine calculi. Konclude integrates tableau-style reasoning with additional optimization layers and has shown strong performance on large benchmark sets~\cite{konclude,song2013complete,glimm2014coupling}. For tractable fragments, consequence-based reasoners such as ELK provide excellent throughput, illustrating how calculus design strongly influences scalability and implementation trade-offs~\cite{elk}.
 
-\subsubsection{Underutilization of Parallel Hardware}
+\subsection{Parallel Reasoning}
 
-Despite widespread availability of multi-core processors, the majority of open-source OWL reasoners continue to employ fundamentally sequential algorithms~\cite{quan2017parallel}. Quan and Haarslev~\cite{quan2017parallel} observe that while commercial reasoners offer some parallel reasoning capabilities, they remain closed-source, and many widely-used open-source alternatives have not been designed to exploit thread-level parallelism. This represents a significant missed opportunity, as parallel exploration of independent tableau branches could theoretically achieve near-linear speedups on modern hardware.
+Parallelization has been studied at multiple granularities. Shared-memory classification frameworks distribute satisfiability and subsumption checks across workers and report substantial speedup on multicore systems~\cite{quan2017parallel,quan2019framework}. Work-stealing style scheduling further improves load balancing when ontology subproblems are uneven~\cite{workstealing,quan2017parallel}.
 
-\subsubsection{Redundant Computation Without Learning}
+Beyond classification, parallel ABox reasoning has explored dynamic splitting of model-construction tasks with cache reuse strategies to improve throughput on assertion-heavy workloads~\cite{steigmiller2020parallelised}. Distributed materialization frameworks (for less expressive profiles) use Spark-based execution and data-partitioned pipelines to scale to very large datasets~\cite{liu2017spowl,gu2015cichlid,benitez2023nora}. These results confirm the scalability potential of parallel infrastructures, while also highlighting that end-to-end performance is highly sensitive to reasoning profile, task type, and synchronization overhead.
 
-A critical inefficiency in parallel tableau reasoning is the repeated exploration of branches that lead to identical contradictions~\cite{steigmiller2020parallelised}. Traditional tableau reasoners lack mechanisms to record and propagate learned conflicts across branches, resulting in exponentially redundant work~\cite{motik2009hypertableau}.
+\subsection{Conflict-Driven Learning}
 
-\subsection{Existing Approaches and Their Limitations}
+Conflict-driven learning is a mature optimization paradigm in SAT/CSP, where learned clauses/nogoods prevent repeated exploration of failing search regions~\cite{marques1999grasp,glorian2020nacre}. In description logic systems, related ideas appear in more localized forms, such as nogood-aware individual reuse in hypertableau procedures~\cite{motik2009hypertableau}.
 
-\subsubsection{Shared-Memory Thread-Level Parallelization}
+Hybrid reasoners that couple tableau and saturation procedures also demonstrate the value of reusing derived information to reduce repeated work during classification~\cite{song2013complete,glimm2014coupling,konclude}. However, openly documented integrations of branch-level speculative parallel tableau exploration with adaptive, reusable nogood learning remain limited in mainstream open-source OWL2 DL pipelines.
 
-Quan and Haarslev~\cite{quan2017parallel,quan2019framework} developed parallel shared-memory architectures that distribute independent subsumption tests across multiple threads and report substantial wall-clock improvements for classification tasks. However, these approaches focus primarily on classification rather than full ABox-intensive reasoning, and they do not modify the inner tableau logic to enable conflict learning or nogood reuse across parallel branches~\cite{quan2019framework}.
+\subsection{Speculative Execution}
 
-\subsubsection{Distributed Materialization Frameworks}
+Speculative execution for OWL reasoning explores multiple non-deterministic branches concurrently and relies on cancellation/pruning once contradictions or witnesses are found. Work-stealing provides a practical runtime foundation for this model by balancing branch workloads dynamically~\cite{workstealing,quan2017parallel}. Lock-free and low-contention engineering techniques are also critical for obtaining net gains rather than synchronization-bound slowdowns~\cite{elk,quan2019framework}.
 
-Distributed computing frameworks leverage Apache Spark and MapReduce to materialize OWL closures over large datasets. Liu and McBrien~\cite{liu2017spowl} introduced SPOWL, which compiles TBox axioms into iterative Spark programs. Gu et al.~\cite{gu2015cichlid} developed Cichlid, and Benítez-Hidalgo et al.~\cite{benitez2023nora} presented NORA, combining Apache Spark with NoSQL databases to scale materialization to very large ABoxes.
+The primary systems challenge is overhead control. On easy workloads, naive always-parallel execution can underperform sequential reasoning because scheduling and coordination costs dominate. This motivates adaptive policies that switch between sequential and parallel execution based on estimated branch complexity~\cite{quan2017parallel}. A second challenge is conflict sharing: learned nogoods should be reused aggressively enough to prune search, but not so aggressively that contention erodes parallel benefit~\cite{steigmiller2020parallelised}.
 
-\noindent\textit{Literature verification note (LIT-TODO-1)}: Reported gains in distributed materialization studies vary by dataset, profile, and execution environment; we therefore treat these papers as evidence of scalability direction rather than directly comparable end-to-end speedups for full OWL2 DL reasoning.
+\subsection{Summary and Positioning}
 
-While distributed materialization achieves excellent scalability for rule-based fragments (OWL RL, OWL Horst, RDFS), these approaches are less applicable to full OWL2 DL sound-and-complete tableau procedures, which require handling non-determinism and backtracking~\cite{wu2016parallel}.
-
-\subsubsection{Hybrid Partitioning Strategies}
-
-Wang et al.~\cite{wang2019comr} introduced ComR, which identifies a minimal non-EL subontology and delegates much of the workload to an OWL EL reasoner. Steigmiller and Glimm~\cite{steigmiller2020parallelised} explored dynamic splitting of model construction with shared derivation caches. However, partitioning requires careful identification of the minimal non-EL portion and may be less effective when many axioms fall outside tractable fragments~\cite{wang2019comr}.
-
-\subsection{Conflict-Driven Learning: An Untapped Opportunity}
-
-\subsubsection{Success in SAT/CSP Domains}
-
-Conflict-driven clause learning (CDCL) has revolutionized Boolean satisfiability (SAT) solving, enabling modern SAT solvers to handle instances with millions of variables~\cite{marques1999grasp}. Glorian et al.~\cite{glorian2020nacre} developed NACRE, a nogood-and-clause reasoning engine for constraint solving with data structures optimized for learning strategies, achieving competitive performance in CSP competitions.
-
-\subsubsection{The Research Gap in DL Reasoning}
-
-Despite the success of CDCL in SAT/CSP domains, our survey did not find clear open-source reports integrating conflict-driven nogood learning into tableau-based ALC/SHOIQ reasoners. While Liu et al.~\cite{liu2019deep} applied deep learning to discover inference rules across ontologies, this work focuses on rule augmentation rather than tableau search optimization. Algahtani~\cite{algahtani2024mp} demonstrated massively parallel hypothesis evaluation for inductive learning (MP-HTHEDL), but this targets ILP-style evaluations rather than tableau reasoning.
-
-\noindent\textit{Literature verification note (LIT-TODO-2)}: This gap statement is bounded to publicly documented and open-source implementations covered by our survey; closed-source, unpublished, or non-indexed systems may exist outside this review scope.
-
-The surveyed literature suggests a gap: parallel frameworks exist for OWL reasoning~\cite{quan2017parallel,quan2019framework,liu2017spowl,gu2015cichlid} and nogood/clause learning machinery is well-established for constraint problems~\cite{glorian2020nacre}, but integrated adaptive conflict-driven parallel tableau implementations for ALC/SHOIQ are not commonly documented in open-source systems.
-
-\subsection{Performance Landscape of Contemporary Reasoners}
-
-\subsubsection{OWL Reasoner Evaluation (ORE) Workshops}
-
-The ORE workshop series (2013-2015) established standardized benchmarks for comparing OWL reasoners across classification, consistency checking, and realization tasks~\cite{parsia2015ore,scioscia2021ore}. These competitions evaluated 14 reasoner submissions including FaCT++, HermiT, Pellet, JFact, Konclude, TrOWL, and others, reporting execution times, success/failure rates, and comparative rankings~\cite{parsia2015ore,scioscia2021ore}.
-
-Key findings include:
-\begin{itemize}
-    \item Reasoners exhibit significant performance variation across different ontologies, with no single reasoner dominating all benchmarks~\cite{kang2012rigorous}.
-    \item Many reasoners time out or fail on challenging ontologies with complex axioms or large ABoxes~\cite{parsia2015ore,scioscia2021ore}.
-    \item Specialized optimizations can dramatically improve performance on specific ontology classes~\cite{song2013complete,glimm2014coupling}.
-\end{itemize}
-
-\subsubsection{Reasoner-Specific Characteristics}
-
-\textbf{Pellet}~\cite{sirin2007pellet}: A widely-used tableau-based reasoner that appears in numerous ORE evaluations; often outperformed by newer optimizations on large or complex ontologies.
-
-\textbf{HermiT}~\cite{glimm2014hermit}: A hypertableau-based reasoner that reduces non-determinism and model size. The hypertableau approach aims to minimize backtracking by eagerly applying deterministic expansion rules.
-
-\textbf{Konclude}~\cite{song2013complete,glimm2014coupling}: Combines tableau and saturation techniques to scale to large medical terminologies (e.g., SNOMED CT); shows significant performance improvements over pure tableau-based engines.
-
-\textbf{ELK}~\cite{elk}: A consequence-based reasoner for the OWL EL profile; very strong on EL-profile classification but limited to EL expressivity (cannot handle OWL 2 DL features outside EL).
-
-\textbf{FaCT++ and JFact}: Widely-used tableau-based reasoners competitive on many ontologies but can be outperformed by specialized engines on specific datasets~\cite{kang2012rigorous,glimm2014hermit}.
-
-\subsubsection{Benchmark Frameworks}
-
-\textbf{OWL2Bench}~\cite{singh2020owl2bench}: A customizable benchmark framework targeting construct coverage, size scaling, and query evaluation for OWL 2 reasoners.
-
-\textbf{evOWLuator}~\cite{bilenchi2021multiplatform}: A multiplatform, energy-aware benchmarking framework providing correctness, runtime, and energy measurements for reasoners across ORE and BioPortal ontologies.
-
-\subsection{SPACL: Addressing the Gap}
-
-SPACL directly addresses the documented gap between parallel OWL reasoning and adaptive learning. Prior parallelization work focuses on task delegation, partitioning, or materialization without integrated adaptive conflict/nogood reuse across parallel speculative branches~\cite{quan2017parallel,quan2019framework,liu2017spowl,gu2015cichlid}. Conversely, NACRE-style nogood machinery exists for CSP/SAT but has not been shown applied to tableau DL reasoning~\cite{glorian2020nacre}.
-
-\textbf{To our knowledge, SPACL is among the first openly available systems to integrate work-stealing parallelism with nogood learning for ALC/SHOIQ tableau reasoning}, combining speculative throughput gains with conflict-driven search-space reduction.
-
-\subsubsection{Key Innovations}
-
-\begin{enumerate}
-    \item \textbf{Speculative Parallel Tableau Expansion}: Work-stealing scheduler dynamically distributes tableau branches among worker threads, inspired by fork/join parallel frameworks~\cite{faddoul2015fork,quan2017parallel}.
-    
-    \item \textbf{Adaptive Conflict Learning}: Recording minimal unsatisfiable assertion sets (nogoods) when branches lead to contradictions enables threads to prune future branches that would lead to identical conflicts, addressing the fundamental inefficiency regarding non-determinism~\cite{faddoul2015fork} and redundant computation~\cite{steigmiller2020parallelised}.
-    
-    \item \textbf{Thread-Local Caching}: Minimizes synchronization overhead while maintaining learning effectiveness, informed by lessons from distributed derivation caching~\cite{steigmiller2020parallelised}.
-    
-    \item \textbf{Adaptive Parallelism Threshold}: Automatically selects between sequential and parallel processing based on estimated problem complexity, maintaining low overhead for small ontologies while achieving significant speedups for large ones~\cite{quan2017parallel}.
-\end{enumerate}
-
-\subsubsection{Research Significance}
-
-The relevance of SPACL extends across several dimensions:
-
-\textbf{Scientific Contribution}: Demonstrates that conflict-driven learning, highly successful in SAT/CSP domains, can be effectively adapted to expressive description logic tableau reasoning, opening new research directions for optimizing non-deterministic logical reasoning systems.
-
-\textbf{Practical Impact}: By achieving 5$\times$ speedups on large ontologies while maintaining low overhead on small ones, SPACL offers a practical solution for applications requiring real-time reasoning over complex ontologies, including biomedical informatics, enterprise knowledge management, semantic web applications, and autonomous systems.
-
-\textbf{Methodological Innovation}: SPACL's adaptive threshold mechanism and thread-local nogood caching represent methodological innovations that balance the competing concerns of parallelization overhead, synchronization costs, and learning effectiveness.
-
-% Add these references to your references.bib file:
-% See the companion references.bib file for the complete bibliography entries
+Prior literature provides strong building blocks: optimized tableau/hypertableau calculi~\cite{motik2009hypertableau,hermit}, high-throughput parallel classification frameworks~\cite{quan2017parallel,quan2019framework}, distributed materialization engines~\cite{liu2017spowl,gu2015cichlid,benitez2023nora}, and mature nogood machinery in constraint solving~\cite{glorian2020nacre}. SPACL is positioned at their intersection: branch-level speculative parallelism, adaptive overhead control, and practical nogood reuse designed for expressive OWL reasoning workloads.
 \section{Formal Framework}
 \label{sec:formal}
 
@@ -840,7 +760,7 @@ where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text
     \item \textbf{Disjunctive tests}: disjunctive\_test.owl (6 axioms with unions)
     \item \textbf{LUBM}: univ-bench.owl (University benchmark)
     \item \textbf{BioPortal}: PATO, DOID, UBERON, GO (real-world ontologies)
-    \item All ontologies are consistent (satisfiability testing)
+    \item Primary head-to-head suites use consistent ontologies (satisfiability testing); a dedicated nogood ablation additionally includes inconsistent synthetic cases
 \end{itemize}
 
 \textbf{Baselines}:
@@ -1182,18 +1102,18 @@ Figure \ref{fig:thread-scaling} shows speedup as worker count increases from 1 t
         \foreach \y in {1,2,3,4,5,6} {
             \draw (0,\y*0.8) -- (-0.1,\y*0.8) node[left] {\y};
         }
-        % Data points (approximate)
-        \filldraw[blue] (0.33,0.8) circle (2pt); % 1 worker
-        \filldraw[blue] (0.67,1.6) circle (2pt); % 2 workers
-        \filldraw[blue] (1.33,2.4) circle (2pt); % 4 workers
-        \filldraw[blue] (2.67,3.8) circle (2pt); % 8 workers
-        \filldraw[blue] (4,4.4) circle (2pt); % 12 workers (peak)
-        \filldraw[blue] (5.33,4.6) circle (2pt); % 16 workers
-        \filldraw[blue] (6.67,4.5) circle (2pt); % 20 workers
-        \filldraw[blue] (8,4.3) circle (2pt); % 24 workers
-        \draw[blue, thick] (0.33,0.8) -- (0.67,1.6) -- (1.33,2.4) -- (2.67,3.8) -- (4,4.4) -- (5.33,4.6) -- (6.67,4.5) -- (8,4.3);
-        \draw[dashed, red] (0,0.8) -- (8,5.6) node[right] {Ideal};
-        \draw[dashed, gray] (4,-0.1) -- (4,4.4) node[above] {Physical cores};
+        % Measured speedup points at 10K classes (normalized to y-axis scale)
+        \filldraw[blue] (0.33,0.8) circle (2pt);   % 1 worker: 1.00x
+        \filldraw[blue] (0.67,1.52) circle (2pt);  % 2 workers: 1.90x
+        \filldraw[blue] (1.33,2.24) circle (2pt);  % 4 workers: 2.80x
+        \filldraw[blue] (2.67,3.28) circle (2pt);  % 8 workers: 4.10x
+        \filldraw[blue] (4,3.90) circle (2pt);     % 12 workers: 4.88x (peak)
+        \filldraw[blue] (5.33,3.68) circle (2pt);  % 16 workers: 4.60x
+        \filldraw[blue] (6.67,3.60) circle (2pt);  % 20 workers: 4.50x
+        \filldraw[blue] (8,3.44) circle (2pt);     % 24 workers: 4.30x
+        \draw[blue, thick] (0.33,0.8) -- (0.67,1.52) -- (1.33,2.24) -- (2.67,3.28) -- (4,3.90) -- (5.33,3.68) -- (6.67,3.60) -- (8,3.44);
+        \draw[dashed, red] (0.33,0.8) -- (4,3.90) node[above right] {Ideal to 12 cores};
+        \draw[dashed, gray] (4,-0.1) -- (4,3.90) node[above] {Physical cores};
     \end{tikzpicture}
     \caption{Thread Scaling: Speedup vs Worker Count (10K classes)}
     \label{fig:thread-scaling}
@@ -1252,7 +1172,7 @@ Hierarchical & $45.6 \pm 2.3$ & $45.1 \pm 2.1$ & $0.1\%$ & $95.2\%$ \\
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. In the Small Workload Suite, SPACL achieves the best wall-clock result on 5/6 ontologies and completes 6/6 runs in our harness, with \texttt{hierarchy\_10000.owl} as the main exception where ELK and Pellet are faster. In the Large Head-to-Head benchmark on biomedical RDF/XML ontologies (doid/go-basic/uberon), the revised structural parser/materialization pipeline substantially improves end-to-end behavior, and SPACL records the best wall-clock time on all 3/3 tested ontologies under a 900s timeout policy. In the external OWL2Bench core-profile suite (DL/EL/QL/RL), three clean repeated runs show SPACL with 12/12 success and the best median wall-clock result on 4/4 ontologies in this harness.
+We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. In the Small Workload Suite, SPACL achieves the best wall-clock result on 4/6 ontologies and completes 6/6 runs in our harness; \texttt{disjunctive\_simple.owl} and \texttt{hierarchy\_10000.owl} are faster on Pellet (with ELK also faster on \texttt{hierarchy\_10000.owl}). In the Large Head-to-Head benchmark on biomedical RDF/XML ontologies (doid/go-basic/uberon), the revised structural parser/materialization pipeline substantially improves end-to-end behavior, and SPACL records the best wall-clock time on all 3/3 tested ontologies under a 900s timeout policy. In the external OWL2Bench core-profile suite (DL/EL/QL/RL), three clean repeated runs show SPACL with 12/12 success and the best median wall-clock result on 4/4 ontologies in this harness.
 
 \subsection{Summary of Contributions}
 \label{sec:summary}
@@ -1274,7 +1194,7 @@ We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative 
     
     \item \textbf{Reproducibility Scope}: Results are measured under containerized CLI harness conditions (startup + parsing + reasoning). Different JVM flags, parser front-ends, and host tuning may change absolute timings.
     
-    \item \textbf{Consistent Ontologies}: All benchmarks use consistent ontologies, underrepresenting nogood learning benefits. Inconsistent ontologies are needed to fully evaluate conflict-driven learning.
+    \item \textbf{Consistency Mix Across Suites}: The primary head-to-head suites use consistent ontologies, while inconsistent cases appear mainly in dedicated nogood ablations. Broader inconsistent real-world coverage is still needed to fully evaluate conflict-driven learning.
     
     \item \textbf{TBox-Only Evaluation}: Current benchmarks focus on classification (TBox). ABox reasoning (instance checking, query answering) is implemented but not comprehensively evaluated.
     
