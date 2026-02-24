@@ -215,6 +215,7 @@ The primary systems challenge is overhead control. On easy workloads, naive alwa
 \subsection{Summary and Positioning}
 
 Prior literature provides strong building blocks: optimized tableau/hypertableau calculi~\cite{motik2009hypertableau,hermit}, high-throughput parallel classification frameworks~\cite{quan2017parallel,quan2019framework}, distributed materialization engines~\cite{liu2017spowl,gu2015cichlid,benitez2023nora}, and mature nogood machinery in constraint solving~\cite{glorian2020nacre}. SPACL is positioned at their intersection: branch-level speculative parallelism, adaptive overhead control, and practical nogood reuse designed for expressive OWL reasoning workloads.
+To make this positioning analytically precise, the next section formalizes the decision model, branching behavior, and correctness arguments that underlie the implementation and evaluation.
 \section{Formal Framework}
 \label{sec:formal}
 
@@ -353,6 +354,7 @@ The adaptive threshold $\tau$ for ontology $\mathcal{O}$ with disjunctions $\mat
 \end{align}
 where $\beta$ is a tuning parameter and $|\mathcal{O}|$ is the ontology size.
 \end{definition}
+In practice, $\beta$ is chosen to map symbolic disjunction-cost scores to observed scheduling overhead on the target hardware. We initialize $\beta$ from pilot microbenchmarks (sequential vs always-parallel crossover), then keep it fixed for all reported suites rather than retuning per ontology.
 
 \begin{theorem}[Adaptive Optimality]
 For an ontology $\mathcal{O}$ with total disjunction cost $D$, let $T_{seq}$ be sequential time and $T_{par}$ parallel time with overhead $o_{par}$. The adaptive mechanism achieves speedup when:
@@ -391,14 +393,15 @@ SPACL combines three core mechanisms illustrated in Figure \ref{fig:architecture
 
 \begin{figure}[htbp]
     \centering
+    \resizebox{0.98\linewidth}{!}{
     \begin{tikzpicture}[
         node distance=0.8cm and 1.2cm,
-        scale=0.92,
+        scale=1.05,
         every node/.style={transform shape},
-        box/.style={rectangle, draw, fill=blue!10, minimum width=2.5cm, minimum height=0.8cm, align=center, font=\small},
-        worker/.style={rectangle, draw, fill=green!10, minimum width=2cm, minimum height=0.7cm, align=center, font=\small},
+        box/.style={rectangle, draw, fill=blue!10, minimum width=2.8cm, minimum height=0.95cm, align=center, font=\normalsize},
+        worker/.style={rectangle, draw, fill=green!10, minimum width=2.2cm, minimum height=0.85cm, align=center, font=\normalsize},
         arrow/.style={->, thick},
-        label/.style={font=\small\bfseries}
+        label/.style={font=\normalsize\bfseries}
     ]
         % Input
         \node[box] (input) {ALC/SHOIQ\\Input};
@@ -435,10 +438,11 @@ SPACL combines three core mechanisms illustrated in Figure \ref{fig:architecture
         \draw[arrow, <->, dashed] (adaptive) -- (nogood);
         
         % Work stealing arrows
-        \draw[arrow, <->, bend left=30] (w1) to node[above, font=\tiny] {steal} (w2);
-        \draw[arrow, <->, bend left=30] (w2) to node[above, font=\tiny] {steal} (w3);
+        \draw[arrow, <->, bend left=30] (w1) to node[above, font=\scriptsize] {steal} (w2);
+        \draw[arrow, <->, bend left=30] (w2) to node[above, font=\scriptsize] {steal} (w3);
     \end{tikzpicture}
-    \caption{SPACL Architecture Overview}
+    }
+    \caption{SPACL Architecture Overview (solid arrows: control/data flow; dashed arrows: coordination/feedback)}
     \label{fig:architecture}
 \end{figure}
 
@@ -594,6 +598,8 @@ This heuristic accounts for:
     \item \textbf{Conservative estimate}: Prefer sequential for uncertain cases
 \end{itemize}
 
+The divisor 10 in the class term normalizes ontology-size contribution to the same order of magnitude as the disjointness term in pilot sweeps (100--10{,}000 classes), so taxonomy-heavy but low-branch ontologies do not trigger parallel mode prematurely.
+
 The threshold $\tau = 100$ was empirically determined through benchmark analysis (Section \ref{sec:threshold-tuning}).
 
 \section{Implementation}
@@ -644,6 +650,8 @@ Memory usage scales with:
 \text{Memory} &= O(|\text{axioms}|) + O(|\text{workers}| \times |\text{depth}|) \\
 &\quad + O(\min(|\text{nogoods}|, \text{max\_nogoods}))
 \end{align}
+
+Here, $|\text{nogoods}|$ is the number of learned conflicts generated during search, and $\text{max\_nogoods}$ is the configured retention cap of the global nogood store (default 10{,}000 in the current implementation). The $\min(\cdot)$ term reflects bounded retention: once the cap is reached, lower-utility entries are pruned.
 
 Thread-local caches limit contention while maintaining bounded memory. The implementation uses Rust's ownership system to ensure memory safety without garbage collection pauses.
 
@@ -774,7 +782,7 @@ where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text
 \subsection{Benchmark Protocol}
 \label{sec:benchmark-protocol}
 
-\textbf{Hardware}: Same as Section~\ref{sec:setup}: Intel Xeon Silver 4214 (12 cores/24 threads, 2.2GHz base) with 64GB DDR4-2400 RAM, running Ubuntu 22.04 LTS
+\textbf{Execution Environment}: Same hardware/software baseline as Section~\ref{sec:setup}
 
 \textbf{Reasoner Artifacts (as executed in benchmark runs)}:
 \begin{itemize}
@@ -861,6 +869,25 @@ Figure \ref{fig:scalability} visualizes the scalability comparison.
     \label{fig:scalability}
 \end{figure}
 
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[t]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{throughput.pdf}
+        \caption{Throughput trend}
+        \label{fig:throughput-trend}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{speedup.pdf}
+        \caption{Speedup and crossover}
+        \label{fig:speedup-trend}
+    \end{subfigure}
+    \caption{Integrated performance view across class sizes (throughput and speedup relative to sequential baseline).}
+    \label{fig:perf-integrated}
+\end{figure}
+
 \subsection{Overhead Analysis}
 \label{sec:overhead}
 
@@ -932,7 +959,7 @@ We evaluated SPACL on large biomedical ontologies used in production-style consi
 
 \begin{table}[htbp]
 \centering
-\caption{Stage-Level A/B on Real-World Ontologies (cold .owl runs)}
+\caption{Stage-Level A/B on Real-World Ontologies (cold .owl runs; E2E = end-to-end wall clock)}
 \label{tab:realworld}
 \resizebox{\linewidth}{!}{
 \begin{tabular}{l|r|r|r|r|r|r}
@@ -1156,6 +1183,8 @@ Hierarchical & $45.6 \pm 2.3$ & $45.1 \pm 2.1$ & $0.1\%$ & $95.2\%$ \\
 \end{itemize}
 
 \textbf{Limitation}: Current benchmarks primarily use consistent ontologies. Nogood learning benefits are underrepresented in overall results.
+
+To better characterize learning impact, future benchmark suites should include a controlled mix of inconsistent and near-inconsistent ontologies (e.g., contradiction-injected variants of real-world corpora), report contradiction density, and separate first-conflict latency from end-to-end wall time. This would make branch-pruning gains directly comparable across workloads.
 
 \subsection{Answering Research Questions}
 \label{sec:answers}
