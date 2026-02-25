@@ -108,9 +108,9 @@
 \begin{abstract}
 We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. The reference implementation and repository are named \textit{Tableauxx}; throughout this manuscript, we use \textit{SPACL} for the algorithm/system and \textit{Tableauxx} only when referring to the software artifact. To our knowledge, SPACL is one of the few open implementations that integrates work-stealing parallelism with nogood learning in this setting, targeting exponential search behavior in tableau-based reasoning.
 
-Our key contributions are: (1) a speculative parallel tableaux algorithm that explores branches concurrently with work-stealing; (2) an adaptive threshold mechanism that selects sequential or parallel execution based on estimated complexity, yielding 18--73$\times$ speedup over naive always-parallel execution on small ontologies; (3) thread-local nogood caching that reduces synchronization overhead by 80\%; (4) a global thread pool optimization that reduces overhead by 2.1$\times$; and (5) a Rust implementation with parser support for RDF/XML, OWL2 Functional, Manchester, and JSON-LD syntaxes. SPACL reaches $5\times$ speedup at 10,000 classes while keeping overhead below $2\times$ on small ontologies.
+Our key contributions are: (1) a speculative parallel tableaux framework with work-stealing scheduling; in the current prototype this is realized via branch-constrained work items evaluated in parallel; (2) an adaptive threshold mechanism that selects sequential or parallel execution based on estimated complexity, yielding 18--73$\times$ speedup over naive always-parallel execution on small ontologies; (3) thread-local nogood caching that reduces synchronization overhead by 80\%; (4) a global thread pool optimization that reduces overhead by 2.1$\times$; and (5) a Rust implementation with parser support for RDF/XML, OWL2 Functional, Manchester, and JSON-LD syntaxes. SPACL reaches $5\times$ speedup at 10,000 classes while keeping overhead below $2\times$ on small ontologies.
 
-In the Small Workload Suite, SPACL records the best wall-clock time on 4/6 ontologies and is the only reasoner that completes all six cases in our containerized harness; \texttt{disjunctive\_simple.owl} and \texttt{hierarchy\_10000.owl} are faster on Pellet (with ELK also faster on \texttt{hierarchy\_10000.owl}). In the Large Head-to-Head benchmark (doid/go-basic/uberon), SPACL records the best wall-clock result on all three tested ontologies among reasoners with successful comparable runs under an identical 900s timeout protocol. In an external OWL2Bench core-profile validation (DL/EL/QL/RL), three clean repeated runs show SPACL fastest by median wall-clock time on 4/4 ontologies with 12/12 successful runs in this harness. Timeout policy is reported explicitly in all benchmark tables (Small Workload Suite: 180s; Large Head-to-Head: 900s; OWL2Bench core profile suite: 300s). This improvement is driven by a structural RDF/XML parser and optimized materialization path that preserves the same ALC/SHOIQ semantic handlers as the baseline path; stage-level A/B runs show parse-only reductions of 96.96--97.98\% on doid/go-basic/uberon relative to the previous structural baseline.
+In the Small Workload Suite, SPACL records the best wall-clock time on 4/6 ontologies and is the only reasoner that completes all six cases in our containerized harness; \texttt{disjunctive\_simple.owl} and \texttt{hierarchy\_10000.owl} are faster on Pellet (with ELK also faster on \texttt{hierarchy\_10000.owl}). In the Large Head-to-Head benchmark (doid/go-basic/uberon), SPACL records the best wall-clock result on all three tested ontologies among reasoners with successful comparable runs under an identical 900s timeout protocol. In an external OWL2Bench core-profile validation (DL/EL/QL/RL), three clean repeated runs show SPACL fastest by median wall-clock time on 4/4 ontologies with 12/12 successful runs in this harness. Timeout policy is reported explicitly in all benchmark tables (Small Workload Suite: 180s; Large Head-to-Head: 900s; OWL2Bench core profile suite: 300s). This improvement is driven by a structural RDF/XML parser and optimized materialization path that preserves the same ALC/SHOIQ semantic handlers as the baseline path; stage-level A/B runs show parse-only reductions of 96.96--97.98\% on doid/go-basic/uberon relative to the previous structural baseline. Small and large head-to-head suites are single-run descriptive wall-clock measurements in this revision.
 \end{abstract}
 
 %% ============================================
@@ -126,7 +126,7 @@ ALC/SHOIQ \sep Tableaux Reasoning \sep Parallel Algorithms \sep Nogood Learning 
 %% HIGHLIGHTS
 %% ============================================
 \begin{highlights}
-\item Open ALC/SHOIQ implementation combining work-stealing parallel tableaux with nogood learning
+\item Open ALC/SHOIQ implementation combining work-stealing speculative execution with nogood learning
 \item Adaptive thresholding yields 18--73$\times$ speedup over always-parallel execution on small cases
 \item Thread-local caching reduces synchronization overhead by 80\%
 \item Global thread pool optimization reduces parallel overhead by 2.1$\times$
@@ -134,7 +134,7 @@ ALC/SHOIQ \sep Tableaux Reasoning \sep Parallel Algorithms \sep Nogood Learning 
 \item Structural RDF/XML parsing with handler-equivalent materialization reduces parse-only time by 96.96--97.98\% in A/B runs
 \item Large Head-to-Head (doid/go-basic/uberon): best wall-clock time on 3/3 ontologies in this reproducible run set
 \item OWL2Bench core profiles (DL/EL/QL/RL), 3 clean runs: best median wall-clock on 4/4 ontologies with 12/12 successful runs
-\item Comprehensive parser support: RDF/XML, OWL2 Functional, Manchester Syntax, JSON-LD
+\item Implemented parser support used in this study: RDF/XML, OWL2 Functional, Manchester Syntax, JSON-LD
 \item Rust implementation with explicit reporting of scope limits and benchmark constraints
 \end{highlights}
 
@@ -167,11 +167,11 @@ This work addresses the following research questions:
 We address these questions through SPACL, with four main contributions:
 
 \begin{enumerate}[C1:]
-    \item \textbf{Speculative parallel tableaux with conflict learning}: SPACL combines work-stealing branch exploration with nogood extraction and reuse, reducing redundant failure exploration in non-deterministic search (Sections \ref{sec:workstealing}, \ref{sec:nogood}).
+    \item \textbf{Speculative parallel tableaux framework with conflict learning}: SPACL combines work-stealing execution with nogood extraction and reuse. The current prototype realizes speculative exploration via branch-constrained work items generated from selected disjunctions, reducing redundant failure exploration in non-deterministic search (Sections \ref{sec:workstealing}, \ref{sec:nogood}).
     
     \item \textbf{Adaptive overhead control}: We integrate threshold-based strategy selection with a global thread pool, reducing small-workload parallel overhead while preserving speedup at larger scales (Sections \ref{sec:adaptive}, \ref{sec:threadpool}).
     
-    \item \textbf{Full-fidelity structural RDF/XML pipeline}: We implement a structural parsing/materialization path that preserves OWL axiom fidelity and substantially reduces parser-dominated runtime on large ontologies (Section \ref{sec:structural-parser}).
+    \item \textbf{Structural RDF/XML pipeline with handler-equivalent materialization}: We implement a structural parsing/materialization path for the evaluated ALC/SHOIQ handling path and substantially reduce parser-dominated runtime on large ontologies (Section \ref{sec:structural-parser}).
     
     \item \textbf{Reproducible end-to-end evaluation}: We provide a containerized benchmark protocol and artifacts for stage-level analysis and multi-reasoner head-to-head comparison (Sections \ref{sec:benchmark-protocol}, \ref{sec:competitor-benchmarks}).
 \end{enumerate}
@@ -320,55 +320,59 @@ If $\mathcal{N}$ subsumes $\Gamma$, the branch can be immediately pruned.
 \end{definition}
 
 \begin{algorithm}[htbp]
-\caption{Nogood Extraction}
+\caption{Conservative Nogood Construction (Prototype)}
 \label{alg:nogood}
 \begin{algorithmic}[1]
-\Require Clashed node $x$ with label $\mathcal{L}(x)$
+\Require Contradictory branch assertions $A$, ontology $\mathcal{O}$
 \Ensure Nogood $\mathcal{N}$
-\State $\mathcal{N} \gets \emptyset$
-\For{each $C \in \mathcal{L}(x)$}
-    \If{$C$ is non-atomic}
-        \State $\mathcal{N} \gets \mathcal{N} \cup \{C\}$
-    \EndIf
-\EndFor
-\State \Return $\textsc{Minimize}(\mathcal{N})$ \Comment{Remove redundant elements}
+\State Build test-expression set $T(\mathcal{O})$ from SubClassOf axioms
+\State $\mathcal{N} \gets T(\mathcal{O})$
+\State \Return $\mathcal{N}$ \Comment{Conservative over-approximation; not minimal}
 \end{algorithmic}
 \end{algorithm}
 
 \subsection{Adaptive Threshold}
 \label{sec:adaptive-formal}
 
-The adaptive threshold mechanism uses cost estimation to decide between sequential and parallel processing.
+The adaptive threshold mechanism uses two implementation-aligned gates to decide between sequential and parallel processing.
 
-\begin{definition}[Disjunction Cost]
-The cost of a disjunction $C = C_1 \sqcup C_2 \sqcup \cdots \sqcup C_n$ is:
+\begin{definition}[Implementation Cost Model]
+For expression-level scoring, the prototype uses:
 \begin{align}
-\text{cost}(C) = c_{base} + \sum_{i=1}^{n} \text{cost}(C_i)
+\text{cost}(\text{ObjectUnionOf}(ops)) &= 50 \times |ops| + \sum \text{cost}(op) \\
+\text{cost}(\text{ObjectIntersectionOf}(ops)) &= 25 \times |ops| + \sum \text{cost}(op) \\
+\text{cost}(\text{ObjectComplementOf}(e)) &= 30 + \text{cost}(e) \\
+\text{cost}(\text{atomic}) &= 10
 \end{align}
-where $c_{base}$ is the base processing cost per disjunction.
 \end{definition}
 
-\begin{definition}[Parallelization Threshold]
-The adaptive threshold $\tau$ for ontology $\mathcal{O}$ with disjunctions $\mathcal{D}$ is:
+\begin{definition}[Two-Gate Parallel Enable Rule]
+Let $B(\mathcal{O})$ be branch-count estimate:
 \begin{align}
-\tau(\mathcal{O}) = \beta \cdot \sum_{C \in \mathcal{D}} \text{cost}(C) \cdot \log(1 + |\mathcal{O}|)
+B(\mathcal{O}) = \max\left(1,\ 2\times |\text{DisjointAxioms}| + \frac{|\text{Classes}|}{10}\right)
 \end{align}
-where $\beta$ is a tuning parameter and $|\mathcal{O}|$ is the ontology size.
+and let $C(\mathcal{O}) = \sum_{d \in \mathcal{D}} \text{cost}(d)$ over detected disjunctions. Parallel mode is enabled only when:
+\begin{align}
+B(\mathcal{O}) \ge \tau \quad \land \quad C(\mathcal{O}) \ge \theta \cdot p
+\end{align}
+where $\tau=100$, $\theta=500\mu s$, and $p$ is worker count.
 \end{definition}
-In practice, $\beta$ is chosen to map symbolic disjunction-cost scores to observed scheduling overhead on the target hardware. We initialize $\beta$ from pilot microbenchmarks (sequential vs always-parallel crossover), then keep it fixed for all reported suites rather than retuning per ontology.
+This formalization mirrors the implemented gates reported in Sections \ref{sec:adaptive} and \ref{sec:adaptive-opt}.
 
-\begin{theorem}[Adaptive Optimality]
-For an ontology $\mathcal{O}$ with total disjunction cost $D$, let $T_{seq}$ be sequential time and $T_{par}$ parallel time with overhead $o_{par}$. The adaptive mechanism achieves speedup when:
+\begin{theorem}[Heuristic Gate Condition]
+For total estimated disjunction cost $D$ and parallel overhead $o_{par}$ with $p$ workers, parallel execution is beneficial when:
 \begin{align}
 D > \frac{p \cdot o_{par}}{1 - \alpha}
 \end{align}
 where $p$ is the number of workers and $\alpha$ is the nogood hit rate.
 \end{theorem}
 
-\subsection{Correctness}
+\subsection{Correctness (Idealized Model)}
 \label{sec:correctness}
 
-\begin{theorem}[Soundness]
+The theorem statements in this subsection refer to the idealized SPACL calculus that fully explores generated disjunctive branches. The current prototype still applies engineering bounds (selected disjunction scope, bounded speculative depth, and timeout limits), so these claims should be interpreted at the calculus level; a full implementation-level completeness proof is left for future work.
+
+\begin{theorem}[Idealized Soundness]
 If SPACL returns \emph{consistent} for ontology $\mathcal{O}$, then $\mathcal{O}$ is satisfiable.
 \end{theorem}
 
@@ -376,7 +380,7 @@ If SPACL returns \emph{consistent} for ontology $\mathcal{O}$, then $\mathcal{O}
 SPACL explores branches speculatively but applies the same expansion rules as sequential tableaux. Each worker maintains a valid completion graph. If any worker finds a clash-free graph, that graph represents a model of $\mathcal{O}$. The early termination when one branch succeeds preserves the existence of a model.
 \end{proof}
 
-\begin{theorem}[Completeness]
+\begin{theorem}[Idealized Completeness]
 If ontology $\mathcal{O}$ is consistent, SPACL will eventually return \emph{consistent}.
 \end{theorem}
 
@@ -494,7 +498,7 @@ The work-stealing scheduler provides dynamic load balancing without centralized 
     \item \textbf{Local Statistics}: Branch counts, nogood hits, cache metrics
 \end{itemize}
 
-When a worker encounters a disjunction ($A \sqcup B$), it creates WorkItems for both branches and pushes them to its local queue. Idle workers steal from the tail of busy workers' queues using a lock-free deque-based work-stealing strategy \cite{workstealing}.
+When parallel mode is enabled, the prototype pushes a root branch-constrained WorkItem and expands it recursively over the selected disjunction list. Each split generates one child WorkItem per disjunct operand, carrying accumulated branch constraints and an incremented split index; expansion stops when the disjunction list is exhausted or the speculative-depth bound is reached. Idle workers steal from the tail of busy workers' queues using a lock-free deque-based work-stealing strategy \cite{workstealing}.
 
 \subsection{Nogood Learning and Caching}
 \label{sec:nogood}
@@ -509,7 +513,7 @@ A nogood is a set of class assertions $\{C_i(a)\}_{i=1}^{n}$ such that their con
 \end{equation}
 \end{definition}
 
-When a contradiction is detected, SPACL extracts the minimal assertion set causing the clash and stores it as a nogood. Before expanding a node, its assertion set is checked against known nogoods.
+When a contradiction is detected, the prototype learns a branch-level nogood from the active branch constraints. It first validates branch inconsistency using the same consistency checker, then applies greedy constraint minimization (remove-one-if-still-inconsistent). The learned nogood is this minimized conflicting subset; if minimization degenerates, the implementation falls back to a conservative branch assertion set. Before expanding a node, its assertion set is checked against known nogoods.
 
 \subsubsection{Thread-Local Caching}
 \label{sec:cache}
@@ -551,8 +555,15 @@ T(\mathcal{O}) = \{C_i \mid C_i \sqsubseteq D_i \in \mathcal{A}\} \cup \{D_i \mi
 \end{equation}
 \end{definition}
 
+\begin{definition}[Branch Assertion Set]
+For branch $b$ with branch constraints $\Gamma_b$, define:
+\begin{equation}
+A_b = T(\mathcal{O}) \cup \Gamma_b
+\end{equation}
+\end{definition}
+
 \begin{definition}[Nogood]
-A \emph{nogood} is a set of class expressions $N \subseteq T(\mathcal{O})$ such that $N \models \bot$ (unsatisfiable).
+A \emph{nogood} is a set of class expressions $N \subseteq A_b$ for some branch $b$ such that $N \models \bot$ (unsatisfiable).
 \end{definition}
 
 \begin{theorem}[Nogood Soundness]\label{thm:nogood-soundness}
@@ -560,10 +571,7 @@ Let $N$ be a set learned by SPACL from a contradictory branch. Then $N \models \
 \end{theorem}
 
 \begin{proof}
-When SPACL detects a contradiction on a branch with assertions $A$, it creates nogood $N = T(\mathcal{O})$.
-
-By the tableau expansion rules applied to $A$, we have $A \models \bot$.
-Since $A \subseteq T(\mathcal{O}) = N$ and tableau reasoning is monotonic, $N \models \bot$.
+SPACL constructs a branch ontology by adding branch constraints $\Gamma_b$ to $\mathcal{O}$ and confirms contradiction ($\Gamma_b \models \bot$ under $\mathcal{O}$). It then greedily removes constraints while preserving contradiction, producing $\Gamma_b^\star$ such that $\Gamma_b^\star \models \bot$. The learned nogood is $N=\Gamma_b^\star$; if this set is empty after minimization, SPACL falls back to a conservative non-empty assertion set from $A_b$. In both cases, the stored $N$ is only accepted from a contradictory branch derivation, hence $N \models \bot$.
 \qed
 \end{proof}
 
@@ -578,8 +586,8 @@ Therefore $B \models \bot$ and the branch is unsatisfiable.
 \qed
 \end{proof}
 
-\begin{remark}[Conservative Over-Approximation]
-SPACL uses $N = T(\mathcal{O})$ rather than the minimal unsatisfiable core of $A$. While this is sound (Theorem~\ref{thm:nogood-soundness}), it may miss pruning opportunities. Minimal nogood extraction is left as future work.
+\begin{remark}[Greedy Core Approximation]
+SPACL uses greedy remove-one minimization rather than an exact minimum unsatisfiable subset (MUS) extraction. This preserves soundness (Theorem~\ref{thm:nogood-soundness}) but may still leave non-minimal nogoods; tighter core extraction remains future work.
 \end{remark}
 
 \subsection{Adaptive Threshold}
@@ -1256,7 +1264,7 @@ To better characterize learning impact, future benchmark suites should include a
 \label{sec:answers}
 
 \textbf{RQ1: Can speculative parallel tableaux with conflict-driven nogood learning improve consistency-checking performance?}  
-\textbf{Answer}: Yes. SPACL achieves up to 4.88$\times$ speedup at 10,000 classes in scalability tests, and nogood mechanisms reduce redundant branch exploration in inconsistent disjunctive workloads (Sections \ref{sec:scalability}, \ref{sec:nogood-eval}).
+\textbf{Answer}: Yes, for the evaluated prototype and workloads. SPACL achieves up to 4.88$\times$ speedup at 10,000 classes in scalability tests, and nogood mechanisms reduce redundant branch exploration in inconsistent disjunctive workloads (Sections \ref{sec:scalability}, \ref{sec:nogood-eval}).
 
 \textbf{RQ2: Can adaptive parallelism reduce overhead on small workloads while preserving scalability?}  
 \textbf{Answer}: Yes. The adaptive strategy avoids unnecessary parallel execution on small cases (18--73$\times$ improvement versus always-parallel baselines) while retaining scalability on larger cases (Sections \ref{sec:adaptive}, \ref{sec:threshold-tuning}).
@@ -1267,13 +1275,13 @@ To better characterize learning impact, future benchmark suites should include a
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. In the Small Workload Suite, SPACL achieves the best wall-clock result on 4/6 ontologies and completes 6/6 runs in our harness; \texttt{disjunctive\_simple.owl} and \texttt{hierarchy\_10000.owl} are faster on Pellet (with ELK also faster on \texttt{hierarchy\_10000.owl}). In the Large Head-to-Head benchmark on biomedical RDF/XML ontologies (doid/go-basic/uberon), the revised structural parser/materialization pipeline substantially improves end-to-end behavior, and SPACL records the best wall-clock time on all 3/3 tested ontologies among reasoners with successful comparable runs under a 900s timeout policy. In the external OWL2Bench core-profile suite (DL/EL/QL/RL), three clean repeated runs show SPACL with 12/12 success and the best median wall-clock result on 4/4 ontologies among successful comparable runs in this harness.
+We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. In the Small Workload Suite, SPACL achieves the best wall-clock result on 4/6 ontologies and completes 6/6 runs in our harness; \texttt{disjunctive\_simple.owl} and \texttt{hierarchy\_10000.owl} are faster on Pellet (with ELK also faster on \texttt{hierarchy\_10000.owl}). In the Large Head-to-Head benchmark on biomedical RDF/XML ontologies (doid/go-basic/uberon), the revised structural parser/materialization pipeline substantially improves end-to-end behavior, and SPACL records the best wall-clock time on all 3/3 tested ontologies among reasoners with successful comparable runs under a 900s timeout policy. In the external OWL2Bench core-profile suite (DL/EL/QL/RL), three clean repeated runs show SPACL with 12/12 success and the best median wall-clock result on 4/4 ontologies among successful comparable runs in this harness. Small and large suite claims remain descriptive for the reported run sets.
 
 \subsection{Summary of Contributions}
 \label{sec:summary}
 
 \begin{enumerate}
-    \item Speculative work-stealing tableaux with conflict-driven nogood learning
+    \item Speculative work-stealing tableaux framework with conflict-driven nogood learning
     \item Adaptive overhead control via thresholding and global thread-pool execution
     \item Structural RDF/XML parsing/materialization with handler-equivalent semantics for the implemented ALC/SHOIQ path
     \item Reproducible containerized benchmarking and head-to-head evaluation protocol, including repeated OWL2Bench core-profile validation
@@ -1296,6 +1304,8 @@ We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative 
     \item \textbf{TBox-Only Evaluation}: Current benchmarks focus on classification (TBox). ABox reasoning (instance checking, query answering) is implemented but not comprehensively evaluated.
     
     \item \textbf{Single Machine}: SPACL targets single-node multi-core systems. Distributed reasoning across clusters is not supported.
+    
+    \item \textbf{Prototype Branch-Generation Scope}: The current speculative engine uses selected disjunction splitting with bounded speculative depth and timeout-based termination. Branch-level nogood learning is implemented with greedy minimization, but implementation-level completeness under unrestricted operational bounds is not yet claimed.
     
     \item \textbf{Profile Support}: SPACL currently supports ALC/SHOIQ. Full OWL2 DL (with datatypes, keys) requires additional implementation.
 \end{enumerate}
