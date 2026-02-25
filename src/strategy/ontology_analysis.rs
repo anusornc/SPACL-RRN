@@ -234,7 +234,7 @@ fn expression_depth(expr: &ClassExpression) -> usize {
 
 /// Analyze hierarchy structure to estimate depth and tree-likeness
 fn analyze_hierarchy_structure(ontology: &Ontology) -> (usize, bool) {
-    use std::collections::{HashMap, HashSet};
+    use std::collections::{HashMap, HashSet, VecDeque};
 
     // Build parent-child maps
     let mut parents: HashMap<String, Vec<String>> = HashMap::new();
@@ -273,54 +273,57 @@ fn analyze_hierarchy_structure(ontology: &Ontology) -> (usize, bool) {
         (multiple_parents as f64 / class_set.len() as f64) < 0.1
     };
 
-    // Estimate max depth by finding longest path from Thing
-    let thing_iri = "http://www.w3.org/2002/07/owl#Thing".to_string();
-    let max_depth = if children.contains_key(&thing_iri) {
-        compute_max_depth(&thing_iri, &children, &mut HashMap::new())
-    } else {
-        // Find roots (classes with no parents)
-        let roots: Vec<_> = class_set
-            .iter()
-            .filter(|c| !parents.contains_key(*c))
-            .cloned()
-            .collect();
-
-        roots
-            .iter()
-            .map(|r| compute_max_depth(r, &children, &mut HashMap::new()))
-            .max()
-            .unwrap_or(1)
-    };
-
-    (max_depth, is_tree_like)
-}
-
-/// Compute maximum depth from a starting class using memoization
-fn compute_max_depth(
-    class: &str,
-    children: &std::collections::HashMap<String, Vec<String>>,
-    cache: &mut std::collections::HashMap<String, usize>,
-) -> usize {
-    if let Some(&depth) = cache.get(class) {
-        return depth;
+    // Estimate max depth using an iterative longest-path pass over the hierarchy graph.
+    // This avoids deep recursion on long synthetic chains (e.g., hierarchy_100000.owl).
+    let mut indegree: HashMap<String, usize> = HashMap::with_capacity(class_set.len());
+    for class in &class_set {
+        let parent_count = parents.get(class).map(|p| p.len()).unwrap_or(0);
+        indegree.insert(class.clone(), parent_count);
     }
 
-    let depth = if let Some(child_list) = children.get(class) {
-        if child_list.is_empty() {
-            1
-        } else {
-            1 + child_list
-                .iter()
-                .map(|c| compute_max_depth(c, children, cache))
-                .max()
-                .unwrap_or(0)
-        }
-    } else {
-        1
-    };
+    let mut depth: HashMap<String, usize> = HashMap::with_capacity(class_set.len());
+    let mut queue: VecDeque<String> = VecDeque::new();
 
-    cache.insert(class.to_string(), depth);
-    depth
+    for class in &class_set {
+        if indegree.get(class).copied().unwrap_or(0) == 0 {
+            depth.insert(class.clone(), 1);
+            queue.push_back(class.clone());
+        }
+    }
+
+    // Fallback for cyclic/no-root graphs: seed all classes at depth 1.
+    if queue.is_empty() {
+        for class in &class_set {
+            depth.insert(class.clone(), 1);
+            queue.push_back(class.clone());
+        }
+    }
+
+    while let Some(node) = queue.pop_front() {
+        let current_depth = depth.get(&node).copied().unwrap_or(1);
+        if let Some(child_list) = children.get(&node) {
+            for child in child_list {
+                let candidate = current_depth + 1;
+                let entry = depth.entry(child.clone()).or_insert(1);
+                if candidate > *entry {
+                    *entry = candidate;
+                }
+
+                if let Some(ind) = indegree.get_mut(child) {
+                    if *ind > 0 {
+                        *ind -= 1;
+                        if *ind == 0 {
+                            queue.push_back(child.clone());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let max_depth = depth.values().copied().max().unwrap_or(1);
+
+    (max_depth, is_tree_like)
 }
 
 /// Calculate overall complexity score
@@ -439,5 +442,31 @@ mod tests {
         assert!(chars.is_tree_like);
         // Can use fast path because no complex axioms
         assert!(chars.can_use_fast_path());
+    }
+
+    #[test]
+    fn test_deep_hierarchy_no_stack_overflow() {
+        let mut ontology = Ontology::new();
+
+        // Deep linear chain to guard against recursive depth overflow.
+        let n = 8000usize;
+        for i in 0..=n {
+            let class = Class::new(format!("http://example.org/C{}", i).as_str());
+            ontology.add_class(class).unwrap();
+        }
+
+        for i in 0..n {
+            let sub = Class::new(format!("http://example.org/C{}", i).as_str());
+            let sup = Class::new(format!("http://example.org/C{}", i + 1).as_str());
+            ontology
+                .add_subclass_axiom(SubClassOfAxiom::new(
+                    ClassExpression::Class(sub),
+                    ClassExpression::Class(sup),
+                ))
+                .unwrap();
+        }
+
+        let chars = OntologyCharacteristics::analyze(&ontology);
+        assert!(chars.hierarchy_depth >= n);
     }
 }
