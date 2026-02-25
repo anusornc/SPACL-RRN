@@ -259,6 +259,7 @@ A node $x \in V$ contains a \emph{clash} if either:
 \end{definition}
 
 The tableaux algorithm applies \emph{expansion rules} until either a clash-free complete graph is found (consistent) or all branches lead to clashes (inconsistent).
+Table~\ref{tab:expansion-rules} summarizes the core $\mathcal{ALC}$ expansion rules used in our formal presentation.
 
 \begin{table}[htbp]
 \centering
@@ -869,6 +870,8 @@ Figure \ref{fig:scalability} visualizes the scalability comparison.
     \label{fig:scalability}
 \end{figure}
 
+Figure~\ref{fig:perf-integrated} complements this view by separating throughput and speedup trends; Figure~\ref{fig:throughput-trend} highlights throughput growth and Figure~\ref{fig:speedup-trend} highlights the crossover from overhead to net gain.
+
 \begin{figure}[htbp]
     \centering
     \begin{subfigure}[t]{0.49\textwidth}
@@ -958,6 +961,7 @@ Medium (5 unions) & 9.1$\mu$s & 58.9$\mu$s & 1,116$\mu$s & \textbf{18.9$\times$}
 \label{sec:realworld}
 
 We evaluated SPACL on large biomedical ontologies used in production-style consistency checks (DOID, GO\_Basic, UBERON; from widely used OBO/BioPortal sources \cite{bioportal}). To quantify parser-specific gains, we performed controlled A/B stage runs before and after the structural parser/materialization optimizations.
+Table~\ref{tab:realworld} reports the stage-level and end-to-end reductions for these A/B pairs.
 
 \begin{table}[htbp]
 \centering
@@ -1019,6 +1023,8 @@ We conducted direct wall-clock comparison across seven reasoners on identical ha
 \subsubsection{Small Workload Suite (6 Ontologies)}
 \label{sec:small-suite-results}
 
+Table~\ref{tab:small-workload-suite} reports per-ontology wall-clock results for the six-case small suite under the 180s policy.
+
 \begin{table}[htbp]
 \centering
 \caption{Small Workload Suite Consistency Benchmark (wall time, ms; timeout 180s)}
@@ -1070,6 +1076,8 @@ We included the following competitor set:
 \end{itemize}
 
 \subsubsection{Results}
+
+Table~\ref{tab:competitor-benchmarks} reports the large-ontology head-to-head wall-clock outcomes under the 900s policy.
 
 \begin{table}[htbp]
 \centering
@@ -1215,6 +1223,7 @@ Figure \ref{fig:thread-scaling} shows speedup as worker count increases from 1 t
 \label{sec:nogood-eval}
 
 To isolate nogood learning effects, we compare SPACL with and without nogood learning (same parallelism). Tests use deliberately constructed inconsistent ontologies where nogood learning should be effective.
+Table~\ref{tab:nogood} summarizes the measured deltas in runtime, pruning, and cache behavior.
 
 \begin{table}[htbp]
 \centering
