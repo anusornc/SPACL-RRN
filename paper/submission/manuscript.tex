@@ -224,7 +224,7 @@ This section establishes the formal foundations of the SPACL algorithm, includin
 \subsection{Description Logic ALC}
 \label{sec:dl-syntax}
 
-We operate in the Description Logic $\mathcal{ALC}$ (Attributive Language with Complement), which forms the basis of OWL2 DL. Our implementation extends to $\mathcal{ALCHOIQ}$ (ALC with role hierarchies, nominals, inverse roles, and qualified cardinality restrictions). The syntax is defined as follows:
+We operate in the Description Logic $\mathcal{ALC}$ (Attributive Language with Complement), which forms the basis of OWL2 DL. Our implementation extends to $\mathcal{SHOIQ}$ (with transitive roles, role hierarchies, nominals, inverse roles, and qualified cardinality restrictions). The syntax is defined as follows:
 
 \begin{definition}[ALC Syntax]
 Let $\mathbf{C}$ be a set of concept names, $\mathbf{R}$ a set of role names, and $\mathbf{I}$ a set of individual names. \emph{Concepts} $C, D$ are defined by the grammar:
@@ -449,7 +449,7 @@ SPACL combines three core mechanisms illustrated in Figure \ref{fig:architecture
 \begin{enumerate}
     \item \textbf{Speculative Work-Stealing}: Branches are dynamically distributed across worker threads using a work-stealing deque \cite{workstealing}. Each worker maintains a local queue, stealing from others when idle.
     
-    \item \textbf{Nogood Learning}: Contradictions are analyzed to extract minimal unsatisfiable assertion sets (nogoods). These are cached and checked before branch expansion.
+    \item \textbf{Nogood Learning}: Contradictions are analyzed to extract sound conflict summaries (nogoods) from branch assertions. These are cached and checked before branch expansion.
     
     \item \textbf{Adaptive Thresholding}: Problem complexity is estimated from axiom structure. Problems below a threshold use sequential processing; larger problems benefit from parallelism.
 \end{enumerate}
@@ -660,15 +660,15 @@ Thread-local caches limit contention while maintaining bounded memory. The imple
 
 The reference implementation (Tableauxx) provides parser support for OWL2 syntaxes:
 
-\textbf{OWL2 Functional Syntax}: Full support for OWL2 Functional Grammar
+\textbf{OWL2 Functional Syntax}: Implemented support for OWL2 Functional Grammar used in our benchmark suites
 \begin{itemize}
     \item Complete tokenizer for OWL2 Functional syntax tokens
     \item Recursive descent parser with error recovery
-    \item Support for all OWL2 constructs including complex class expressions
+    \item Support for constructs exercised in this study, including complex class expressions
     \item AST validation and transformation to internal representation
 \end{itemize}
 
-\textbf{Manchester Syntax}: Full support for Manchester OWL Syntax
+\textbf{Manchester Syntax}: Implemented support for Manchester OWL Syntax used in our benchmark suites
 \begin{itemize}
     \item Tokenizer with Manchester-specific keywords and operators
     \item Frame-based parser for ontology, class, and property frames
@@ -684,7 +684,7 @@ The reference implementation (Tableauxx) provides parser support for OWL2 syntax
     \item Value object parsing with type coercion
 \end{itemize}
 
-All parsers support import resolution, source-location error reporting, and streaming operation on large ontologies.
+For supported constructs, the parser pipeline includes import resolution, source-location error reporting, and streaming operation on large ontologies. Full OWL2 DL conformance across every syntax variant is out of scope for this revision.
 
 \subsection{Structural RDF/XML Parser and Materialization}
 \label{sec:structural-parser}
@@ -765,7 +765,7 @@ where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text
 \textbf{Test Ontologies}:
 \begin{itemize}
     \item \textbf{Synthetic hierarchies}: 100--10,000 classes, linear subclass chains
-    \item \textbf{Disjunctive tests}: disjunctive\_test.owl (6 axioms with unions)
+    \item \textbf{Disjunctive tests}: disjunctive\_simple.owl and disjunctive\_test.owl (small synthetic union-heavy cases)
     \item \textbf{LUBM}: univ-bench.owl (University benchmark)
     \item \textbf{Real-world ontology sets}: stage experiments include PATO/DOID/UBERON/GO; primary head-to-head tables in this paper use DOID/GO-Basic/UBERON plus OWL2Bench core profiles
     \item Primary head-to-head suites use consistent ontologies (satisfiability testing); a dedicated nogood ablation additionally includes inconsistent synthetic cases
@@ -936,7 +936,7 @@ This gate is applied after the branch-count prefilter in Section \ref{sec:adapti
 \label{tab:adaptive}
 \begin{tabular}{l|r|r|r|r}
 \toprule
-\textbf{Test Case} & \textbf{Sequential} & \textbf{Adaptive} & \textbf{Always-Parallel} & \textbf{Speedup} \\
+\textbf{Test Case} & \textbf{Sequential} & \textbf{Adaptive} & \textbf{Always-Parallel} & \textbf{AP/Adaptive} \\
 \midrule
 Simple (1 union) & 9.0$\mu$s & 14.5$\mu$s & 1,069$\mu$s & \textbf{73.5$\times$} \\
 Small (2 unions) & 7.9$\mu$s & 24.7$\mu$s & 1,141$\mu$s & \textbf{46.1$\times$} \\
@@ -944,10 +944,12 @@ Medium (5 unions) & 9.1$\mu$s & 58.9$\mu$s & 1,116$\mu$s & \textbf{18.9$\times$}
 \bottomrule
 \end{tabular}
 \end{table}
+\noindent\footnotesize\textit{Note}: \textbf{AP/Adaptive} is computed as \textit{Always-Parallel wall time} / \textit{Adaptive wall time}.
+\normalsize
 
 \textbf{Observations}:
 \begin{itemize}
-    \item Adaptive mode is 18--73$\times$ faster than always-parallel for small cases
+    \item Adaptive mode is 18--73$\times$ faster than always-parallel for small cases (AP/Adaptive ratio)
     \item Only 1.3--2$\times$ overhead vs pure sequential for trivial cases
     \item Correctly avoids parallelization when branch-count and cost gates are not satisfied
 \end{itemize}
@@ -1014,6 +1016,40 @@ ELK \cite{elk} & Java & \checkmark & $\times$ & Open & EL++ \\
 
 We conducted direct wall-clock comparison across seven reasoners on identical hardware and operation settings (consistency checking).
 
+\subsubsection{Small Workload Suite (6 Ontologies)}
+\label{sec:small-suite-results}
+
+\begin{table}[htbp]
+\centering
+\caption{Small Workload Suite Consistency Benchmark (wall time, ms; timeout 180s)}
+\label{tab:small-workload-suite}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{l|r|r|r|r|r|r|r}
+\toprule
+\textbf{Ontology} & \textbf{SPACL} & \textbf{HermiT} & \textbf{Konclude} & \textbf{Openllet} & \textbf{ELK} & \textbf{JFact} & \textbf{Pellet} \\
+\midrule
+disjunctive\_simple.owl & 3818 & 3337 & NC & 3010 & 2839 & 3272 & \textbf{2715} \\
+disjunctive\_test.owl & \textbf{2109} & 3473 & NC & 2867 & 2845 & 3526 & 3303 \\
+hierarchy\_100.owl & \textbf{2148} & 3280 & NC & 3020 & 3016 & 3374 & 2722 \\
+hierarchy\_1000.owl & \textbf{1982} & 3559 & NC & 3145 & 2989 & 3767 & 2836 \\
+hierarchy\_10000.owl & 8270 & 4118 & NC & 4336 & 3652 & FAIL & \textbf{3406} \\
+univ-bench.owl & \textbf{2149} & FAIL & NC & FAIL & FAIL & FAIL & FAIL \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+\noindent\footnotesize\textit{Legend}: NC = non-comparable external-binary failure status in this harness (Konclude parser/runtime incompatibility signatures), FAIL = runtime failure in this setup. Bold indicates best wall time among successful comparable runs per ontology.
+\normalsize
+
+\textbf{Small-suite observations}:
+\begin{itemize}
+    \item SPACL is fastest on 4/6 ontologies among successful comparable runs in this suite
+    \item Pellet is fastest on \texttt{disjunctive\_simple.owl} and \texttt{hierarchy\_10000.owl}; ELK is also faster than SPACL on \texttt{hierarchy\_10000.owl}
+    \item SPACL is the only reasoner that completes all 6/6 ontologies in this run set
+\end{itemize}
+
+\noindent\textit{Artifact source}: \path{benchmarks/competitors/results/history/small_workload_suite_real_20260221/results.csv}
+
 \subsubsection{Competitor Selection Rationale}
 \label{sec:baseline-rationale}
 
@@ -1044,14 +1080,14 @@ We included the following competitor set:
 \toprule
 \textbf{Ontology} & \textbf{SPACL} & \textbf{HermiT} & \textbf{Konclude} & \textbf{Openllet} & \textbf{ELK} & \textbf{JFact} & \textbf{Pellet} \\
 \midrule
-doid.owl & \textbf{3501} & 19121 & FAIL & 14286 & 13439 & 60125 & 28647 \\
-go-basic.owl & \textbf{7668} & 18197 & FAIL & 18235 & 17116 & 46301 & 85714 \\
-uberon.owl & \textbf{6762} & 116102 & FAIL & TO & 15083 & FAIL & TO \\
+doid.owl & \textbf{3501} & 19121 & NC & 14286 & 13439 & 60125 & 28647 \\
+go-basic.owl & \textbf{7668} & 18197 & NC & 18235 & 17116 & 46301 & 85714 \\
+uberon.owl & \textbf{6762} & 116102 & NC & TO & 15083 & FAIL & TO \\
 \bottomrule
 \end{tabular}
 }
 \end{table}
-\noindent\footnotesize\textit{Legend}: TO = timeout at 900s, FAIL = runtime/parser incompatibility in this harness (non-comparable), NA = not available in this setup. Bold indicates best wall time among successful comparable runs per ontology.
+\noindent\footnotesize\textit{Legend}: TO = timeout at 900s, FAIL = runtime failure in this harness, NC = non-comparable status in this harness (Konclude parser/runtime incompatibility signatures), NA = not available in this setup. Bold indicates best wall time among successful comparable runs per ontology.
 \normalsize
 
 \textbf{Observations}:
@@ -1061,7 +1097,7 @@ uberon.owl & \textbf{6762} & 116102 & FAIL & TO & 15083 & FAIL & TO \\
     \item Openllet completes 2/3 (timeout on UBERON)
     \item JFact completes 2/3 and fails on UBERON in this harness
     \item Pellet completes 2/3 and times out on UBERON
-    \item Konclude reports FAIL for all 3 ontologies in this container/parser configuration and is excluded from winner ranking in this table
+    \item Konclude reports NC for all 3 ontologies in this container/parser configuration and is excluded from winner ranking in this table
     \item These are end-to-end wall-clock measurements (startup + parsing + reasoning), not parser-agnostic microbenchmarks
 \end{itemize}
 
@@ -1091,12 +1127,33 @@ Konclude & 0 & 0\% & NA & NA \\
 }
 \end{table}
 
+\begin{table}[htbp]
+\centering
+\caption{OWL2Bench Core Profiles: Per-Ontology Median Winners (3 clean runs)}
+\label{tab:owl2bench-core-winners}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{l|r|r|l}
+\toprule
+\textbf{Profile Ontology} & \textbf{SPACL Median (ms)} & \textbf{Best Competitor Median (ms)} & \textbf{Winner} \\
+\midrule
+OWL2DL & 2169 & 2957 (Pellet) & SPACL \\
+OWL2EL & 2064 & 2879 (Pellet) & SPACL \\
+OWL2QL & 2509 & 2866 (Pellet) & SPACL \\
+OWL2RL & 2070 & 2864 (Pellet) & SPACL \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+\noindent\footnotesize\textit{Note}: Medians are computed on successful runs only (3 runs per ontology/reasoner pair under the 300s policy).
+\normalsize
+\noindent\textit{Artifact source}: \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_aggregate_20260223/reasoner_ontology_summary.csv}
+
 \textbf{OWL2Bench-core observations}:
 \begin{itemize}
-    \item Among reasoners with successful comparable runs, SPACL is the median wall-clock winner on all 4 profile ontologies (DL/EL/QL/RL) across 3/3 successful runs
+    \item Among reasoners with successful comparable runs, SPACL is the median wall-clock winner on all 4 profile ontologies (DL/EL/QL/RL) across 3/3 successful runs per ontology (Table~\ref{tab:owl2bench-core-winners})
     \item ELK, HermiT, Openllet, and Pellet each complete 12/12 runs in this harness
     \item JFact completes only QL (3/3) and times out on DL/EL/RL under the 300s policy in this setup
-    \item Konclude reports FAIL on all 12 runs in this container/parser configuration and is excluded from winner ranking in this suite
+    \item Konclude reports failed/non-comparable status on all 12 runs in this container/parser configuration and is excluded from winner ranking in this suite
 \end{itemize}
 
 \subsection{Analysis: JVM Startup Overhead}
