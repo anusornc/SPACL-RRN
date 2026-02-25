@@ -60,9 +60,15 @@ fn print_usage() {
     println!("  OWL2_REASONER_BIN_ONLY=1      Require .owlbin input/cache");
     println!("  OWL2_REASONER_MAX_FILE_SIZE   Override parser max file size in bytes");
     println!("  OWL2_REASONER_LARGE_PROFILE_AUTO=0  Disable auto large-file text profile");
-    println!("  OWL2_REASONER_LARGE_PROFILE_THRESHOLD=<bytes>  Auto profile threshold (default 4MB)");
-    println!("  OWL2_REASONER_STRUCTURAL_XML_AUTO=0  Disable auto structural RDF/XML for large files");
-    println!("  OWL2_REASONER_STRUCTURAL_XML_AUTO_THRESHOLD=<bytes>  Auto mode threshold (default 4MB)");
+    println!(
+        "  OWL2_REASONER_LARGE_PROFILE_THRESHOLD=<bytes>  Auto profile threshold (default 4MB)"
+    );
+    println!(
+        "  OWL2_REASONER_STRUCTURAL_XML_AUTO=0  Disable auto structural RDF/XML for large files"
+    );
+    println!(
+        "  OWL2_REASONER_STRUCTURAL_XML_AUTO_THRESHOLD=<bytes>  Auto mode threshold (default 4MB)"
+    );
     println!("  OWL2_REASONER_EXPERIMENTAL_XML_PARSER=1  Enable experimental RDF/XML pipeline");
     println!("  OWL2_REASONER_EXPERIMENTAL_XML_STRICT=1  Fail if unsupported experimental terms are skipped");
     println!("  OWL2_REASONER_BIN_FORMAT=v1   Write legacy .owlbin format (default v2)");

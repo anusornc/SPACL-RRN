@@ -1,14 +1,11 @@
 #![allow(unused_imports, unused_variables, unused_mut, dead_code)]
 //! Test Real-World Ontologies with Adaptive Strategy
-//! 
+//!
 //! This tests all real-world ontologies one by one with progress reporting.
 
 use owl2_reasoner::{
-    Ontology, 
-    HierarchicalClassificationEngine,
+    HierarchicalClassificationEngine, Ontology, OntologyCharacteristics, ParserFactory,
     SimpleReasoner,
-    ParserFactory,
-    OntologyCharacteristics,
 };
 use std::path::Path;
 use std::time::Instant;
@@ -52,7 +49,7 @@ fn main() {
                 continue;
             }
         };
-        
+
         let parser = match ParserFactory::auto_detect(&content) {
             Some(p) => p,
             None => {
@@ -60,7 +57,7 @@ fn main() {
                 continue;
             }
         };
-        
+
         let ontology = match parser.parse_str(&content) {
             Ok(o) => o,
             Err(e) => {
@@ -69,7 +66,7 @@ fn main() {
             }
         };
         let load_time = load_start.elapsed();
-        
+
         let class_count = ontology.classes().len();
         let axiom_count = ontology.axioms().len();
         println!("✓ Loaded in {:?}", load_time);
@@ -98,7 +95,7 @@ fn main() {
         if can_use_hierarchical {
             println!("\nRunning Hierarchical Classification...");
             let bench_start = Instant::now();
-            
+
             // Run 3 times for average
             let mut times = Vec::new();
             for i in 1..=3 {
@@ -118,23 +115,28 @@ fn main() {
                     }
                 }
             }
-            
+
             let total_bench_time = bench_start.elapsed();
-            
+
             if !times.is_empty() {
                 let avg_time = times.iter().sum::<std::time::Duration>() / times.len() as u32;
                 let min_time = times.iter().min().unwrap();
-                
+
                 println!("\n✓ Results:");
                 println!("  Average: {:?}", avg_time);
                 println!("  Best: {:?}", min_time);
                 println!("  Total benchmark time: {:?}", total_bench_time);
-                
+
                 // Calculate throughput
                 let throughput = class_count as f64 / min_time.as_secs_f64();
                 println!("  Throughput: {:.0} classes/second", throughput);
-                
-                results.push((name.to_string(), class_count, min_time.as_millis() as f64, true));
+
+                results.push((
+                    name.to_string(),
+                    class_count,
+                    min_time.as_millis() as f64,
+                    true,
+                ));
             }
         } else {
             println!("\nRunning Simple Reasoner...");
@@ -142,11 +144,16 @@ fn main() {
             let mut reasoner = SimpleReasoner::new(ontology.clone());
             let _ = reasoner.is_consistent();
             let elapsed = run_start.elapsed();
-            
+
             println!("\n✓ Results:");
             println!("  Time: {:?}", elapsed);
-            
-            results.push((name.to_string(), class_count, elapsed.as_millis() as f64, false));
+
+            results.push((
+                name.to_string(),
+                class_count,
+                elapsed.as_millis() as f64,
+                false,
+            ));
         }
 
         println!("\n✓ {} complete!", name);
@@ -156,14 +163,20 @@ fn main() {
     println!("\n\n========================================");
     println!("  SUMMARY");
     println!("========================================\n");
-    
-    println!("{:<15} {:>10} {:>15} {:>12}", "Ontology", "Classes", "Time (ms)", "Strategy");
+
+    println!(
+        "{:<15} {:>10} {:>15} {:>12}",
+        "Ontology", "Classes", "Time (ms)", "Strategy"
+    );
     println!("{}", "-".repeat(60));
-    
+
     for (name, classes, time_ms, used_hier) in &results {
         let strategy = if *used_hier { "Hierarchical" } else { "Simple" };
-        println!("{:<15} {:>10} {:>15.2} {:>12}", name, classes, time_ms, strategy);
+        println!(
+            "{:<15} {:>10} {:>15.2} {:>12}",
+            name, classes, time_ms, strategy
+        );
     }
-    
+
     println!("\n✓ All tests complete!");
 }

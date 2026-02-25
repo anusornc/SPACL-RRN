@@ -1,12 +1,7 @@
 #![allow(unused_imports, unused_variables, unused_mut, dead_code)]
 //! Test Hierarchical Classification on LUBM
 
-use owl2_reasoner::{
-    Ontology, 
-    HierarchicalClassificationEngine,
-    SimpleReasoner,
-    ParserFactory,
-};
+use owl2_reasoner::{HierarchicalClassificationEngine, Ontology, ParserFactory, SimpleReasoner};
 use std::path::Path;
 use std::time::Instant;
 
@@ -31,7 +26,10 @@ fn main() {
 
     // Test can_handle
     let can_handle = HierarchicalClassificationEngine::can_handle(&ontology);
-    println!("Can use hierarchical: {}", if can_handle { "✓ Yes" } else { "✗ No" });
+    println!(
+        "Can use hierarchical: {}",
+        if can_handle { "✓ Yes" } else { "✗ No" }
+    );
 
     if can_handle {
         println!("\n--- Hierarchical Classification ---");
@@ -39,21 +37,28 @@ fn main() {
         let mut engine = HierarchicalClassificationEngine::new(ontology.clone());
         let result = engine.classify().expect("Classification failed");
         let elapsed = start.elapsed();
-        
+
         println!("Time: {:?}", elapsed);
         println!("Classes processed: {}", result.stats.classes_processed);
-        println!("Relationships discovered: {}", result.stats.relationships_discovered);
-        
+        println!(
+            "Relationships discovered: {}",
+            result.stats.relationships_discovered
+        );
+
         // Test hierarchy queries
         println!("\n--- Testing Hierarchy Queries ---");
-        
+
         // Get all classes
         let classes: Vec<_> = ontology.classes().iter().cloned().collect();
         if let Some(first_class) = classes.first() {
             let supers = result.hierarchy.get_all_superclasses(first_class.iri());
-            println!("Class {} has {} superclasses", first_class.iri(), supers.len());
+            println!(
+                "Class {} has {} superclasses",
+                first_class.iri(),
+                supers.len()
+            );
         }
-        
+
         println!("\n✓ Hierarchical classification SUCCESS!");
     }
 
@@ -63,7 +68,7 @@ fn main() {
     let mut reasoner = SimpleReasoner::new(ontology.clone());
     let _ = reasoner.is_consistent();
     let elapsed = start.elapsed();
-    
+
     println!("SimpleReasoner time: {:?}", elapsed);
 
     println!("\n========================================");

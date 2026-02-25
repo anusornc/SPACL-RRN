@@ -1,5 +1,5 @@
 //! Real-World Ontology Benchmark
-//! 
+//!
 //! Tests SPACL on real BioPortal ontologies:
 //! - GO (Gene Ontology)
 //! - UBERON (Anatomy)
@@ -8,8 +8,8 @@
 //! - ChEBI (Chemical Entities)
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use owl2_reasoner::{Ontology, SimpleReasoner, SpeculativeTableauxReasoner, OwlReasoner};
-use owl2_reasoner::parser::{RdfXmlParser, OntologyParser};
+use owl2_reasoner::parser::{OntologyParser, RdfXmlParser};
+use owl2_reasoner::{Ontology, OwlReasoner, SimpleReasoner, SpeculativeTableauxReasoner};
 use std::path::Path;
 use std::time::{Duration, Instant};
 
@@ -55,18 +55,19 @@ fn load_ontology(path: &str) -> Option<Ontology> {
         eprintln!("File not found: {}", path.display());
         return None;
     }
-    
+
     let content = std::fs::read_to_string(path).ok()?;
-    
+
     // Try to parse as RDF/XML
     use owl2_reasoner::parser::RdfXmlParser;
     let parser = RdfXmlParser::new();
-    
+
     match parser.parse_str(&content) {
         Ok(ontology) => {
             let ont: Ontology = ontology;
-            println!("Loaded {}: {} classes, {} axioms", 
-                path.display(), 
+            println!(
+                "Loaded {}: {} classes, {} axioms",
+                path.display(),
                 ont.classes().len(),
                 ont.axioms().len()
             );
@@ -84,15 +85,15 @@ fn bench_sequential(c: &mut Criterion) {
     let mut group = c.benchmark_group("real_world_sequential");
     group.sample_size(10);
     group.measurement_time(Duration::from_secs(60));
-    
+
     for test in TEST_CASES {
         let Some(ontology) = load_ontology(test.path) else {
             println!("Skipping {} (not found)", test.name);
             continue;
         };
-        
+
         let class_count = ontology.classes().len();
-        
+
         group.bench_with_input(
             BenchmarkId::new(test.name, class_count),
             &ontology,
@@ -105,7 +106,7 @@ fn bench_sequential(c: &mut Criterion) {
             },
         );
     }
-    
+
     group.finish();
 }
 
@@ -114,14 +115,14 @@ fn bench_spacl(c: &mut Criterion) {
     let mut group = c.benchmark_group("real_world_spacl");
     group.sample_size(10);
     group.measurement_time(Duration::from_secs(60));
-    
+
     for test in TEST_CASES {
         let Some(ontology) = load_ontology(test.path) else {
             continue;
         };
-        
+
         let class_count = ontology.classes().len();
-        
+
         group.bench_with_input(
             BenchmarkId::new(test.name, class_count),
             &ontology,
@@ -134,7 +135,7 @@ fn bench_spacl(c: &mut Criterion) {
             },
         );
     }
-    
+
     group.finish();
 }
 
@@ -142,15 +143,16 @@ fn bench_spacl(c: &mut Criterion) {
 #[test]
 fn test_real_world_loading() {
     println!("\n=== Real-World Ontology Loading Test ===\n");
-    
+
     for test in TEST_CASES {
         print!("{}: ", test.name);
-        
+
         let start = Instant::now();
         match load_ontology(test.path) {
             Some(ont) => {
                 let load_time = start.elapsed();
-                println!("✓ Loaded {} classes, {} axioms in {:?}", 
+                println!(
+                    "✓ Loaded {} classes, {} axioms in {:?}",
                     ont.classes().len(),
                     ont.axioms().len(),
                     load_time

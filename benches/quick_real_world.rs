@@ -1,14 +1,10 @@
 //! Quick Real-World Ontology Benchmark
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::path::Path;
 use std::time::Duration;
 
-use owl2_reasoner::{
-    Ontology,
-    ParserFactory,
-    SimpleReasoner,
-};
+use owl2_reasoner::{Ontology, ParserFactory, SimpleReasoner};
 
 const ONTOLOGIES: &[(&str, &str)] = &[
     ("LUBM", "tests/data/univ-bench.owl"),
@@ -26,7 +22,11 @@ fn load_ontology(path: &str) -> Option<Ontology> {
     let parser = ParserFactory::auto_detect(&content)?;
     match parser.parse_str(&content) {
         Ok(ontology) => {
-            println!("Loaded {}: {} classes", path.display(), ontology.classes().len());
+            println!(
+                "Loaded {}: {} classes",
+                path.display(),
+                ontology.classes().len()
+            );
             Some(ontology)
         }
         Err(e) => {
@@ -40,7 +40,7 @@ fn bench_real_world(c: &mut Criterion) {
     let mut group = c.benchmark_group("real_world");
     group.sample_size(10);
     group.measurement_time(Duration::from_secs(10));
-    
+
     for (name, path) in ONTOLOGIES {
         if let Some(ontology) = load_ontology(path) {
             let class_count = ontology.classes().len();

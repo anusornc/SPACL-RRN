@@ -5,11 +5,8 @@
 //! HierarchicalClassificationEngine for tree-like ontologies.
 
 use owl2_reasoner::{
-    Ontology, 
-    HierarchicalClassificationEngine,
+    HierarchicalClassificationEngine, Ontology, OntologyCharacteristics, ParserFactory,
     SimpleReasoner,
-    ParserFactory,
-    OntologyCharacteristics,
 };
 use std::path::Path;
 use std::time::Instant;
@@ -46,8 +43,14 @@ fn main() {
         // Analyze characteristics
         let chars = OntologyCharacteristics::analyze(&ontology);
         println!("Complexity Score: {:.2}", chars.complexity_score);
-        println!("Can use hierarchical: {}", 
-            if HierarchicalClassificationEngine::can_handle(&ontology) { "✓ Yes" } else { "✗ No" });
+        println!(
+            "Can use hierarchical: {}",
+            if HierarchicalClassificationEngine::can_handle(&ontology) {
+                "✓ Yes"
+            } else {
+                "✗ No"
+            }
+        );
 
         // Benchmark Hierarchical Classification
         if HierarchicalClassificationEngine::can_handle(&ontology) {
@@ -56,11 +59,16 @@ fn main() {
             let mut engine = HierarchicalClassificationEngine::new(ontology.clone());
             let result = engine.classify().expect("Classification failed");
             let elapsed = start.elapsed();
-            
+
             println!("Time: {:?}", elapsed);
-            println!("Relationships discovered: {}", result.stats.relationships_discovered);
-            println!("Throughput: {:.0} classes/second", 
-                class_count as f64 / elapsed.as_secs_f64());
+            println!(
+                "Relationships discovered: {}",
+                result.stats.relationships_discovered
+            );
+            println!(
+                "Throughput: {:.0} classes/second",
+                class_count as f64 / elapsed.as_secs_f64()
+            );
         }
 
         // Benchmark Simple Reasoner (for comparison)
@@ -69,10 +77,9 @@ fn main() {
         let mut reasoner = SimpleReasoner::new(ontology.clone());
         let _ = reasoner.is_consistent();
         let elapsed = start.elapsed();
-        
+
         println!("Time: {:?}", elapsed);
-        println!("Throughput: {:.0} ops/second", 
-            1.0 / elapsed.as_secs_f64());
+        println!("Throughput: {:.0} ops/second", 1.0 / elapsed.as_secs_f64());
 
         println!("\n");
     }

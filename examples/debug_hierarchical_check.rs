@@ -1,10 +1,7 @@
 #![allow(unused_imports, unused_variables, unused_mut, dead_code)]
 //! Debug why ontologies fail hierarchical check
 
-use owl2_reasoner::{
-    HierarchicalClassificationEngine,
-    ParserFactory,
-};
+use owl2_reasoner::{HierarchicalClassificationEngine, ParserFactory};
 use std::path::Path;
 
 fn main() {
@@ -36,14 +33,14 @@ fn main() {
 
         println!("Classes: {}", ontology.classes().len());
         println!("Total axioms: {}", ontology.axioms().len());
-        
+
         // Check each condition
         println!("\n--- Checking conditions for HierarchicalEngine ---");
-        
+
         // 1. Check subclass axioms
         let subclass_axioms = ontology.subclass_axioms().len();
         println!("Subclass axioms: {}", subclass_axioms);
-        
+
         let mut simple_subclass = 0;
         let mut complex_subclass = 0;
         for axiom in ontology.subclass_axioms() {
@@ -55,27 +52,38 @@ fn main() {
                 _ => {
                     complex_subclass += 1;
                     if complex_subclass <= 3 {
-                        println!("  Complex subclass: {:?} ⊑ {:?}", 
-                            axiom.sub_class(), axiom.super_class());
+                        println!(
+                            "  Complex subclass: {:?} ⊑ {:?}",
+                            axiom.sub_class(),
+                            axiom.super_class()
+                        );
                     }
                 }
             }
         }
-        println!("  Simple: {}, Complex: {}", simple_subclass, complex_subclass);
-        
+        println!(
+            "  Simple: {}, Complex: {}",
+            simple_subclass, complex_subclass
+        );
+
         // 2. Check disjoint classes axioms
         let disjoint_count = ontology.disjoint_classes_axioms().len();
         println!("\nDisjoint classes axioms: {}", disjoint_count);
         if disjoint_count > 0 {
-            for (i, axiom) in ontology.disjoint_classes_axioms().iter().take(3).enumerate() {
+            for (i, axiom) in ontology
+                .disjoint_classes_axioms()
+                .iter()
+                .take(3)
+                .enumerate()
+            {
                 println!("  Disjoint #{}: {} classes", i, axiom.classes().len());
             }
         }
-        
+
         // 3. Check equivalent classes axioms
         let equiv_count = ontology.equivalent_classes_axioms().len();
         println!("\nEquivalent classes axioms: {}", equiv_count);
-        
+
         // 4. Check for disjunctions in axioms
         let mut disjunction_count = 0;
         for axiom in ontology.axioms() {
@@ -84,11 +92,14 @@ fn main() {
             }
         }
         println!("\nDisjunctions (ObjectUnionOf): {}", disjunction_count);
-        
+
         // Final check
         let can_handle = HierarchicalClassificationEngine::can_handle(&ontology);
-        println!("\n✓ HierarchicalClassificationEngine::can_handle() = {}", can_handle);
-        
+        println!(
+            "\n✓ HierarchicalClassificationEngine::can_handle() = {}",
+            can_handle
+        );
+
         if !can_handle {
             println!("\n⚠️  REASONS WHY IT FAILED:");
             if complex_subclass > 0 {
@@ -102,7 +113,7 @@ fn main() {
             }
         }
     }
-    
+
     println!("\n========================================");
     println!("Debug complete!");
     println!("========================================");
@@ -112,11 +123,15 @@ fn count_disjunctions(expr: &owl2_reasoner::logic::axioms::ClassExpression) -> u
     use owl2_reasoner::logic::axioms::ClassExpression;
     match expr {
         ClassExpression::ObjectUnionOf(operands) => {
-            1 + operands.iter().map(|op| count_disjunctions(op)).sum::<usize>()
+            1 + operands
+                .iter()
+                .map(|op| count_disjunctions(op))
+                .sum::<usize>()
         }
-        ClassExpression::ObjectIntersectionOf(operands) => {
-            operands.iter().map(|op| count_disjunctions(op)).sum::<usize>()
-        }
+        ClassExpression::ObjectIntersectionOf(operands) => operands
+            .iter()
+            .map(|op| count_disjunctions(op))
+            .sum::<usize>(),
         ClassExpression::ObjectComplementOf(inner) => count_disjunctions(inner),
         ClassExpression::ObjectSomeValuesFrom(_, inner) => count_disjunctions(inner),
         ClassExpression::ObjectAllValuesFrom(_, inner) => count_disjunctions(inner),

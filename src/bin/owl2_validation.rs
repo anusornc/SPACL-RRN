@@ -5,9 +5,8 @@ use std::path::Path;
 use std::time::Instant;
 
 use owl2_reasoner::{
-    Ontology, SimpleReasoner,
-    serializer::BinaryOntologyFormat,
-    util::ontology_io::load_ontology_with_env,
+    serializer::BinaryOntologyFormat, util::ontology_io::load_ontology_with_env, Ontology,
+    SimpleReasoner,
 };
 
 fn print_usage() {

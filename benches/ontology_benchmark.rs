@@ -1,5 +1,5 @@
 //! Simple Real-World Ontology Benchmark
-//! 
+//!
 //! Run with: cargo bench --bench ontology_benchmark
 
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
@@ -8,11 +8,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use owl2_reasoner::{
-    serializer::BinaryOntologyFormat,
-    util::profiling::configure_iri_cache_for_large_ontology,
-    Ontology, OntologyParser,
-    SimpleReasoner,
-    SpeculativeTableauxReasoner,
+    serializer::BinaryOntologyFormat, util::profiling::configure_iri_cache_for_large_ontology,
+    Ontology, OntologyParser, SimpleReasoner, SpeculativeTableauxReasoner,
 };
 
 /// Benchmark ontologies
@@ -20,8 +17,8 @@ const LUBM_PATH: &str = "tests/data/univ-bench.owl";
 const GO_PATH: &str = "benchmarks/ontologies/other/go-basic.owl";
 
 fn load_ontology(path: &str) -> Option<Ontology> {
-    use owl2_reasoner::parser::{RdfXmlParser, OntologyParser};
-    
+    use owl2_reasoner::parser::{OntologyParser, RdfXmlParser};
+
     let path = Path::new(path);
     if !path.exists() {
         println!("File not found: {}", path.display());
@@ -39,7 +36,11 @@ fn load_ontology(path: &str) -> Option<Ontology> {
         let start = std::time::Instant::now();
         let mut file = std::fs::File::open(&bin_path).ok()?;
         let ontology = BinaryOntologyFormat::deserialize(&mut file).ok()?;
-        println!("Loaded in {:?}: {} classes", start.elapsed(), ontology.classes().len());
+        println!(
+            "Loaded in {:?}: {} classes",
+            start.elapsed(),
+            ontology.classes().len()
+        );
         return Some(ontology);
     }
 
@@ -51,18 +52,22 @@ fn load_ontology(path: &str) -> Option<Ontology> {
             configure_iri_cache_for_large_ontology(estimated_classes);
         }
     }
-    
+
     // Try RDF/XML parser first (most .owl files are RDF/XML)
     println!("Loading {}...", path.display());
     let start = std::time::Instant::now();
-    
+
     let parser = RdfXmlParser::new();
     let result = parser.parse_file(path);
     let elapsed = start.elapsed();
-    
+
     match result {
         Ok(ontology) => {
-            println!("Loaded in {:?}: {} classes", elapsed, ontology.classes().len());
+            println!(
+                "Loaded in {:?}: {} classes",
+                elapsed,
+                ontology.classes().len()
+            );
             Some(ontology)
         }
         Err(e) => {
@@ -78,10 +83,10 @@ fn bench_lubm(c: &mut Criterion) {
         return;
     };
     let ontology = Arc::new(ontology);
-    
+
     let mut group = c.benchmark_group("lubm_consistency");
     group.measurement_time(Duration::from_secs(10));
-    
+
     // Sequential benchmark
     group.bench_function("sequential", |b| {
         b.iter_batched(
@@ -93,7 +98,7 @@ fn bench_lubm(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
-    
+
     // SPACL benchmark
     group.bench_function("spacl", |b| {
         b.iter_batched(
@@ -105,7 +110,7 @@ fn bench_lubm(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
-    
+
     group.finish();
 }
 
@@ -115,13 +120,13 @@ fn bench_go(c: &mut Criterion) {
         return;
     };
     let ontology = Arc::new(ontology);
-    
+
     println!("Running GO benchmark (this may take a while)...");
-    
+
     let mut group = c.benchmark_group("go_consistency");
     group.measurement_time(Duration::from_secs(60));
     group.sample_size(5); // Fewer samples for large ontology
-    
+
     // Sequential benchmark
     group.bench_function("sequential", |b| {
         b.iter_batched(
@@ -133,7 +138,7 @@ fn bench_go(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
-    
+
     // SPACL benchmark
     group.bench_function("spacl", |b| {
         b.iter_batched(
@@ -145,7 +150,7 @@ fn bench_go(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
-    
+
     group.finish();
 }
 

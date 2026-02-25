@@ -4,7 +4,6 @@
 
 use std::process::Command;
 
-
 const EPCIS_BINARY: &str = "epcis-reasoner";
 
 /// Test that the EPCIS binary exists and runs
@@ -18,7 +17,7 @@ fn test_epcis_binary_exists() {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
-    
+
     // Check that help output contains expected content
     assert!(
         stdout.contains("GS1 EPCIS") || stderr.contains("GS1 EPCIS"),
@@ -34,7 +33,6 @@ fn test_generate_demo_command() {
     let output = Command::new("cargo")
         .args(["run", "--bin", EPCIS_BINARY, "--", "generate-demo"])
         .current_dir(".")
-
         .output()
         .expect("Failed to execute generate-demo command");
 
@@ -65,7 +63,9 @@ fn test_generate_demo_command() {
 
     // Check business steps
     assert!(
-        combined.contains("commissioning") || combined.contains("shipping") || combined.contains("receiving"),
+        combined.contains("commissioning")
+            || combined.contains("shipping")
+            || combined.contains("receiving"),
         "Expected business steps in output. Output: {}",
         combined
     );
@@ -84,7 +84,6 @@ fn test_stats_command() {
     let output = Command::new("cargo")
         .args(["run", "--bin", EPCIS_BINARY, "--", "stats"])
         .current_dir(".")
-
         .output()
         .expect("Failed to execute stats command");
 
@@ -113,7 +112,6 @@ fn test_check_consistency_command() {
     let output = Command::new("cargo")
         .args(["run", "--bin", EPCIS_BINARY, "--", "check-consistency"])
         .current_dir(".")
-
         .output()
         .expect("Failed to execute check-consistency command");
 
@@ -163,7 +161,6 @@ fn test_epcis_vocabulary_correctness() {
     let output = Command::new("cargo")
         .args(["run", "--bin", EPCIS_BINARY, "--", "generate-demo"])
         .current_dir(".")
-
         .output()
         .expect("Failed to execute generate-demo");
 

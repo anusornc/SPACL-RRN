@@ -5,8 +5,8 @@
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use owl2_reasoner::{
-    Class, ClassExpression, Ontology, SimpleReasoner, SpeculativeConfig, SpeculativeTableauxReasoner,
-    SubClassOfAxiom,
+    Class, ClassExpression, Ontology, SimpleReasoner, SpeculativeConfig,
+    SpeculativeTableauxReasoner, SubClassOfAxiom,
 };
 use std::time::Duration;
 
