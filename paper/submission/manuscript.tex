@@ -110,7 +110,7 @@ We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning)
 
 Our key contributions are: (1) a speculative parallel tableaux framework with work-stealing scheduling; in the current prototype this is realized via branch-constrained work items evaluated in parallel; (2) an adaptive threshold mechanism that selects sequential or parallel execution based on estimated complexity, yielding 18--73$\times$ speedup over naive always-parallel execution on small ontologies; (3) thread-local nogood caching that reduces synchronization overhead by 80\%; (4) a global thread pool optimization that reduces overhead by 2.1$\times$; and (5) a Rust implementation with parser support for RDF/XML, OWL2 Functional, Manchester, and JSON-LD syntaxes. SPACL reaches $5\times$ speedup at 10,000 classes while keeping overhead below $2\times$ on small ontologies.
 
-In the Small Workload Suite, SPACL records the best wall-clock time on 4/6 ontologies and is the only reasoner that completes all six cases in our containerized harness; \texttt{disjunctive\_simple.owl} and \texttt{hierarchy\_10000.owl} are faster on Pellet (with ELK also faster on \texttt{hierarchy\_10000.owl}). In the Large Head-to-Head benchmark (doid/go-basic/uberon), SPACL records the best wall-clock result on all three tested ontologies among reasoners with successful comparable runs under an identical 900s timeout protocol. In an external OWL2Bench core-profile validation (DL/EL/QL/RL), three clean repeated runs show SPACL fastest by median wall-clock time on 4/4 ontologies with 12/12 successful runs in this harness. Timeout policy is reported explicitly in all benchmark tables (Small Workload Suite: 180s; Large Head-to-Head: 900s; OWL2Bench core profile suite: 300s). This improvement is driven by a structural RDF/XML parser and optimized materialization path that preserves the same ALC/SHOIQ semantic handlers as the baseline path; stage-level A/B runs show parse-only reductions of 96.96--97.98\% on doid/go-basic/uberon relative to the previous structural baseline. Small and large head-to-head suites are single-run descriptive wall-clock measurements in this revision.
+In the Small Workload Suite (filtered comparable set), SPACL records the best wall-clock time on 3/5 ontologies and completes 5/5 cases in our containerized harness; Pellet is faster on \texttt{hierarchy\_100.owl} and \texttt{hierarchy\_10000.owl} (with ELK/Openllet also faster than SPACL on \texttt{hierarchy\_10000.owl}). In the Large Head-to-Head benchmark (doid/go-basic/uberon), SPACL records the best wall-clock result on all three tested ontologies among reasoners with successful comparable runs under an identical 900s timeout protocol. In an external OWL2Bench core-profile validation (DL/EL/QL/RL), three clean repeated runs show SPACL fastest by median wall-clock time on 4/4 ontologies with 12/12 successful runs in this harness. Timeout policy is reported explicitly in all benchmark tables (Small Workload Suite: 300s; Large Head-to-Head: 900s; OWL2Bench core profile suite: 300s). This improvement is driven by a structural RDF/XML parser and optimized materialization path that preserves the same ALC/SHOIQ semantic handlers as the baseline path; stage-level A/B runs show parse-only reductions of 96.96--97.98\% on doid/go-basic/uberon relative to the previous structural baseline. Small and large head-to-head suites are single-run descriptive wall-clock measurements in this revision.
 \end{abstract}
 
 %% ============================================
@@ -775,7 +775,7 @@ where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text
 \begin{itemize}
     \item \textbf{Synthetic hierarchies}: 100--10,000 classes, linear subclass chains
     \item \textbf{Disjunctive tests}: disjunctive\_simple.owl and disjunctive\_test.owl (small synthetic union-heavy cases)
-    \item \textbf{LUBM}: univ-bench.owl (University benchmark)
+    \item \textbf{LUBM}: univ-bench.owl (University benchmark; excluded from final head-to-head table in this revision because the repository copy is malformed RDF/XML for OWLAPI-based competitors)
     \item \textbf{Real-world ontology sets}: stage experiments include PATO/DOID/UBERON/GO; primary head-to-head tables in this paper use DOID/GO-Basic/UBERON plus OWL2Bench core profiles
     \item Primary head-to-head suites use consistent ontologies (satisfiability testing); a dedicated nogood ablation additionally includes inconsistent synthetic cases
 \end{itemize}
@@ -807,18 +807,18 @@ where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text
 \textbf{Head-to-Head Protocol (primary reproducible runs in this revision)}:
 \begin{enumerate}
     \item \textbf{Ontologies}: 
-    Small Workload Suite = disjunctive\_simple.owl, disjunctive\_test.owl, hierarchy\_100.owl, hierarchy\_1000.owl, hierarchy\_10000.owl, univ-bench.owl; 
+    Small Workload Suite (filtered comparable set) = disjunctive\_simple.owl, disjunctive\_test.owl, hierarchy\_100.owl, hierarchy\_1000.owl, hierarchy\_10000.owl; 
     Large Head-to-Head = doid.owl, go-basic.owl, uberon.owl; 
     OWL2Bench Core Profile Suite = UNIV-BENCH-OWL2DL.owl, UNIV-BENCH-OWL2EL.owl, UNIV-BENCH-OWL2QL.owl, UNIV-BENCH-OWL2RL.owl
     \item \textbf{Reasoners}: SPACL (Tableauxx implementation), HermiT, Konclude, Openllet, ELK, JFact, Pellet
     \item \textbf{Measurement}: Single isolated container run per reasoner/ontology pair for Small and Large suites; OWL2Bench core profile suite is repeated for 3 independent clean runs
-    \item \textbf{Timeout policy}: 180 seconds for Small Workload Suite; 900 seconds for Large Head-to-Head; 300 seconds for OWL2Bench Core Profile Suite
+    \item \textbf{Timeout policy}: 300 seconds for Small Workload Suite; 900 seconds for Large Head-to-Head; 300 seconds for OWL2Bench Core Profile Suite
     \item \textbf{Metrics}: Wall-clock time (loading + parsing + reasoning)
     \item \textbf{Status recording}: success / timeout / failed / not\_available
     \item \textbf{Reproducibility}: Primary artifact sets for this paper revision are
-    \path{benchmarks/competitors/results/history/small_workload_suite_real_20260221}
+    \path{benchmarks/competitors/results/history/20260225_124647}
     and
-    \path{benchmarks/competitors/results/history/large_sanity_real_20260221}
+    \path{benchmarks/competitors/results/history/20260225_110658}
     . External OWL2Bench core-profile artifacts are:
     \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223},
     \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223_r2},
@@ -1028,26 +1028,25 @@ ELK \cite{elk} & Java & \checkmark & $\times$ & Open & EL++ \\
 
 We conducted direct wall-clock comparison across seven reasoners on identical hardware and operation settings (consistency checking).
 
-\subsubsection{Small Workload Suite (6 Ontologies)}
+\subsubsection{Small Workload Suite (Filtered 5-Ontology Comparable Set)}
 \label{sec:small-suite-results}
 
-Table~\ref{tab:small-workload-suite} reports per-ontology wall-clock results for the six-case small suite under the 180s policy.
+Table~\ref{tab:small-workload-suite} reports per-ontology wall-clock results for the filtered five-ontology comparable small suite under the 300s policy.
 
 \begin{table}[htbp]
 \centering
-\caption{Small Workload Suite Consistency Benchmark (wall time, ms; timeout 180s)}
+\caption{Small Workload Suite Consistency Benchmark (wall time, ms; timeout 300s)}
 \label{tab:small-workload-suite}
 \resizebox{\linewidth}{!}{
 \begin{tabular}{l|r|r|r|r|r|r|r}
 \toprule
 \textbf{Ontology} & \textbf{SPACL} & \textbf{HermiT} & \textbf{Konclude} & \textbf{Openllet} & \textbf{ELK} & \textbf{JFact} & \textbf{Pellet} \\
 \midrule
-disjunctive\_simple.owl & 3818 & 3337 & NC & 3010 & 2839 & 3272 & \textbf{2715} \\
-disjunctive\_test.owl & \textbf{2109} & 3473 & NC & 2867 & 2845 & 3526 & 3303 \\
-hierarchy\_100.owl & \textbf{2148} & 3280 & NC & 3020 & 3016 & 3374 & 2722 \\
-hierarchy\_1000.owl & \textbf{1982} & 3559 & NC & 3145 & 2989 & 3767 & 2836 \\
-hierarchy\_10000.owl & 8270 & 4118 & NC & 4336 & 3652 & FAIL & \textbf{3406} \\
-univ-bench.owl & \textbf{2149} & FAIL & NC & FAIL & FAIL & FAIL & FAIL \\
+disjunctive\_simple.owl & \textbf{2137} & 3387 & NC & 2865 & 2831 & 3307 & 2616 \\
+disjunctive\_test.owl & \textbf{2189} & 3194 & NC & 3227 & 2844 & 3415 & 2838 \\
+hierarchy\_100.owl & 3118 & 3498 & NC & 3033 & 3015 & 3417 & \textbf{2747} \\
+hierarchy\_1000.owl & \textbf{2026} & 3642 & NC & 3117 & 3104 & 3767 & 2857 \\
+hierarchy\_10000.owl & 7850 & 4151 & NC & 4353 & 4392 & FAIL & \textbf{3548} \\
 \bottomrule
 \end{tabular}
 }
@@ -1057,12 +1056,12 @@ univ-bench.owl & \textbf{2149} & FAIL & NC & FAIL & FAIL & FAIL & FAIL \\
 
 \textbf{Small-suite observations}:
 \begin{itemize}
-    \item SPACL is fastest on 4/6 ontologies among successful comparable runs in this suite
-    \item Pellet is fastest on \texttt{disjunctive\_simple.owl} and \texttt{hierarchy\_10000.owl}; ELK is also faster than SPACL on \texttt{hierarchy\_10000.owl}
-    \item SPACL is the only reasoner that completes all 6/6 ontologies in this run set
+    \item SPACL is fastest on 3/5 ontologies among successful comparable runs in this suite
+    \item Pellet is fastest on \texttt{hierarchy\_100.owl} and \texttt{hierarchy\_10000.owl}; ELK/Openllet are also faster than SPACL on \texttt{hierarchy\_10000.owl}
+    \item SPACL, HermiT, Openllet, ELK, and Pellet complete all 5/5 ontologies in this run set; JFact completes 4/5
 \end{itemize}
 
-\noindent\textit{Artifact source}: \path{benchmarks/competitors/results/history/small_workload_suite_real_20260221/results.csv}
+\noindent\textit{Artifact source}: \path{benchmarks/competitors/results/history/20260225_124647/results.csv}
 
 \subsubsection{Competitor Selection Rationale}
 \label{sec:baseline-rationale}
@@ -1096,9 +1095,9 @@ Table~\ref{tab:competitor-benchmarks} reports the large-ontology head-to-head wa
 \toprule
 \textbf{Ontology} & \textbf{SPACL} & \textbf{HermiT} & \textbf{Konclude} & \textbf{Openllet} & \textbf{ELK} & \textbf{JFact} & \textbf{Pellet} \\
 \midrule
-doid.owl & \textbf{3501} & 19121 & NC & 14286 & 13439 & 60125 & 28647 \\
-go-basic.owl & \textbf{7668} & 18197 & NC & 18235 & 17116 & 46301 & 85714 \\
-uberon.owl & \textbf{6762} & 116102 & NC & TO & 15083 & FAIL & TO \\
+doid.owl & \textbf{3436} & 19717 & NC & 14539 & 13292 & 58210 & 29014 \\
+go-basic.owl & \textbf{8501} & 18354 & NC & 18462 & 16762 & 45157 & 84543 \\
+uberon.owl & \textbf{6427} & 107011 & NC & TO & 15753 & FAIL & TO \\
 \bottomrule
 \end{tabular}
 }
@@ -1175,7 +1174,7 @@ OWL2RL & 2070 & 2864 (Pellet) & SPACL \\
 \subsection{Analysis: JVM Startup Overhead}
 \label{sec:jvm-overhead}
 
-Small-workload wall-clock numbers should be interpreted as end-to-end deployment measurements rather than pure reasoning-kernel speed. In the Small Workload Suite, most JVM-based engines cluster around 2.7--4.3 seconds wall time on successful runs, indicating substantial fixed runtime initialization costs. SPACL (Tableauxx implementation) completes all six small cases; four cases are near 2.0--2.2 seconds, \texttt{disjunctive\_simple.owl} is 3.82 seconds, and \texttt{hierarchy\_10000.owl} is 8.27 seconds due to parser/materialization overhead in the text-loading path.
+Small-workload wall-clock numbers should be interpreted as end-to-end deployment measurements rather than pure reasoning-kernel speed. In the filtered comparable Small Workload Suite, most JVM-based engines cluster around 2.6--4.4 seconds wall time on successful runs, indicating substantial fixed runtime initialization costs. SPACL (Tableauxx implementation) completes all five cases; four cases are near 2.0--3.1 seconds, while \texttt{hierarchy\_10000.owl} is 7.85 seconds due to parser/materialization overhead in the text-loading path.
 
 \textbf{Takeaway}: Wall-clock comparisons in this section reflect startup + parsing + reasoning together. They are useful for practical CLI deployment analysis, but should not be interpreted as parser-agnostic or reasoning-kernel-only measurements.
 
@@ -1275,7 +1274,7 @@ To better characterize learning impact, future benchmark suites should include a
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. In the Small Workload Suite, SPACL achieves the best wall-clock result on 4/6 ontologies and completes 6/6 runs in our harness; \texttt{disjunctive\_simple.owl} and \texttt{hierarchy\_10000.owl} are faster on Pellet (with ELK also faster on \texttt{hierarchy\_10000.owl}). In the Large Head-to-Head benchmark on biomedical RDF/XML ontologies (doid/go-basic/uberon), the revised structural parser/materialization pipeline substantially improves end-to-end behavior, and SPACL records the best wall-clock time on all 3/3 tested ontologies among reasoners with successful comparable runs under a 900s timeout policy. In the external OWL2Bench core-profile suite (DL/EL/QL/RL), three clean repeated runs show SPACL with 12/12 success and the best median wall-clock result on 4/4 ontologies among successful comparable runs in this harness. Small and large suite claims remain descriptive for the reported run sets.
+We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. In the filtered comparable Small Workload Suite, SPACL achieves the best wall-clock result on 3/5 ontologies and completes 5/5 runs; Pellet is faster on \texttt{hierarchy\_100.owl} and \texttt{hierarchy\_10000.owl} (with ELK/Openllet also faster than SPACL on \texttt{hierarchy\_10000.owl}). In the Large Head-to-Head benchmark on biomedical RDF/XML ontologies (doid/go-basic/uberon), the revised structural parser/materialization pipeline substantially improves end-to-end behavior, and SPACL records the best wall-clock time on all 3/3 tested ontologies among reasoners with successful comparable runs under a 900s timeout policy. In the external OWL2Bench core-profile suite (DL/EL/QL/RL), three clean repeated runs show SPACL with 12/12 success and the best median wall-clock result on 4/4 ontologies among successful comparable runs in this harness. Small and large suite claims remain descriptive for the reported run sets.
 
 \subsection{Summary of Contributions}
 \label{sec:summary}
@@ -1296,6 +1295,8 @@ We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative 
     \item \textbf{Runtime Initialization Effects}: Small-workload wall-clock comparisons include runtime startup and framework initialization costs, especially for JVM-based engines; these results should be interpreted as end-to-end deployment measurements rather than pure kernel timing.
     
     \item \textbf{Reproducibility Scope}: Results are measured under containerized CLI harness conditions (startup + parsing + reasoning). Different JVM flags, parser front-ends, and host tuning may change absolute timings.
+
+    \item \textbf{Benchmark Corpus Hygiene}: The repository copy of \texttt{univ-bench.owl} used in early runs is malformed RDF/XML for OWLAPI-based competitors; final small-suite winner analysis in this revision therefore uses a filtered comparable subset that excludes this file.
     
     \item \textbf{Container Tag Drift}: Competitor containers are referenced by image family and run-time tags from benchmark dates; digest-pinned images are not yet enforced in this manuscript pipeline.
     
@@ -1306,6 +1307,8 @@ We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative 
     \item \textbf{Single Machine}: SPACL targets single-node multi-core systems. Distributed reasoning across clusters is not supported.
     
     \item \textbf{Prototype Branch-Generation Scope}: The current speculative engine uses selected disjunction splitting with bounded speculative depth and timeout-based termination. Branch-level nogood learning is implemented with greedy minimization, but implementation-level completeness under unrestricted operational bounds is not yet claimed.
+
+    \item \textbf{Deep-Hierarchy Robustness}: In the current binary execution path, an extreme synthetic stress file (\texttt{hierarchy\_100000.owl}) can trigger stack-overflow failure; this case is treated as diagnostic rather than a comparable head-to-head winner row.
     
     \item \textbf{Profile Support}: SPACL currently supports ALC/SHOIQ. Full OWL2 DL (with datatypes, keys) requires additional implementation.
 \end{enumerate}
@@ -1327,9 +1330,9 @@ We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative 
 
 SPACL is available as the Tableauxx open-source implementation at \url{https://github.com/anusornc/tableauxx} under the MIT license.
 Reproducibility artifacts for this paper revision are included in the repository:
-\path{benchmarks/competitors/results/history/small_workload_suite_real_20260221}
+\path{benchmarks/competitors/results/history/20260225_124647}
 and
-\path{benchmarks/competitors/results/history/large_sanity_real_20260221},
+\path{benchmarks/competitors/results/history/20260225_110658},
 plus OWL2Bench core-profile repeated runs
 \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223},
 \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223_r2},
