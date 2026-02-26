@@ -1010,6 +1010,27 @@ impl SpeculativeTableauxReasoner {
         core
     }
 
+    /// Build a pruning-authorized nogood from branch constraints.
+    ///
+    /// A nogood is admitted only if contradiction is explicitly re-validated
+    /// after minimization. If no verified non-empty core is found, return empty.
+    fn verified_nogood_from_constraints(
+        ontology: &Ontology,
+        branch_id: BranchId,
+        constraints: &[ClassExpression],
+    ) -> HashSet<ClassExpression> {
+        let minimized = Self::minimize_conflicting_constraints(ontology, branch_id, constraints);
+        if minimized.is_empty() {
+            return HashSet::new();
+        }
+
+        if !Self::is_inconsistent_with_constraints(ontology, branch_id, &minimized) {
+            return HashSet::new();
+        }
+
+        minimized.into_iter().collect()
+    }
+
     /// Process a single work item using SimpleReasoner.
     fn process_work_item_simple(
         item: WorkItem,
@@ -1039,13 +1060,9 @@ impl SpeculativeTableauxReasoner {
         let is_consistent = reasoner.is_consistent().unwrap_or(true);
 
         if !is_consistent {
-            // Greedy subset minimization gives a branch-level core approximation.
-            let minimized =
-                Self::minimize_conflicting_constraints(ontology, item.branch_id, &item.constraints);
-            let mut nogood_assertions: HashSet<ClassExpression> = minimized.into_iter().collect();
-            if nogood_assertions.is_empty() {
-                nogood_assertions = Self::branch_assertions(&item);
-            }
+            // Learn only verified branch-level cores for pruning safety.
+            let nogood_assertions =
+                Self::verified_nogood_from_constraints(ontology, item.branch_id, &item.constraints);
             let nogood = Nogood::new(nogood_assertions);
 
             // Add to local cache if available, otherwise to global (skip empty nogoods).
@@ -1204,6 +1221,8 @@ impl AdaptiveTuner {
 mod tests {
     use super::*;
     use crate::core::entities::Class;
+    use crate::core::ontology::Ontology;
+    use crate::logic::axioms::SubClassOfAxiom;
 
     #[test]
     fn test_nogood_creation() {
@@ -1280,5 +1299,72 @@ mod tests {
 
         tuner.update(2.5);
         // Threshold should decrease for good speedup
+    }
+
+    #[test]
+    fn contradictory_branch_without_constraints_does_not_learn_fallback_nogood() {
+        // Build a small ontology that SimpleReasoner currently flags inconsistent
+        // even without added branch constraints.
+        let mut ontology = Ontology::new();
+        let a = Class::new("http://example.org/A");
+        let b = Class::new("http://example.org/B");
+        ontology.add_class(a.clone()).unwrap();
+        ontology.add_class(b.clone()).unwrap();
+        ontology
+            .add_subclass_axiom(SubClassOfAxiom::new(
+                ClassExpression::Class(a.clone()),
+                ClassExpression::Class(b.clone()),
+            ))
+            .unwrap();
+        ontology
+            .add_subclass_axiom(SubClassOfAxiom::new(
+                ClassExpression::Class(b.clone()),
+                ClassExpression::Class(a.clone()),
+            ))
+            .unwrap();
+
+        let item = WorkItem {
+            branch_id: BranchId::new(0),
+            constraints: Vec::new(),
+            test_expressions: {
+                let mut set = HashSet::new();
+                set.insert(ClassExpression::Class(a));
+                set.insert(ClassExpression::Class(b));
+                set
+            },
+            depth: 0,
+            disjunctions: Arc::new(Vec::new()),
+            next_disjunction_idx: 0,
+        };
+
+        let nogoods = Arc::new(NogoodDatabase::new(16));
+        let stats = Arc::new(Mutex::new(SpeculativeStats::default()));
+        let config = SpeculativeConfig::default();
+        let branch_counter = Arc::new(AtomicUsize::new(1));
+
+        let result = SpeculativeTableauxReasoner::process_work_item_simple(
+            item,
+            &Arc::new(ontology),
+            &nogoods,
+            &stats,
+            &config,
+            None,
+            0,
+            &branch_counter,
+        );
+
+        match result {
+            WorkResult::Contradiction { nogood, .. } => {
+                assert!(
+                    nogood.assertions.is_empty(),
+                    "must not learn fallback nogood when no verified non-empty core exists"
+                );
+            }
+            other => panic!("expected contradiction result, got {:?}", other),
+        }
+
+        let s = stats.lock().unwrap();
+        assert_eq!(s.nogoods_learned, 0);
+        assert_eq!(s.contradictions_found, 1);
     }
 }
