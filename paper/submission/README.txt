@@ -91,13 +91,13 @@ SUBMISSION INSTRUCTIONS FOR EDITORIAL MANAGER
 PAPER HIGHLIGHTS
 ================================================================================
 
-1. First OWL2 DL reasoner combining speculative parallelism with nogood learning
-2. Adaptive threshold mechanism achieving 18-73x speedup over naive parallelization
-3. Thread-local caching reduces synchronization overhead by 80%
+1. Open ALC/SHOIQ implementation combining speculative parallelism with nogood learning
+2. Adaptive threshold mechanism achieving 18-73x speedup over naive always-parallel execution on small cases
+3. Thread-local caching keeps most repeated nogood lookups on the local hot path (82-95% local cache-hit rates in dedicated ablations)
 4. Global thread pool optimization reduces parallel overhead by 2.1x
-5. 5x speedup at 10,000 classes (synthetic hierarchies) with <2x overhead
-6. Comprehensive parser support: OWL2 Functional, Manchester Syntax, JSON-LD
-7. Production-quality Rust implementation; real-world evaluation planned
+5. 5x speedup at 10,000 classes on synthetic disjunctive workloads with <2x overhead on small cases
+6. Implemented parser support used in this study: RDF/XML, OWL2 Functional, Manchester Syntax, JSON-LD
+7. Rust implementation with explicit reporting of benchmark scope and constraints
 
 ================================================================================
 KEYWORDS

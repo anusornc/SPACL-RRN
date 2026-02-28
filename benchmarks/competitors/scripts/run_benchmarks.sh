@@ -38,6 +38,7 @@ RUN_CSV_FILE="$RUN_DIR/results.csv"
 RUN_PAPER_MD="$RUN_DIR/paper_table.md"
 RUN_PAPER_TEX="$RUN_DIR/paper_table.tex"
 RUN_ONTOLOGY_DIR="$RUN_DIR/ontologies"
+RUN_KONCLUDE_INPUT_DIR="$RUN_DIR/konclude_inputs"
 LATEST_LINK="$RESULTS_DIR/latest"
 
 DEFAULT_REASONERS=("tableauxx" "hermit" "konclude" "openllet" "elk" "jfact" "pellet")
@@ -102,6 +103,38 @@ log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_ok() { echo -e "${GREEN}[OK]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_err() { echo -e "${RED}[ERR]${NC} $1"; }
+
+prepare_konclude_input() {
+    local ontology_path="$1"
+    local ontology_name prepared_name prepared_path
+    ontology_name="$(basename "$ontology_path")"
+    prepared_name="${ontology_name%.owl}.konclude.owlxml.owl"
+    prepared_path="$RUN_KONCLUDE_INPUT_DIR/$prepared_name"
+
+    mkdir -p "$RUN_KONCLUDE_INPUT_DIR"
+
+    if [[ -f "$prepared_path" ]]; then
+        printf '%s\n' "$prepared_path"
+        return 0
+    fi
+
+    log_info "Preprocessing Konclude input for $ontology_name (merge imports + OWL/XML)"
+    if docker run --rm --entrypoint java \
+        -v "$PROJECT_ROOT:/work:ro" \
+        -v "$RUN_KONCLUDE_INPUT_DIR:/out" \
+        owl-reasoner-openllet \
+        -cp "/opt/reasoner/bin:/opt/reasoner/target/dependency/*" \
+        OwlapiFormatConverter \
+        "/work/${ontology_path#$PROJECT_ROOT/}" \
+        "/out/$prepared_name" \
+        owlxml \
+        merge >/dev/null 2>&1; then
+        printf '%s\n' "$prepared_path"
+        return 0
+    fi
+
+    return 1
+}
 
 register_active_container() {
     local container_name="$1"
@@ -452,6 +485,8 @@ run_single_benchmark() {
     local reported_ms reported_status reasoning_result final_status parse_ms reason_ms
     local container_name
     local exit_code_file wait_status
+    local mount_dir="$RUN_ONTOLOGY_DIR"
+    local container_ontology_name="$ontology_name"
     container_name="owlbench_${RUN_ID}_${reasoner}_${ontology_name%.owl}"
     container_name="${container_name//[^a-zA-Z0-9_.-]/_}"
     exit_code_file="$(mktemp)"
@@ -467,11 +502,25 @@ run_single_benchmark() {
         fi
     done
 
+    if [[ "$reasoner" == "openllet" && -n "${OPENLLET_JAVA_TOOL_OPTIONS:-}" ]]; then
+        docker_env_args+=(-e "JAVA_TOOL_OPTIONS=${OPENLLET_JAVA_TOOL_OPTIONS}")
+    fi
+
+    if [[ "$reasoner" == "konclude" && "${KONCLUDE_PREPROCESS_INPUTS:-1}" == "1" ]]; then
+        local prepared_konclude_input
+        if prepared_konclude_input="$(prepare_konclude_input "$ontology_path")"; then
+            mount_dir="$RUN_KONCLUDE_INPUT_DIR"
+            container_ontology_name="$(basename "$prepared_konclude_input")"
+        else
+            log_warn "Konclude preprocessing failed for $ontology_name; falling back to raw ontology input"
+        fi
+    fi
+
     if docker run -d --name "$container_name" \
         "${docker_env_args[@]}" \
-        -v "$RUN_ONTOLOGY_DIR:/ontologies:ro" \
+        -v "$mount_dir:/ontologies:ro" \
         "owl-reasoner-$reasoner" \
-        "/ontologies/$ontology_name" "$operation" >/dev/null 2>&1; then
+        "/ontologies/$container_ontology_name" "$operation" >/dev/null 2>&1; then
         register_active_container "$container_name" "$result_file" "$reasoner" "$ontology_name" "$operation" "$start_ns"
 
         if timeout --kill-after=5s "$TIMEOUT_SECONDS" docker wait "$container_name" > "$exit_code_file" 2>/dev/null; then
@@ -537,6 +586,8 @@ run_single_benchmark() {
         final_status="timeout"
     elif [[ "$reported_status" == "not_available" ]]; then
         final_status="not_available"
+    elif [[ "$reported_status" == "non_comparable" ]]; then
+        final_status="non_comparable"
     elif [[ "$cmd_status" -ne 0 ]]; then
         final_status="failed"
     elif [[ "$reported_status" == "failed" || "$reported_status" == "unsupported_operation" ]]; then
@@ -586,6 +637,7 @@ status_code_for_cell() {
     case "$status" in
         timeout) echo "TO" ;;
         not_available) echo "NA" ;;
+        non_comparable) echo "NC" ;;
         killed) echo "KIL" ;;
         orphan) echo "ORPH" ;;
         failed|unsupported_operation) echo "FAIL" ;;
@@ -670,7 +722,7 @@ generate_paper_tables() {
         done
 
         echo
-        echo "Legend: **best wall time**, TO=timeout, NA=not available, KIL=interrupted cleanup kill, ORPH=container orphan cleanup, FAIL=runtime/parser failure."
+        echo "Legend: **best wall time**, TO=timeout, NA=not available, NC=non-comparable parser/runtime incompatibility, KIL=interrupted cleanup kill, ORPH=container orphan cleanup, FAIL=hard runtime failure."
     } > "$md_file"
     log_ok "Paper markdown table generated: $md_file"
 
@@ -757,8 +809,8 @@ generate_report() {
         echo
         echo "## Summary by Reasoner"
         echo
-        echo "| Reasoner | Success | Failed | Timeout | Not Available | Killed | Orphan | Avg Wall Time (ms) |"
-        echo "|---|---:|---:|---:|---:|---:|---:|---:|"
+        echo "| Reasoner | Success | Non-Comparable | Failed | Timeout | Not Available | Killed | Orphan | Avg Wall Time (ms) |"
+        echo "|---|---:|---:|---:|---:|---:|---:|---:|---:|"
 
         local reasoner
         for reasoner in "${REASONERS[@]}"; do
@@ -767,7 +819,7 @@ generate_report() {
                 continue
             fi
 
-            local success=0 failed=0 timeout=0 not_available=0 killed=0 orphan=0
+            local success=0 non_comparable=0 failed=0 timeout=0 not_available=0 killed=0 orphan=0
             local total_ms=0 total_count=0
             local f st ms
             for f in "${files[@]}"; do
@@ -775,6 +827,7 @@ generate_report() {
                 ms="$(jq -r '.wall_time_ms' "$f")"
                 case "$st" in
                     success) success=$((success + 1)) ;;
+                    non_comparable) non_comparable=$((non_comparable + 1)) ;;
                     timeout) timeout=$((timeout + 1)) ;;
                     not_available) not_available=$((not_available + 1)) ;;
                     killed) killed=$((killed + 1)) ;;
@@ -791,7 +844,7 @@ generate_report() {
             if [[ "$total_count" -gt 0 ]]; then
                 avg=$((total_ms / total_count))
             fi
-            echo "| $reasoner | $success | $failed | $timeout | $not_available | $killed | $orphan | $avg |"
+            echo "| $reasoner | $success | $non_comparable | $failed | $timeout | $not_available | $killed | $orphan | $avg |"
         done
 
         echo

@@ -47,17 +47,34 @@ elif grep -Eqi "is[[:space:]]+consistent|[[:space:]]consistent\\." "$tmp_output"
     reasoning_result="consistent"
 fi
 
-# Konclude may return exit code 0 even on parser/input errors.
-if grep -qi "{error}" "$tmp_output"; then
-    cmd_status=1
+reported_status="completed"
+
+# Distinguish parser/format incompatibility from hard runtime failure.
+if grep -Eqi "segmentation fault|core dumped|Assertion.*failed|terminate called after throwing" "$tmp_output"; then
+    reported_status="failed"
     reasoning_result="unknown"
+elif grep -Eqi "OWL2/XML Ontology node not found|XML parsing error|Couldn't extract minimal required|Couldn't match parameters for|DataPropertyRange'-Expression|SubDataPropertyOf'-Expression" "$tmp_output"; then
+    if [ "$reasoning_result" = "unknown" ]; then
+        reported_status="non_comparable"
+    else
+        reported_status="non_comparable"
+    fi
 fi
 
-if [ "$cmd_status" -eq 0 ]; then
-    echo "{\"duration_ms\": $duration_ms, \"status\": \"completed\", \"reasoning_result\": \"$reasoning_result\"}"
-else
+if [ "$cmd_status" -ne 0 ] && [ "$reported_status" = "completed" ]; then
+    reported_status="failed"
+fi
+
+if [ "$reported_status" = "failed" ]; then
     echo "{\"duration_ms\": $duration_ms, \"status\": \"failed\", \"reasoning_result\": \"$reasoning_result\"}"
+elif [ "$reported_status" = "non_comparable" ]; then
+    echo "{\"duration_ms\": $duration_ms, \"status\": \"non_comparable\", \"reasoning_result\": \"$reasoning_result\"}"
+else
+    echo "{\"duration_ms\": $duration_ms, \"status\": \"completed\", \"reasoning_result\": \"$reasoning_result\"}"
 fi
 
 rm -f "$tmp_output"
-exit "$cmd_status"
+if [ "$reported_status" = "failed" ]; then
+    exit "$cmd_status"
+fi
+exit 0

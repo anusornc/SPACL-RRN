@@ -1,0 +1,13 @@
+case,parallel_threshold,cost_threshold_us,cost_per_operand_us,cost_per_nesting_us,sequential_ms,forced_parallel_ms,adaptive_ms,best_baseline_ms,regret,used_parallel,disjunctions_detected,estimated_branch_count,estimated_cost_us,branch_threshold,cost_gate_threshold_us,branch_gate_passed,cost_gate_passed,branches_created,branches_pruned,nogood_hits
+doid,100,1,25,30,21.638,21.388,90.704,21.388,4.240841,false,0,1582,0,100,48,false,false,0,0,0
+go_basic,100,1,25,30,56.431,70.537,203.524,56.431,3.606616,false,0,5189,0,100,48,false,false,0,0,0
+doid,50,1,25,30,21.638,21.388,16.388,21.388,0.766236,false,0,1582,0,50,48,false,false,0,0,0
+go_basic,50,1,25,30,56.431,70.537,72.153,56.431,1.278614,false,0,5189,0,50,48,false,false,0,0,0
+doid,50,25,25,15,21.638,21.388,16.265,21.388,0.760451,false,0,1582,0,50,1200,false,false,0,0,0
+go_basic,50,25,25,15,56.431,70.537,71.315,56.431,1.263752,false,0,5189,0,50,1200,false,false,0,0,0
+doid,100,25,50,15,21.638,21.388,17.326,21.388,0.810076,false,0,1582,0,100,1200,false,false,0,0,0
+go_basic,100,25,50,15,56.431,70.537,78.118,56.431,1.384323,false,0,5189,0,100,1200,false,false,0,0,0
+doid,50,25,25,30,21.638,21.388,15.478,21.388,0.723672,false,0,1582,0,50,1200,false,false,0,0,0
+go_basic,50,25,25,30,56.431,70.537,70.145,56.431,1.243020,false,0,5189,0,50,1200,false,false,0,0,0
+doid,100,5,25,15,21.638,21.388,16.017,21.388,0.748872,false,0,1582,0,100,240,false,false,0,0,0
+go_basic,100,5,25,15,56.431,70.537,66.984,56.431,1.187004,false,0,5189,0,100,240,false,false,0,0,0

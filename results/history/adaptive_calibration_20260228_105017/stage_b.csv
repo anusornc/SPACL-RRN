@@ -1,0 +1,5 @@
+case,parallel_threshold,cost_threshold_us,cost_per_operand_us,cost_per_nesting_us,sequential_ms,forced_parallel_ms,adaptive_ms,best_baseline_ms,regret,used_parallel,disjunctions_detected,estimated_branch_count,estimated_cost_us,branch_threshold,cost_gate_threshold_us,branch_gate_passed,cost_gate_passed,branches_created,branches_pruned,nogood_hits
+doid,50,250,25,15,68.179,61.685,59.636,61.685,0.966787,false,0,1582,0,50,12000,false,false,0,0,0
+doid,50,250,75,30,56.124,58.829,60.315,56.124,1.074673,false,0,1582,0,50,12000,false,false,0,0,0
+doid,100,250,25,15,59.143,60.019,60.944,59.143,1.030451,false,0,1582,0,100,12000,false,false,0,0,0
+doid,50,250,25,30,57.204,60.735,59.044,57.204,1.032151,false,0,1582,0,50,12000,false,false,0,0,0

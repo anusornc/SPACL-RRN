@@ -176,6 +176,10 @@ name = "benchmark_adaptive"
 path = "scripts/benchmark_adaptive.rs"
 
 [[bin]]
+name = "calibrate_adaptive"
+path = "scripts/calibrate_adaptive.rs"
+
+[[bin]]
 name = "benchmark_edge_cases"
 path = "scripts/benchmark_edge_cases.rs"
 

@@ -99,6 +99,22 @@ impl Nogood {
 /// Statistics for speculative reasoning
 #[derive(Debug, Default, Clone)]
 pub struct SpeculativeStats {
+    /// Number of unique disjunction expressions detected for gating
+    pub disjunctions_detected: usize,
+    /// Heuristic branch-count estimate used by the parallel gate
+    pub estimated_branch_count: usize,
+    /// Heuristic cost estimate (microseconds) used by the parallel gate
+    pub estimated_cost_us: usize,
+    /// Configured branch threshold used by the gate
+    pub branch_threshold: usize,
+    /// Effective cost threshold used by the gate (already multiplied by workers)
+    pub cost_gate_threshold_us: usize,
+    /// Whether the branch-count gate passed
+    pub branch_gate_passed: bool,
+    /// Whether the cost gate passed
+    pub cost_gate_passed: bool,
+    /// Whether this run actually entered speculative parallel execution
+    pub used_parallel: bool,
     /// Total branches created
     pub branches_created: usize,
     /// Branches pruned by nogoods
@@ -199,6 +215,18 @@ enum WorkResult {
     },
 }
 
+#[derive(Debug, Clone, Copy)]
+struct ParallelDecision {
+    disjunctions_detected: usize,
+    estimated_branch_count: usize,
+    estimated_cost_us: usize,
+    branch_threshold: usize,
+    cost_gate_threshold_us: usize,
+    branch_gate_passed: bool,
+    cost_gate_passed: bool,
+    use_parallel: bool,
+}
+
 /// Configuration for speculative parallelism
 #[derive(Debug, Clone)]
 pub struct SpeculativeConfig {
@@ -230,7 +258,10 @@ impl Default for SpeculativeConfig {
         Self {
             num_workers: num_cpus::get(),
             max_speculative_depth: 10,
-            parallel_threshold: 10000, // High threshold - only parallel for very large ontologies
+            // Calibrated conservatively so branch-count gate avoids pathological
+            // parallelization on medium disjunctive workloads while still leaving
+            // room for larger branch-heavy cases to opt in.
+            parallel_threshold: 2000,
             enable_learning: true,
             max_nogoods: 10000,
             speculative_timeout_ms: 30000,
@@ -459,23 +490,19 @@ impl SpeculativeTableauxReasoner {
     /// - Number of disjunctions (unions) in the ontology
     /// - Number of existential restrictions
     /// - Number of classes with multiple parents
-    fn estimate_branch_count(&self) -> usize {
-        let mut estimate = 1;
+    fn estimate_branch_count(&self, disjunctions_detected: usize) -> usize {
+        let mut disjoint_axioms = 0usize;
 
         // Count disjunctive axioms (each adds branching)
         for axiom in self.ontology.axioms() {
             if let crate::logic::axioms::Axiom::DisjointClasses(_) = axiom.as_ref() {
-                estimate += 2; // Each disjointness can cause branching
+                disjoint_axioms += 1;
             }
         }
 
         // Scale by number of classes (rough heuristic)
         let class_count = self.ontology.classes().len();
-        estimate = estimate.max(class_count / 10);
-
-        // For simple hierarchies, estimate is low
-        // For complex ontologies with many unions/intersections, estimate is high
-        estimate.max(1)
+        (disjunctions_detected + 2 * disjoint_axioms + class_count / 10).max(1)
     }
 
     /// Check ontology consistency using sequential processing
@@ -576,22 +603,48 @@ impl SpeculativeTableauxReasoner {
             .sum()
     }
 
-    /// Decide whether to use parallel processing based on cost estimation
-    fn should_use_parallel(&self, disjunctions: &[ClassExpression]) -> bool {
+    /// Evaluate the implementation-aligned parallel gating decision.
+    fn evaluate_parallel_decision(&self, disjunctions: &[ClassExpression]) -> ParallelDecision {
+        let disjunctions_detected = disjunctions.len();
+        let estimated_branch_count = self.estimate_branch_count(disjunctions_detected);
+        let branch_threshold = self.config.parallel_threshold;
+        let estimated_cost_us = if disjunctions.is_empty() {
+            0
+        } else {
+            self.estimate_total_cost(disjunctions)
+        };
+        let cost_gate_threshold_us = self.config.cost_threshold_us * self.config.num_workers;
+
         if disjunctions.is_empty() {
-            return false; // No disjunctions = nothing to parallelize
+            return ParallelDecision {
+                disjunctions_detected,
+                estimated_branch_count,
+                estimated_cost_us,
+                branch_threshold,
+                cost_gate_threshold_us,
+                branch_gate_passed: false,
+                cost_gate_passed: false,
+                use_parallel: false,
+            };
         }
 
-        // If adaptive tuning is disabled, use simple threshold
-        if !self.config.adaptive_tuning {
-            return disjunctions.len() >= self.config.parallel_threshold;
+        let branch_gate_passed = estimated_branch_count >= branch_threshold;
+        let cost_gate_passed = if self.config.adaptive_tuning {
+            estimated_cost_us >= cost_gate_threshold_us
+        } else {
+            true
+        };
+
+        ParallelDecision {
+            disjunctions_detected,
+            estimated_branch_count,
+            estimated_cost_us,
+            branch_threshold,
+            cost_gate_threshold_us,
+            branch_gate_passed,
+            cost_gate_passed,
+            use_parallel: branch_gate_passed && cost_gate_passed,
         }
-
-        // Use cost-based threshold
-        let estimated_cost = self.estimate_total_cost(disjunctions);
-        let threshold = self.config.cost_threshold_us * self.config.num_workers;
-
-        estimated_cost >= threshold
     }
 
     /// Create root work item for recursive speculative expansion.
@@ -676,11 +729,28 @@ impl SpeculativeTableauxReasoner {
     pub fn is_consistent(&mut self) -> OwlResult<bool> {
         // Find disjunctions first to estimate cost
         let disjunctions = self.find_disjunctions();
+        let decision = self.evaluate_parallel_decision(&disjunctions);
+
+        if let Ok(mut stats) = self.stats.lock() {
+            stats.disjunctions_detected = decision.disjunctions_detected;
+            stats.estimated_branch_count = decision.estimated_branch_count;
+            stats.estimated_cost_us = decision.estimated_cost_us;
+            stats.branch_threshold = decision.branch_threshold;
+            stats.cost_gate_threshold_us = decision.cost_gate_threshold_us;
+            stats.branch_gate_passed = decision.branch_gate_passed;
+            stats.cost_gate_passed = decision.cost_gate_passed;
+            stats.used_parallel = decision.use_parallel;
+        }
 
         // Use adaptive threshold to decide between sequential and parallel
-        if !self.should_use_parallel(&disjunctions) {
+        if !decision.use_parallel {
             // Cost is too low - use sequential to avoid parallel overhead
-            return self.is_consistent_sequential();
+            let start_time = Instant::now();
+            let result = self.is_consistent_sequential();
+            if let Ok(mut stats) = self.stats.lock() {
+                stats.reasoning_time_ms = start_time.elapsed().as_millis() as u64;
+            }
+            return result;
         }
 
         let start_time = Instant::now();
