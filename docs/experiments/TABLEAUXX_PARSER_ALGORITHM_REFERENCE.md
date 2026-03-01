@@ -1,6 +1,6 @@
 # Tableauxx Parser Algorithm Reference
 
-Date: 2026-02-18
+Date: 2026-03-01
 Purpose: Stable parser-algorithm reference for future regression checks and architecture diffs.
 Scope: Current parser stack used by `owl2-reasoner` and benchmark harness.
 
@@ -51,6 +51,10 @@ Key behavior:
   - `OWL2_REASONER_ENABLE_PARSE_FALLBACK`
   - `OWL2_REASONER_LARGE_PARSE`
 - Stage timing logs are emitted when `OWL2_REASONER_STAGE_TIMING=1`.
+- As of `2026-03-01`, benchmark stage-split decisions should not treat `.owlbin` load time as a reasoning proxy.
+  Fresh probes show binary load cost is dominated by payload decode (`serde/bincode`) rather than
+  ontology reasoning, so the stage harness now takes the reasoning metric from the same cold text run
+  and moves bin-cache diagnostics to `benchmarks/competitors/scripts/profile_bin_cache.sh`.
 
 ## 2. Parser Selection (`ParserFactory`)
 
@@ -223,6 +227,8 @@ As of this document:
 - Parser bottleneck is confirmed by stage split (parse dominates).
 - Structural phase has started and is integrated.
 - Structural path currently provides measurable parse improvements on large ontologies.
+- Stage harness contract uses `parse_only` + `reason_only_stage` from the same cold text run.
+- `.owlbin` diagnostics live in `benchmarks/competitors/scripts/profile_bin_cache.sh` because decode can dominate large-file timings.
 
 ## 11. Latest Update (2026-02-19)
 

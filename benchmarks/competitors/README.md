@@ -38,13 +38,17 @@ INCLUDE_FACTPP=1 ./scripts/run_benchmarks.sh all
 # Optional: override ontology directories (for external benchmark sets)
 ONTOLOGIES_DIR_OVERRIDE=/path/to/custom_owl_dir ONTOLOGY_SUITE=standard ./scripts/run_benchmarks.sh all
 
-# Stage split for fair analysis (Tableauxx parse-only vs reason-only)
+# Stage split for fair analysis (Tableauxx parse-only vs reason-stage timing)
 ./scripts/run_stage_benchmark.sh go-basic.owl
-REPEAT_WARM=5 TIMEOUT_SECONDS=1800 ./scripts/run_stage_benchmark.sh chebi.owl
+TIMEOUT_SECONDS=1800 ./scripts/run_stage_benchmark.sh chebi.owl
+
+# Optional legacy owlbin diagnostic (not part of the primary stage contract)
+./scripts/profile_bin_cache.sh go-basic.owl
+REPEAT_WARM=5 TIMEOUT_SECONDS=1800 ./scripts/profile_bin_cache.sh chebi.owl
 
 # Batch stage split across large suite
 ./scripts/run_stage_suite.sh
-REPEAT_WARM=5 CHEBI_TIMEOUT_SECONDS=2400 ./scripts/run_stage_suite.sh doid.owl go-basic.owl uberon.owl
+CHEBI_TIMEOUT_SECONDS=2400 ./scripts/run_stage_suite.sh doid.owl go-basic.owl uberon.owl
 ```
 
 ## Individual Reasoner Testing
@@ -77,6 +81,7 @@ benchmarks/competitors/
 ├── scripts/
 │   ├── run_benchmarks.sh   # Main benchmark orchestration
 │   ├── run_stage_benchmark.sh
+│   ├── profile_bin_cache.sh
 │   └── run_stage_suite.sh
 ├── ontologies/             # Baseline/synthetic ontologies
 ├── results/                # Benchmark output (run-scoped under results/history/<run_id>)
@@ -113,6 +118,8 @@ Measured:
 
 For `Tableauxx`, stage timing (`parse_time_ms`, `reason_time_ms`) is also emitted.
 Use stage scripts to avoid mixing parse and reason effects when comparing optimization work.
+The primary stage split now uses `parse_only` and `reason_only_stage` from the same cold text run.
+Use `./scripts/profile_bin_cache.sh` only for `.owlbin` diagnostics; it is not part of the primary KPI.
 
 ## Latest Parser Snapshot (2026-02-19)
 

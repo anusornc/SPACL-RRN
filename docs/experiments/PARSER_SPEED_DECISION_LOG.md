@@ -1,10 +1,25 @@
 # Parser Speed Decision Log
 
-Date: 2026-02-18
+Date: 2026-03-01
 Owner: Tableauxx parser optimization track
 Goal: Make Tableauxx parser fastest under fair, reproducible, full-fidelity conditions.
 
-## Latest Checkpoint (2026-02-19)
+## Latest Checkpoint (2026-03-01)
+
+- Stage benchmark contract is now:
+  - `parse_only`: parse stage extracted from cold text run
+  - `reason_only_stage`: reason stage extracted from the same cold text run
+- `.owlbin` diagnostics moved out of the main stage harness into:
+  - `benchmarks/competitors/scripts/profile_bin_cache.sh`
+- Rationale:
+  - `owlbin` load cost is dominated by `serde/bincode` decode and can dwarf true reasoning time.
+  - This was confirmed by fresh `CHEBI` and direct binary probes on `doid.owlbin`.
+- Fresh diagnostic artifacts:
+  - `benchmarks/competitors/results/history/stages_chebi_20260301_080949/stage_summary.csv`
+  - direct probe: `doid.owlbin` with `binary_payload_decode_done ~= 24.8s`, `binary_payload_materialize_done ~= 0.129s`
+- Current dominant cost in the benchmark KPI remains text parse, not reasoning.
+
+## Previous Parser Checkpoint (2026-02-19)
 
 - Structural parser is now the active optimization track.
 - Script-validated parse-only results (large suite samples):
@@ -24,7 +39,9 @@ Goal: Make Tableauxx parser fastest under fair, reproducible, full-fidelity cond
 - Harness: `benchmarks/competitors/scripts/run_stage_benchmark.sh` and `benchmarks/competitors/scripts/run_stage_suite.sh`
 - Fair split:
   - `parse_only`: parse stage extracted from cold text run
-  - `reason_only_warm_median`: warm bin-only approximation for reasoning stage
+  - `reason_only_stage`: reason stage extracted from the same cold text run
+- Optional diagnostics:
+  - `benchmarks/competitors/scripts/profile_bin_cache.sh` for `.owlbin` load profiling
 - Key KPI: `parse_time_ms` (primary), `wall_time_ms` (secondary), `reason_time_ms` (diagnostic)
 
 ## 2) Evidence That Bottleneck Is Parser
