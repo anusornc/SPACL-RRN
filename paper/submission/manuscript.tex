@@ -108,7 +108,7 @@
 \begin{abstract}
 We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. The reference implementation and repository are named \textit{Tableauxx}; throughout this manuscript, we use \textit{SPACL} for the algorithm/system and \textit{Tableauxx} only when referring to the software artifact. Relative to mainstream open OWL2 DL pipelines discussed in Section~\ref{sec:related}, SPACL emphasizes the combination of work-stealing speculative execution and reusable nogood information in one implementation path.
 
-Our key contributions are: (1) a speculative parallel tableaux framework with work-stealing scheduling; in the current prototype this is realized via branch-constrained work items evaluated in parallel; (2) an adaptive threshold mechanism that selects sequential or parallel execution based on estimated complexity, yielding 18--73$\times$ speedup over naive always-parallel execution on small ontologies; (3) thread-local nogood caching that keeps most repeated nogood lookups on the local hot path in dedicated inconsistent-workload ablations (82--95\% local cache-hit rates); (4) a global thread pool optimization that reduces overhead by 2.1$\times$; and (5) a Rust implementation with parser support for RDF/XML, OWL2 Functional, Manchester, and JSON-LD syntaxes. SPACL reaches $5\times$ speedup at 10,000 classes while keeping overhead below $2\times$ on small ontologies.
+Our key contributions are: (1) a speculative parallel tableaux framework with work-stealing scheduling; in the current prototype this is realized via branch-constrained work items evaluated in parallel; (2) an adaptive threshold mechanism that selects sequential or parallel execution based on estimated complexity, yielding 18--73$\times$ speedup over naive always-parallel execution on small ontologies; (3) thread-local nogood caching that keeps most repeated nogood lookups on the local hot path in dedicated inconsistent-workload ablations (82--95\% local cache-hit rates); (4) a global thread pool optimization that reduces overhead by 2.1$\times$; and (5) a Rust implementation with parser support for RDF/XML, OWL2 Functional, Manchester, and JSON-LD syntaxes. On synthetic scalability workloads, SPACL reaches up to 4.88$\times$ speedup at 10,000 classes while keeping overhead below $2\times$ on smaller ontologies.
 
 In the profile-mixed Standard Workload Suite (7 ontologies; 3 clean runs), per-ontology medians among successful comparable runs place SPACL lowest on 4/7 ontologies; ELK (OWL EL profile) is lowest on the two deepest hierarchy files, and Pellet is lowest on \texttt{univ-bench.owl}. In the primary Large Head-to-Head benchmark (doid/go-basic/uberon; 3 clean runs), SPACL has the lowest median wall-clock time on all three tested ontologies among successful comparable runs under a common 900s timeout protocol. A suite-level failure-aware metric (capped expected wall-time, CEW) over comparable runs reports ELK lowest on Standard and SPACL lowest on Large. In an external OWL2Bench core-profile validation (DL/EL/QL/RL), three clean repeated runs show SPACL has the lowest median wall-clock time on 4/4 ontologies with 12/12 successful runs in this harness. Timeout policy is reported explicitly in all benchmark tables (Standard Workload Suite: 300s; Large Head-to-Head: 900s; OWL2Bench core profile suite: 300s). This improvement is driven by a structural RDF/XML parser and optimized materialization path that reuses the same ALC/SHOIQ semantic handlers as the baseline path; stage-level A/B runs show parse-only reductions of 96.96--97.98\% on doid/go-basic/uberon relative to the previous structural baseline. Head-to-head suites are reported as descriptive repeated-run wall-clock comparisons, not formal significance tests.
 \end{abstract}
@@ -130,7 +130,7 @@ ALC/SHOIQ \sep Tableaux Reasoning \sep Parallel Algorithms \sep Nogood Learning 
 \item Adaptive thresholding yields 18--73$\times$ speedup over always-parallel execution on small cases
 \item Thread-local caching keeps most repeated nogood lookups on the local hot path in dedicated inconsistent-workload ablations (82--95\% local cache-hit rates)
 \item Global thread pool optimization reduces parallel overhead by 2.1$\times$
-\item $5\times$ speedup at 10,000 classes on synthetic disjunctive ontologies
+\item Up to 4.88$\times$ speedup at 10,000 classes on synthetic disjunctive ontologies
 \item Structural RDF/XML parsing with handler-equivalent materialization reduces parse-only time by 96.96--97.98\% in A/B runs
 \item Large Head-to-Head (doid/go-basic/uberon), 3 clean runs: lowest median wall-clock time on 3/3 ontologies among successful comparable runs
 \item Failure-aware suite metric (CEW, comparable runs): SPACL lowest on Large suite; ELK lowest on Standard suite
@@ -177,7 +177,7 @@ We address these questions through SPACL, with four main contributions:
     \item \textbf{Reproducible end-to-end evaluation}: We provide a containerized benchmark protocol and artifacts for stage-level analysis and multi-reasoner head-to-head comparison (Sections \ref{sec:benchmark-protocol}, \ref{sec:competitor-benchmarks}).
 \end{enumerate}
 
-In Rust, these design choices translate into measurable gains on our synthetic benchmark groups: $5\times$ speedup at 10,000 classes, sub-microsecond per-class processing, and under $2\times$ overhead on small ontologies. On synthetic scalability workloads, SPACL reaches 26.2 million tableau operations per second.
+In Rust, these design choices translate into measurable gains on our synthetic benchmark groups: up to 4.88$\times$ speedup at 10,000 classes, measured per-class processing below 1$\mu$s at the largest synthetic point, and under $2\times$ overhead on small ontologies. On the same synthetic scalability workloads, SPACL reaches 26.2 million measured tableau rule applications per second.
 
 \subsection{Paper Organization}
 \label{sec:organization}
@@ -824,7 +824,7 @@ where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text
         \item Standard/Large aggregate summaries: \path{benchmarks/competitors/results/history/headtohead_repeated_aggregate_20260226}
         \item Aggregate files used here: \path{standard_reasoner_ontology_summary.csv}, \path{large_reasoner_ontology_summary.csv}, \path{suite_reasoner_cew_summary.csv}, \path{image_digests_20260226.txt}
         \item Konclude repeated refresh aggregate: \path{benchmarks/competitors/results/history/konclude_repeated_refresh_aggregate_20260228}
-        \item Supplementary PATO panel aggregate: \path{benchmarks/competitors/results/history/pato_panel_aggregate_20260228}
+        \item Supplementary PATO panel aggregate: \path{results/history/pato_matched_aggregate_20260301}
         \item OWL2Bench core repeated runs: \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223}, \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223_r2}, \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223_r3}
         \item OWL2Bench aggregate summary: \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_aggregate_20260223}
         \item Adaptive-threshold calibration sweeps: exploratory/zoom-in runs \path{results/history/adaptive_calibration_20260228_110137}, \path{results/history/adaptive_calibration_20260228_111338}; final sensitivity reruns \path{results/history/adaptive_calibration_20260228_235333}, \path{results/history/adaptive_calibration_20260228_235856}
@@ -866,8 +866,8 @@ Table \ref{tab:scalability} presents scalability results.
 \textbf{Observations}:
 \begin{itemize}
     \item Crossover point at $\sim$1,000 classes (confirming Equation \ref{eq:estimate})
-    \item Strong speedup at scale (4.88$\times$ at 10K)
-    \item Peak throughput: 26.2M tableau expansions/second (measured as individual tableau rule applications)
+    \item Strong synthetic speedup at scale (4.88$\times$ at 10K classes)
+    \item Peak synthetic throughput: 26.2M tableau expansions/second (measured as individual tableau rule applications)
 \end{itemize}
 
 \textbf{Statistical Scope}: Criterion confidence intervals are reported for microbench groups. Head-to-head ontology tables are primarily descriptive wall-clock comparisons under a fixed harness; repeated-run aggregation is provided for Standard, Large, and OWL2Bench core suites (3 clean runs each), and results are interpreted conservatively rather than as formal significance tests.
@@ -1178,7 +1178,7 @@ uberon.owl & \textbf{6677} & 110560 & TO & 15594 & FAIL & TO \\
 \subsubsection{Supplementary Biomedical Extension: PATO}
 \label{sec:pato-panel}
 
-To increase real-world biomedical diversity beyond the primary DOID/GO-Basic/UBERON panel, we aggregated three protocol-matched consistency runs for \texttt{pato.owl} under the same large-suite policy (900s timeout, wall-clock as primary metric). These runs came from isolated historical result roots with matching fairness metadata rather than from the main three-ontology aggregate, so we report them separately as supplementary evidence instead of folding them into Table~\ref{tab:competitor-benchmarks}.
+To increase real-world biomedical diversity beyond the primary DOID/GO-Basic/UBERON panel, we executed three clean matched consistency runs for \texttt{pato.owl} under the same large-suite policy (900s timeout, wall-clock as primary metric). Because this is still a single supplementary ontology rather than the primary three-ontology large panel, we report it separately as complementary evidence instead of folding it into Table~\ref{tab:competitor-benchmarks}.
 
 \begin{table}[htbp]
 \centering
@@ -1189,12 +1189,12 @@ To increase real-world biomedical diversity beyond the primary DOID/GO-Basic/UBE
 \toprule
 \textbf{Reasoner} & \textbf{Success / 3} & \textbf{Median Successful Wall (ms)} & \textbf{Status Note} \\
 \midrule
-SPACL & 3/3 & \textbf{3729} & all runs successful \\
-ELK & 3/3 & 6702 & all runs successful \\
-HermiT & 3/3 & 12150 & all runs successful \\
-Pellet & 2/3 & 748960 & one run not available \\
+SPACL & 3/3 & \textbf{3238} & all runs successful \\
+ELK & 3/3 & 6664 & all runs successful \\
+HermiT & 3/3 & 12362 & all runs successful \\
+Pellet & 3/3 & 745159 & all runs successful \\
 JFact & 0/3 & TO & timed out on all runs \\
-Openllet & 0/3 & TO/FAIL & two timeouts, one failure \\
+Openllet & 0/3 & TO & timed out on all runs \\
 \bottomrule
 \end{tabular}
 }
@@ -1204,10 +1204,10 @@ Openllet & 0/3 & TO/FAIL & two timeouts, one failure \\
 \begin{itemize}
     \item In this supplementary panel, SPACL has the lowest median wall-clock result among reasoners with successful comparable runs
     \item ELK and HermiT remain successful comparators on this ontology, but both are slower than SPACL in the three-run panel
-    \item PATO is more failure-prone for several external reasoners than the primary three-ontology large panel, which makes it useful as a complementary stress case rather than a replacement for that panel
+    \item PATO remains more failure-prone for several external reasoners than the primary three-ontology large panel, which makes it useful as a complementary stress case rather than a replacement for that panel
 \end{itemize}
 
-\noindent\textit{Artifact sources}: \path{benchmarks/competitors/results/history/head2head_pato_20260217/results.csv}, \path{benchmarks/competitors/results/history/20260225_110658/results.csv}, \path{benchmarks/competitors/results/history/pato_panel_r1_20260228/results.csv}. Aggregate summary: \path{benchmarks/competitors/results/history/pato_panel_aggregate_20260228/summary.csv}.
+\noindent\textit{Artifact sources}: \path{benchmarks/competitors/results/history/pato_matched_r1_20260301/results.csv}, \path{benchmarks/competitors/results/history/pato_matched_r2_20260301/results.csv}, \path{benchmarks/competitors/results/history/pato_matched_r3_20260301/results.csv}. Aggregate summary: \path{results/history/pato_matched_aggregate_20260301/summary.csv}.
 
 \subsubsection{External Validation: OWL2Bench Core Profiles (3 Clean Runs)}
 \label{sec:owl2bench-core}
@@ -1389,7 +1389,7 @@ To better characterize learning impact, future benchmark suites should include a
 \label{sec:answers}
 
 \textbf{RQ1: Can speculative parallel tableaux with conflict-driven nogood learning improve consistency-checking performance?}  
-\textbf{Answer}: Yes, for the evaluated prototype and workloads. SPACL achieves up to 4.88$\times$ speedup at 10,000 classes in scalability tests, and nogood mechanisms reduce redundant branch exploration in inconsistent disjunctive workloads (Sections \ref{sec:scalability}, \ref{sec:nogood-eval}).
+\textbf{Answer}: Yes, for the evaluated prototype and workloads. In synthetic scalability tests, SPACL achieves up to 4.88$\times$ speedup at 10,000 classes, and nogood mechanisms reduce redundant branch exploration in inconsistent disjunctive workloads (Sections \ref{sec:scalability}, \ref{sec:nogood-eval}).
 
 \textbf{RQ2: Can adaptive parallelism reduce overhead on small workloads while preserving scalability?}  
 \textbf{Answer}: Yes. The adaptive strategy avoids unnecessary parallel execution on small cases (18--73$\times$ improvement versus always-parallel baselines) while retaining scalability on larger cases (Sections \ref{sec:adaptive}, \ref{sec:threshold-tuning}).

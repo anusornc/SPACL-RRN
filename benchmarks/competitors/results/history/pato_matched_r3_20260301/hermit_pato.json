@@ -1,0 +1,15 @@
+{
+  "run_id": "pato_matched_r3_20260301",
+  "ontology_suite": "large",
+  "reasoner": "hermit",
+  "ontology": "pato.owl",
+  "operation": "consistency",
+  "wall_time_ms": 12362,
+  "reported_time_ms": 10013,
+  "parse_time_ms": -1,
+  "reason_time_ms": -1,
+  "status": "success",
+  "reasoning_result": "consistent",
+  "timestamp": "2026-03-01T22:06:48+07:00",
+  "output": "{\"reasoner\": \"HermiT\", \"version\": \"1.4.5.519\", \"operation\": \"consistency\", \"ontology\": \"/ontologies/pato.owl\"}\nSLF4J: Failed to load class \"org.slf4j.impl.StaticLoggerBinder\".\nSLF4J: Defaulting to no-operation (NOP) logger implementation\nSLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.\nhttp://www.w3.org/2002/07/owl#Thing is satisfiable.\n{\"duration_ms\": 10013, \"status\": \"completed\", \"reasoning_result\": \"consistent\"}\n"
+}

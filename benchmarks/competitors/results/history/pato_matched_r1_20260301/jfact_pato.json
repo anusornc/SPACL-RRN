@@ -1,0 +1,15 @@
+{
+  "run_id": "pato_matched_r1_20260301",
+  "ontology_suite": "large",
+  "reasoner": "jfact",
+  "ontology": "pato.owl",
+  "operation": "consistency",
+  "wall_time_ms": 903739,
+  "reported_time_ms": 903739,
+  "parse_time_ms": -1,
+  "reason_time_ms": -1,
+  "status": "timeout",
+  "reasoning_result": "unknown",
+  "timestamp": "2026-03-01T10:38:31+07:00",
+  "output": "{\"reasoner\": \"JFact\", \"version\": \"5.0.3\", \"operation\": \"consistency\", \"ontology\": \"/ontologies/pato.owl\"}\n"
+}

@@ -1,0 +1,7 @@
+reasoner,success_runs,total_runs,median_success_wall_ms,status_note
+SPACL,3,3,3238,all runs successful
+ELK,3,3,6664,all runs successful
+HermiT,3,3,12362,all runs successful
+Pellet,3,3,745159,all runs successful
+JFact,0,3,TO,timed out on all runs
+Openllet,0,3,TO,timed out on all runs

@@ -1,0 +1,7 @@
+run_id,ontology_suite,reasoner,ontology,operation,status,reasoning_result,wall_time_ms,reported_time_ms,parse_time_ms,reason_time_ms,timestamp
+"pato_matched_r3_20260301","large","elk","pato.owl","consistency","success","consistent",6664,350,-1,-1,"2026-03-01T22:21:57+07:00"
+"pato_matched_r3_20260301","large","hermit","pato.owl","consistency","success","consistent",12362,10013,-1,-1,"2026-03-01T22:06:48+07:00"
+"pato_matched_r3_20260301","large","jfact","pato.owl","consistency","timeout","unknown",902516,902516,-1,-1,"2026-03-01T22:37:00+07:00"
+"pato_matched_r3_20260301","large","openllet","pato.owl","consistency","timeout","unknown",902608,902608,-1,-1,"2026-03-01T22:21:50+07:00"
+"pato_matched_r3_20260301","large","pellet","pato.owl","consistency","success","consistent",745159,726936,-1,-1,"2026-03-01T22:49:25+07:00"
+"pato_matched_r3_20260301","large","tableauxx","pato.owl","consistency","success","consistent",3238,916,624,5,"2026-03-01T22:06:35+07:00"

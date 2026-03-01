@@ -1,0 +1,15 @@
+{
+  "run_id": "pato_matched_r2_20260301",
+  "ontology_suite": "large",
+  "reasoner": "tableauxx",
+  "ontology": "pato.owl",
+  "operation": "consistency",
+  "wall_time_ms": 3326,
+  "reported_time_ms": 916,
+  "parse_time_ms": 627,
+  "reason_time_ms": 6,
+  "status": "success",
+  "reasoning_result": "consistent",
+  "timestamp": "2026-03-01T18:33:55+07:00",
+  "output": "{\"reasoner\": \"Tableauxx\", \"version\": \"0.2.0\", \"operation\": \"consistency\", \"ontology\": \"/ontologies/pato.owl\", \"input_file\": \"/ontologies/pato.owl\"}\n[bench] tableauxx input_file=/ontologies/pato.owl\nLoading ontology: /ontologies/pato.owl\n[phase] parse_start file=/ontologies/pato.owl\nConfigured IRI cache for 421640 classes (cache size: 843280)\n[phase] structural_ingest_done triples=259922 terms=107554 elapsed_ms=345\n[phase] structural_materialize_done elapsed_ms=256 caches(subject_bnode=44056 iri=9053 predicate=36 bnode_obj=27549)\n✓ Loaded in 627.144575ms\n[phase] parse_done ms=627\n\n╔══════════════════════════════════════════════════════════════╗\n║           ONTOLOGY ANALYSIS & REASONER SELECTION             ║\n╚══════════════════════════════════════════════════════════════╝\n\nStatistics:\n  Classes:          13291\n  Properties:       252\n  Axioms:           152832\n  Disjunctions:     0\n  Complexity:       Simple\n\nCharacteristics:\n  Hierarchy fast path: Yes\n  Detected profile: EL\n\n[phase] reason_start reasoner=SimpleReasoner\nSelected: SimpleReasoner (OWL2 profile permits fast deterministic path)\n\n✓ Consistency check complete in 6.015599ms\n[phase] reason_done ms=6 result=consistent\n\nResult: ✅ CONSISTENT\n{\"duration_ms\": 916, \"status\": \"completed\", \"reasoning_result\": \"consistent\", \"parse_time_ms\": 627, \"reason_time_ms\": 6}\n"
+}
