@@ -110,7 +110,7 @@ We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning)
 
 Our key contributions are: (1) a speculative parallel tableaux framework with work-stealing scheduling; in the current prototype this is realized via branch-constrained work items evaluated in parallel; (2) an adaptive threshold mechanism that selects sequential or parallel execution based on estimated complexity, yielding 18--73$\times$ speedup over naive always-parallel execution on small ontologies; (3) thread-local nogood caching that keeps most repeated nogood lookups on the local hot path in dedicated inconsistent-workload ablations (82--95\% local cache-hit rates); (4) a global thread pool optimization that reduces overhead by 2.1$\times$; and (5) a Rust implementation with parser support for RDF/XML, OWL2 Functional, Manchester, and JSON-LD syntaxes. SPACL reaches $5\times$ speedup at 10,000 classes while keeping overhead below $2\times$ on small ontologies.
 
-In the profile-mixed Standard Workload Suite (7 ontologies; 3 clean runs), per-ontology medians among successful comparable runs place SPACL lowest on 4/7 ontologies; ELK (OWL EL profile) is lowest on the two deepest hierarchy files, and Pellet is lowest on \texttt{univ-bench.owl}. In the primary Large Head-to-Head benchmark (doid/go-basic/uberon; 3 clean runs), SPACL has the lowest median wall-clock time on all three tested ontologies among successful comparable runs under a common 900s timeout protocol. We also report a supplementary three-run PATO biomedical panel, kept separate from the primary large-suite aggregate, whose ordering among successful runs is consistent with that large-suite picture. A suite-level failure-aware metric (capped expected wall-time, CEW) over comparable runs reports ELK lowest on Standard and SPACL lowest on Large. In an external OWL2Bench core-profile validation (DL/EL/QL/RL), three clean repeated runs show SPACL has the lowest median wall-clock time on 4/4 ontologies with 12/12 successful runs in this harness. Timeout policy is reported explicitly in all benchmark tables (Standard Workload Suite: 300s; Large Head-to-Head: 900s; OWL2Bench core profile suite: 300s). This improvement is driven by a structural RDF/XML parser and optimized materialization path that reuses the same ALC/SHOIQ semantic handlers as the baseline path; stage-level A/B runs show parse-only reductions of 96.96--97.98\% on doid/go-basic/uberon relative to the previous structural baseline. Head-to-head suites are reported as descriptive repeated-run wall-clock comparisons, not formal significance tests.
+In the profile-mixed Standard Workload Suite (7 ontologies; 3 clean runs), per-ontology medians among successful comparable runs place SPACL lowest on 4/7 ontologies; ELK (OWL EL profile) is lowest on the two deepest hierarchy files, and Pellet is lowest on \texttt{univ-bench.owl}. In the primary Large Head-to-Head benchmark (doid/go-basic/uberon; 3 clean runs), SPACL has the lowest median wall-clock time on all three tested ontologies among successful comparable runs under a common 900s timeout protocol. A suite-level failure-aware metric (capped expected wall-time, CEW) over comparable runs reports ELK lowest on Standard and SPACL lowest on Large. In an external OWL2Bench core-profile validation (DL/EL/QL/RL), three clean repeated runs show SPACL has the lowest median wall-clock time on 4/4 ontologies with 12/12 successful runs in this harness. Timeout policy is reported explicitly in all benchmark tables (Standard Workload Suite: 300s; Large Head-to-Head: 900s; OWL2Bench core profile suite: 300s). This improvement is driven by a structural RDF/XML parser and optimized materialization path that reuses the same ALC/SHOIQ semantic handlers as the baseline path; stage-level A/B runs show parse-only reductions of 96.96--97.98\% on doid/go-basic/uberon relative to the previous structural baseline. Head-to-head suites are reported as descriptive repeated-run wall-clock comparisons, not formal significance tests.
 \end{abstract}
 
 %% ============================================
@@ -345,7 +345,7 @@ For expression-level scoring, the prototype uses:
 \begin{align}
 \text{cost}(\text{ObjectUnionOf}(ops)) &= 50 \times |ops| + \sum \text{cost}(op) \\
 \text{cost}(\text{ObjectIntersectionOf}(ops)) &= 25 \times |ops| + \sum \text{cost}(op) \\
-\text{cost}(\text{ObjectComplementOf}(e)) &= 30 + \text{cost}(e) \\
+\text{cost}(\text{ObjectComplementOf}(e)) &= 15 + \text{cost}(e) \\
 \text{cost}(\text{atomic}) &= 10
 \end{align}
 \end{definition}
@@ -361,7 +361,7 @@ B(\mathcal{O}) \ge \tau \quad \land \quad C(\mathcal{O}) \ge \theta \cdot p
 \end{align}
 where $\tau=2000$, $\theta=500\mu s$, and $p$ is worker count.
 \end{definition}
-This formalization mirrors the implemented gates reported in Sections \ref{sec:adaptive} and \ref{sec:adaptive-opt}. The coefficients (50, 25, 30, 10) are implementation scoring weights calibrated from ablation sweeps over synthetic disjunctive workloads and representative warm-up real-world ontologies; they are used only for relative gating and are not description-logic complexity constants or predictive runtime coefficients.
+This formalization mirrors the implemented gates reported in Sections \ref{sec:adaptive} and \ref{sec:adaptive-opt}. The coefficients (50, 25, 15, 10) are implementation scoring weights calibrated from ablation sweeps over synthetic disjunctive workloads and representative warm-up real-world ontologies; they are used only for relative gating and are not description-logic complexity constants or predictive runtime coefficients.
 
 \noindent\textbf{Heuristic gate inequality.}
 For estimated disjunction cost $D$ and parallel overhead $o_{par}$ with $p$ workers, a useful crossover rule is:
@@ -777,7 +777,7 @@ where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text
     \item \textbf{Synthetic hierarchies}: 100--100,000 classes, linear subclass chains
     \item \textbf{Disjunctive tests}: disjunctive\_simple.owl and disjunctive\_test.owl (small synthetic union-heavy cases)
     \item \textbf{LUBM}: univ-bench.owl (University benchmark; repository copy repaired to valid RDF/XML in this revision)
-    \item \textbf{Real-world ontology sets}: stage experiments include PATO, DOID, UBERON, and GO
+    \item \textbf{Real-world ontology sets}: stage experiments include PATO, DOID, UBERON, GO, and a supplementary ChEBI cold-text stress pair
     \item \textbf{Primary head-to-head set}: DOID, GO-Basic, UBERON, plus OWL2Bench core profiles
     \item Primary head-to-head suites use consistent ontologies (satisfiability testing); a dedicated nogood ablation additionally includes inconsistent synthetic cases
 \end{itemize}
@@ -827,13 +827,13 @@ where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text
         \item Supplementary PATO panel aggregate: \path{benchmarks/competitors/results/history/pato_panel_aggregate_20260228}
         \item OWL2Bench core repeated runs: \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223}, \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223_r2}, \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223_r3}
         \item OWL2Bench aggregate summary: \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_aggregate_20260223}
-        \item Adaptive-threshold calibration sweeps: \path{results/history/adaptive_calibration_20260228_110137}, \path{results/history/adaptive_calibration_20260228_111338}
-        \item Parser-stage A/B artifact pairs: doid (\path{stages_doid_20260218_183604} vs \path{stages_doid_20260219_130432}); go-basic (\path{stages_go_basic_20260218_185126} vs \path{stages_go_basic_20260219_130710}); uberon (\path{stages_uberon_20260218_185933} vs \path{stages_uberon_20260219_130942})
+        \item Adaptive-threshold calibration sweeps: exploratory/zoom-in runs \path{results/history/adaptive_calibration_20260228_110137}, \path{results/history/adaptive_calibration_20260228_111338}; final sensitivity reruns \path{results/history/adaptive_calibration_20260228_235333}, \path{results/history/adaptive_calibration_20260228_235856}
+        \item Parser-stage A/B artifact pairs: doid (\path{stages_doid_20260218_183604} vs \path{stages_doid_20260219_130432}); go-basic (\path{stages_go_basic_20260218_185126} vs \path{stages_go_basic_20260219_130710}); uberon (\path{stages_uberon_20260218_185933} vs \path{stages_uberon_20260219_130942}); supplementary ChEBI cold-text pair (\path{stages_chebi_20260218_143614_e2e_cold} vs \path{stages_chebi_20260301_091935})
     \end{itemize}
     Each run directory includes \path{run_metadata.json} with run identifiers, timeout, and fairness-policy fields.
 \end{enumerate}
 
-\textbf{Named benchmark sets in this paper}: \textit{Standard Workload Suite} (synthetic/disjunctive/LUBM workloads), \textit{Large Head-to-Head} (three large biomedical ontologies in the primary reproducible run set: doid, go-basic, uberon), \textit{Supplementary PATO Panel} (three protocol-matched consistency runs on PATO), and \textit{OWL2Bench Core Profile Suite} (UNIV-BENCH OWL2 DL/EL/QL/RL files).
+\textbf{Named benchmark sets in this paper}: \textit{Standard Workload Suite} (synthetic/disjunctive/LUBM workloads), \textit{Large Head-to-Head} (three large biomedical ontologies in the primary reproducible run set: doid, go-basic, uberon), \textit{Supplementary PATO Panel} (three protocol-matched consistency runs on PATO), \textit{OWL2Bench Core Profile Suite} (UNIV-BENCH OWL2 DL/EL/QL/RL files), and a \textit{Supplementary ChEBI Cold-Text Stage Pair} used only for parser-stage stress confirmation under the revised cold-text contract.
 
 \textbf{Binary Format}: Pre-converted .owlbin files for SPACL (Tableauxx implementation) binary tests
 
@@ -902,7 +902,6 @@ Standard & HermiT & 21/21 & 21/21 (100\%) & 4159.8 \\
 Standard & Pellet & 21/21 & 21/21 (100\%) & 4204.0 \\
 Standard & SPACL & 21/21 & 21/21 (100\%) & 8516.8 \\
 Standard & JFact & 21/21 & 15/21 (71.4\%) & 88239.5 \\
-Standard & Konclude & 21/21 & 21/21 (100\%) & 6556.6 \\
 \midrule
 Large & SPACL & 9/9 & 9/9 (100\%) & \textbf{5948.4} \\
 Large & ELK & 9/9 & 9/9 (100\%) & 15084.2 \\
@@ -910,16 +909,15 @@ Large & HermiT & 9/9 & 9/9 (100\%) & 50203.1 \\
 Large & Openllet & 9/9 & 6/9 (66.7\%) & 310732.4 \\
 Large & JFact & 9/9 & 6/9 (66.7\%) & 334343.0 \\
 Large & Pellet & 9/9 & 6/9 (66.7\%) & 337355.7 \\
-Large & Konclude & 9/9 & 9/9 (100\%) & 31752.7 \\
 \bottomrule
 \end{tabular}
 }
 \end{table}
-\noindent\footnotesize\textit{Note}: CEW replaces timeout/failed with the suite timeout before averaging. Konclude rows in this revision use the preprocessing-enabled reruns summarized in \path{benchmarks/competitors/results/history/konclude_repeated_refresh_aggregate_20260228/suite_summary.csv}; reported wall-clock values include OWL/XML conversion and merged-import preprocessing for Konclude inputs.
+\noindent\footnotesize\textit{Note}: CEW replaces timeout/failed with the suite timeout before averaging. Konclude is reported separately in Section~\ref{sec:konclude-supplement} because it uses a preprocessing-enabled external-binary path and a closely matched rerun campaign rather than the primary aggregate campaign used for the main tables here.
 \normalsize
 
 This companion view makes failure/timeout penalties explicit, not to replace per-ontology median tables. As shown in Table~\ref{tab:cew-summary}, ELK is strongest on Standard CEW while SPACL is strongest on Large CEW.
-\noindent\textit{Artifact sources}: \path{benchmarks/competitors/results/history/headtohead_repeated_aggregate_20260226/suite_reasoner_cew_summary.csv}, plus Konclude reruns summarized in \path{benchmarks/competitors/results/history/konclude_repeated_refresh_aggregate_20260228/suite_summary.csv}.
+\noindent\textit{Artifact source}: \path{benchmarks/competitors/results/history/headtohead_repeated_aggregate_20260226/suite_reasoner_cew_summary.csv}.
 
 Figure \ref{fig:scalability} visualizes the scalability comparison.
 
@@ -1023,12 +1021,12 @@ Medium (5 unions) & 9.1$\mu$s & 58.9$\mu$s & 1,116$\mu$s & \textbf{18.9$\times$}
 \subsection{Real-World Ontology Evaluation}
 \label{sec:realworld}
 
-We evaluated SPACL on large biomedical ontologies used in production-style consistency checks (DOID, GO\_Basic, UBERON; from widely used OBO/BioPortal sources \cite{bioportal}). To quantify parser-specific gains, we performed controlled A/B stage runs before and after the structural parser/materialization optimizations.
+We evaluated SPACL on large biomedical ontologies used in production-style consistency checks (DOID, GO\_Basic, UBERON; from widely used OBO/BioPortal sources \cite{bioportal}). A supplementary ChEBI cold-text stress pair is reported separately in the same table as additional evidence that a similar parser-dominant pattern appears at a larger ontology scale under the revised stage contract. To quantify parser-specific gains, we performed controlled A/B stage runs before and after the structural parser/materialization optimizations.
 Table~\ref{tab:realworld} reports the stage-level and end-to-end reductions for these A/B pairs.
 
 \begin{table}[htbp]
 \centering
-\caption{Stage-Level A/B on Real-World Ontologies (cold .owl runs; E2E = end-to-end wall clock)}
+\caption{Stage-Level A/B on Real-World Ontologies (cold .owl runs; E2E = end-to-end wall clock; supplementary ChEBI stress pair included)}
 \label{tab:realworld}
 \resizebox{\linewidth}{!}{
 \begin{tabular}{l|r|r|r|r|r|r}
@@ -1038,6 +1036,7 @@ Table~\ref{tab:realworld} reports the stage-level and end-to-end reductions for 
 DOID & 27307 & 830 & 96.96\% & 30502 & 4073 & 86.65\% \\
 GO\_Basic & 158306 & 3472 & 97.81\% & 162519 & 7409 & 95.44\% \\
 UBERON & 145843 & 2952 & 97.98\% & 149850 & 6632 & 95.57\% \\
+ChEBI (supp.) & 970388 & 23740 & 97.55\% & 985466 & 36472 & 96.30\% \\
 \bottomrule
 \end{tabular}
 }
@@ -1048,7 +1047,8 @@ UBERON & 145843 & 2952 & 97.98\% & 149850 & 6632 & 95.57\% \\
     \item \textbf{Parser was the primary bottleneck in these traces}: for the evaluated large RDF/XML consistency-check workloads, stage decomposition consistently showed parser/materialization-dominated runtime.
     \item \textbf{Structural algorithm impact}: dense-ID caches, shared-IRI constructors, and subject cursor fast-paths reduced parser hot-path overhead.
     \item \textbf{Reasoning stage remained small in these traces}: even after parser acceleration, reasoning stayed in low-millisecond ranges for the evaluated consistency checks.
-    \item \textbf{Scope note}: this table focuses on controlled A/B stage pairs where complete before/after traces were available in the primary reproducible run set.
+    \item \textbf{Supplementary large-scale indication}: the ChEBI stress pair shows a similar qualitative pattern at a larger scale, with parse time dropping from 970{,}388 ms to 23{,}740 ms while the cold-text reasoning stage remained sub-second (243 ms in the revised trace).
+    \item \textbf{Scope note}: DOID/GO\_Basic/UBERON are the primary reproducible biomedical A/B pairs. ChEBI is reported as a supplementary cold-text stress pair and is not folded into the main cross-reasoner Large Head-to-Head table.
 \end{enumerate}
 
 \subsection{Comparison with State-of-the-Art}
@@ -1095,22 +1095,22 @@ Table~\ref{tab:small-workload-suite} reports per-ontology median wall-clock resu
 \caption{Standard Workload Suite Consistency Benchmark (median wall time across 3 clean runs, ms; timeout 300s)}
 \label{tab:small-workload-suite}
 \resizebox{\linewidth}{!}{
-\begin{tabular}{l|r|r|r|r|r|r|r}
+\begin{tabular}{l|r|r|r|r|r|r}
 \toprule
-\textbf{Ontology} & \textbf{SPACL} & \textbf{HermiT} & \textbf{Konclude} & \textbf{Openllet} & \textbf{ELK} & \textbf{JFact} & \textbf{Pellet} \\
+\textbf{Ontology} & \textbf{SPACL} & \textbf{HermiT} & \textbf{Openllet} & \textbf{ELK} & \textbf{JFact} & \textbf{Pellet} \\
 \midrule
-disjunctive\_simple.owl & \textbf{2273} & 3446 & 5217 & 3383 & 3718 & 3466 & 3310 \\
-disjunctive\_test.owl & \textbf{2113} & 3323 & 4987 & 3007 & 2979 & 3362 & 2659 \\
-hierarchy\_100.owl & \textbf{2096} & 3391 & 5247 & 3070 & 2910 & 3271 & 2838 \\
-hierarchy\_1000.owl & \textbf{2190} & 3498 & 5319 & 3220 & 3055 & 4110 & 3222 \\
-hierarchy\_10000.owl & 8007 & 4131 & 6392 & 4084 & \textbf{3579} & FAIL & 3644 \\
-hierarchy\_100000.owl & 40210 & 7706 & 13589 & 8881 & \textbf{5816} & FAIL & 10867 \\
-univ-bench.owl & 2951 & 3345 & 5220 & 2930 & 2866 & 3196 & \textbf{2742} \\
+disjunctive\_simple.owl & \textbf{2273} & 3446 & 3383 & 3718 & 3466 & 3310 \\
+disjunctive\_test.owl & \textbf{2113} & 3323 & 3007 & 2979 & 3362 & 2659 \\
+hierarchy\_100.owl & \textbf{2096} & 3391 & 3070 & 2910 & 3271 & 2838 \\
+hierarchy\_1000.owl & \textbf{2190} & 3498 & 3220 & 3055 & 4110 & 3222 \\
+hierarchy\_10000.owl & 8007 & 4131 & 4084 & \textbf{3579} & FAIL & 3644 \\
+hierarchy\_100000.owl & 40210 & 7706 & 8881 & \textbf{5816} & FAIL & 10867 \\
+univ-bench.owl & 2951 & 3345 & 2930 & 2866 & 3196 & \textbf{2742} \\
 \bottomrule
 \end{tabular}
 }
 \end{table}
-\noindent\footnotesize\textit{Legend}: FAIL = runtime failure in this setup; bold = lowest median wall time among successful comparable runs per ontology (descriptive only). Konclude values in this revision come from a closely matched preprocessing-enabled rerun campaign and include OWL/XML conversion plus merged-import preparation in wall-clock time.
+\noindent\footnotesize\textit{Legend}: FAIL = runtime failure in this setup; bold = lowest median wall time among successful comparable runs per ontology (descriptive only).
 \normalsize
 
 \textbf{Standard-suite observations (median across 3 runs)}:
@@ -1118,10 +1118,10 @@ univ-bench.owl & 2951 & 3345 & 5220 & 2930 & 2866 & 3196 & \textbf{2742} \\
     \item SPACL has the lowest median wall time on 4/7 ontologies among successful comparable runs in this suite
     \item ELK has the lowest median wall time on \texttt{hierarchy\_10000.owl} and \texttt{hierarchy\_100000.owl}
     \item Pellet has the lowest median wall time on \texttt{univ-bench.owl}
-    \item SPACL, HermiT, Openllet, ELK, Pellet, and Konclude complete 21/21 cases; JFact completes 15/21
+    \item SPACL, HermiT, Openllet, ELK, and Pellet complete 21/21 cases; JFact completes 15/21
 \end{itemize}
 
-\noindent\textit{Artifact sources}: \path{benchmarks/competitors/results/history/standard_r1_20260225/results.csv}, \path{benchmarks/competitors/results/history/standard_r2_20260225/results.csv}, \path{benchmarks/competitors/results/history/standard_r3_20260225/results.csv}, plus Konclude reruns summarized in \path{benchmarks/competitors/results/history/konclude_repeated_refresh_aggregate_20260228/per_ontology_medians.csv}.
+\noindent\textit{Artifact sources}: \path{benchmarks/competitors/results/history/standard_r1_20260225/results.csv}, \path{benchmarks/competitors/results/history/standard_r2_20260225/results.csv}, \path{benchmarks/competitors/results/history/standard_r3_20260225/results.csv}.
 
 \subsubsection{Competitor Selection Rationale}
 \label{sec:baseline-rationale}
@@ -1131,7 +1131,6 @@ We included the following competitor set:
     \item \textbf{HermiT}: widely used open-source expressive OWL baseline
     \item \textbf{Openllet and JFact}: open-source OWLAPI-based reasoners commonly used in practice
     \item \textbf{ELK}: high-performance OWL EL reasoner as tractable-profile reference
-    \item \textbf{Konclude}: high-performance reference reasoner included for empirical status under our container harness
     \item \textbf{Pellet}: included as legacy Pellet 2.3.3 packaging; may become not-available if legacy artifact repositories are unreachable
 \end{enumerate}
 
@@ -1139,7 +1138,6 @@ We included the following competitor set:
 \begin{itemize}
     \item \textbf{FaCT++}: discussed in related work; not included in this containerized run set
     \item \textbf{ELK}: OWL EL profile reasoner, so speed reflects a narrower logic profile than full ALC/SHOIQ
-    \item \textbf{Konclude}: in the preprocessing-enabled harness used in this revision, Konclude is a comparable external-binary baseline for deployment-level comparison; reported wall-clock values include OWL/XML conversion and merged-import preparation
 \end{itemize}
 
 \subsubsection{Results}
@@ -1151,32 +1149,31 @@ Table~\ref{tab:competitor-benchmarks} reports large-ontology head-to-head median
 \caption{Large Head-to-Head Consistency Benchmark (median wall time across 3 clean runs, ms; timeout 900s)}
 \label{tab:competitor-benchmarks}
 \resizebox{\linewidth}{!}{
-\begin{tabular}{l|r|r|r|r|r|r|r}
+\begin{tabular}{l|r|r|r|r|r|r}
 \toprule
-\textbf{Ontology} & \textbf{SPACL} & \textbf{HermiT} & \textbf{Konclude} & \textbf{Openllet} & \textbf{ELK} & \textbf{JFact} & \textbf{Pellet} \\
+\textbf{Ontology} & \textbf{SPACL} & \textbf{HermiT} & \textbf{Openllet} & \textbf{ELK} & \textbf{JFact} & \textbf{Pellet} \\
 \midrule
-doid.owl & \textbf{3447} & 20295 & 25634 & 14266 & 13406 & 60443 & 28771 \\
-go-basic.owl & \textbf{7329} & 17616 & 35358 & 17747 & 15976 & 41847 & 83238 \\
-uberon.owl & \textbf{6677} & 110560 & 35436 & TO & 15594 & FAIL & TO \\
+doid.owl & \textbf{3447} & 20295 & 14266 & 13406 & 60443 & 28771 \\
+go-basic.owl & \textbf{7329} & 17616 & 17747 & 15976 & 41847 & 83238 \\
+uberon.owl & \textbf{6677} & 110560 & TO & 15594 & FAIL & TO \\
 \bottomrule
 \end{tabular}
 }
 \end{table}
-\noindent\footnotesize\textit{Legend}: TO = timeout at 900s, FAIL = runtime failure in this harness, NA = not available in this setup. Bold indicates lowest median wall time among successful comparable runs per ontology (descriptive only; not a significance test). Konclude values come from a closely matched preprocessing-enabled rerun campaign and include OWL/XML conversion and merged-import preparation in wall-clock time.
+\noindent\footnotesize\textit{Legend}: TO = timeout at 900s, FAIL = runtime failure in this harness, NA = not available in this setup. Bold indicates lowest median wall time among successful comparable runs per ontology (descriptive only; not a significance test).
 \normalsize
 
 \textbf{Observations (median across 3 runs)}:
 \begin{itemize}
     \item Among reasoners with successful comparable runs, SPACL has the lowest median wall time on 3/3 ontologies in the Large Head-to-Head run set
-    \item SPACL, HermiT, ELK, and Konclude complete 9/9 cases within timeout
+    \item SPACL, HermiT, and ELK complete 9/9 cases within timeout
     \item Openllet completes 6/9 (timeouts on UBERON in all runs)
     \item JFact completes 6/9 and fails on UBERON in all runs in this harness
     \item Pellet completes 6/9 (timeouts on UBERON in all runs)
-    \item Konclude is now comparable under this deployment-level harness after preprocessing-enabled input preparation, but remains slower than SPACL and ELK on all three ontologies in this table
     \item These are end-to-end wall-clock measurements (startup + parsing + reasoning), not parser-agnostic microbenchmarks
 \end{itemize}
 
-\noindent\textit{Artifact sources}: \path{benchmarks/competitors/results/history/large_r1_20260225/results.csv}, \path{benchmarks/competitors/results/history/large_r2_20260225/results.csv}, \path{benchmarks/competitors/results/history/large_r3_real_20260225/results.csv}, plus Konclude reruns summarized in \path{benchmarks/competitors/results/history/konclude_repeated_refresh_aggregate_20260228/per_ontology_medians.csv}.
+\noindent\textit{Artifact sources}: \path{benchmarks/competitors/results/history/large_r1_20260225/results.csv}, \path{benchmarks/competitors/results/history/large_r2_20260225/results.csv}, \path{benchmarks/competitors/results/history/large_r3_real_20260225/results.csv}.
 
 \subsubsection{Supplementary Biomedical Extension: PATO}
 \label{sec:pato-panel}
@@ -1198,7 +1195,6 @@ HermiT & 3/3 & 12150 & all runs successful \\
 Pellet & 2/3 & 748960 & one run not available \\
 JFact & 0/3 & TO & timed out on all runs \\
 Openllet & 0/3 & TO/FAIL & two timeouts, one failure \\
-Konclude & 3/3 & 12758 & all runs successful (preprocessing-enabled harness) \\
 \bottomrule
 \end{tabular}
 }
@@ -1208,7 +1204,6 @@ Konclude & 3/3 & 12758 & all runs successful (preprocessing-enabled harness) \\
 \begin{itemize}
     \item In this supplementary panel, SPACL has the lowest median wall-clock result among reasoners with successful comparable runs
     \item ELK and HermiT remain successful comparators on this ontology, but both are slower than SPACL in the three-run panel
-    \item Konclude becomes a successful comparable run set under the preprocessing-enabled harness, but remains slower than SPACL, ELK, and HermiT on this ontology
     \item PATO is more failure-prone for several external reasoners than the primary three-ontology large panel, which makes it useful as a complementary stress case rather than a replacement for that panel
 \end{itemize}
 
@@ -1234,7 +1229,6 @@ ELK & 12 & 100\% & 2999.0 & 3370 \\
 Openllet & 12 & 100\% & 3204.5 & 3836 \\
 HermiT & 12 & 100\% & 3573.0 & 4505 \\
 JFact & 3 & 25\% & 3507 & 3762 \\
-Konclude & 12 & 100\% & 5382.5 & 5705 \\
 \bottomrule
 \end{tabular}
 }
@@ -1261,15 +1255,45 @@ OWL2RL & 2070 & 2864 (Pellet) & SPACL \\
 \end{table}
 \noindent\footnotesize\textit{Note}: Medians are computed on successful runs only (3 runs per ontology/reasoner pair under the 300s policy).
 \normalsize
-\noindent\textit{Artifact sources}: \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_aggregate_20260223/reasoner_ontology_summary.csv}, plus Konclude reruns summarized in \path{benchmarks/competitors/results/history/konclude_repeated_refresh_aggregate_20260228/per_ontology_medians.csv}.
+\noindent\textit{Artifact source}: \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_aggregate_20260223/reasoner_ontology_summary.csv}.
 
 \textbf{OWL2Bench-core observations}:
 \begin{itemize}
     \item Among reasoners with successful comparable runs, SPACL has the lowest median wall-clock time on all 4 profile ontologies (DL/EL/QL/RL) across 3/3 successful runs per ontology (Table~\ref{tab:owl2bench-core-winners})
-    \item Konclude completes 12/12 runs after preprocessing-enabled input preparation, but remains slower than SPACL and the OWLAPI-based baselines in this suite
     \item ELK, HermiT, Openllet, and Pellet each complete 12/12 runs in this harness
     \item JFact completes only QL (3/3) and times out on DL/EL/RL under the 300s policy in this setup
 \end{itemize}
+
+\subsubsection{Supplementary Deployment-Level Konclude Validation}
+\label{sec:konclude-supplement}
+
+Konclude was rerun separately under a preprocessing-enabled external-binary path that converts ontology inputs to OWL/XML and merges imports before invocation. Because this path differs from the primary aggregate campaign used in the main comparison tables, we report its deployment-level results separately rather than mixing them into the primary head-to-head tables.
+
+\begin{table}[htbp]
+\centering
+\caption{Supplementary Konclude Deployment-Level Validation}
+\label{tab:konclude-supplement}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{l|r|r|r}
+\toprule
+\textbf{Suite} & \textbf{Success / Comparable} & \textbf{Median Wall (ms)} & \textbf{Status Note} \\
+\midrule
+Standard & 21/21 (100\%) & 5285 & preprocessing-enabled rerun \\
+Large (doid/go-basic/uberon) & 9/9 (100\%) & 34684 & preprocessing-enabled rerun \\
+OWL2Bench core & 12/12 (100\%) & 5382.5 & preprocessing-enabled rerun \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Konclude supplementary observations}:
+\begin{itemize}
+    \item Under the preprocessing-enabled deployment path, Konclude completes all Standard, Large-primary, and OWL2Bench-core reruns in our harness
+    \item These values are informative for deployment-level comparison, but they are not mixed into the primary comparison tables because the invocation path differs from the main aggregate campaign
+    \item Konclude remains slower than SPACL on the large biomedical panel and on the OWL2Bench-core suite in these reruns
+\end{itemize}
+
+\noindent\textit{Artifact sources}: \path{benchmarks/competitors/results/history/konclude_repeated_refresh_aggregate_20260228/suite_summary.csv}, \path{benchmarks/competitors/results/history/konclude_repeated_refresh_aggregate_20260228/per_ontology_medians.csv}.
 
 \subsection{Analysis: JVM Startup Overhead}
 \label{sec:jvm-overhead}
@@ -1283,7 +1307,7 @@ Standard-suite wall-clock numbers should be interpreted as end-to-end deployment
 
 We evaluated threshold settings for the two-stage adaptive policy. Table~\ref{tab:adaptive} reports the cost-gate behavior for small disjunctive cases, while Section~\ref{sec:adaptive} defines the branch-count prefilter.
 
-We then ran explicit ablation sweeps over branch thresholds and cost coefficients using synthetic union/complement workloads plus representative warm-up real-world ontologies (DOID and GO-Basic). The exploratory sweep and conservative zoom-in sweep are archived under \path{results/history/adaptive_calibration_20260228_110137} and \path{results/history/adaptive_calibration_20260228_111338}. Configurations were ranked by average regret against the best observed wall-clock result on each sweep workload. In these traces, the disjunctive 5k stress case produced 1,000 detected disjunctions and an estimated branch count of 1,500; thresholds below that point triggered a severe always-parallel regression, while $\tau = 2000$ forced sequential fallback and reduced regret to near parity. We therefore use a conservative default branch-count threshold $\tau = 2000$ together with the cost gate ($>$ 500$\mu$s $\times$ workers).
+We then ran explicit ablation sweeps over branch thresholds and cost coefficients using synthetic union/complement workloads plus representative warm-up real-world ontologies (DOID and GO-Basic). The exploratory sweep and conservative zoom-in sweep are archived under \path{results/history/adaptive_calibration_20260228_110137} and \path{results/history/adaptive_calibration_20260228_111338}; two final sensitivity reruns with forced-sequential baselines and one warm-up timing pass per mode are archived under \path{results/history/adaptive_calibration_20260228_235333} and \path{results/history/adaptive_calibration_20260228_235856}. Configurations were ranked by average regret against the best observed baseline wall-clock result on each sweep workload. In these traces, the disjunctive 5k stress case produced 1,000 detected disjunctions and an estimated branch count of 1,500; thresholds below that point triggered a severe always-parallel regression, while the robust regime consistently started at $\tau \ge 2000$. We therefore use these sweeps primarily to justify the safe operating region (`2000+`) of the branch gate rather than to claim a uniquely optimal default. The implementation keeps a conservative default branch-count threshold $\tau = 2000$, retains the 500$\mu$s cost gate, and applies the lighter 15$\mu$s nesting cost in the implementation defaults.
 
 On the same calibration traces, DOID and GO-Basic stayed on the sequential path because the detector found no speculative disjunctions in those runs. This supports treating the adaptive gate as a workload-sensitive safety mechanism rather than as the primary explanation for the large biomedical wall-clock gains, which are discussed separately in Sections \ref{sec:realworld} and \ref{sec:competitor-benchmarks}.
 
@@ -1371,12 +1395,12 @@ To better characterize learning impact, future benchmark suites should include a
 \textbf{Answer}: Yes. The adaptive strategy avoids unnecessary parallel execution on small cases (18--73$\times$ improvement versus always-parallel baselines) while retaining scalability on larger cases (Sections \ref{sec:adaptive}, \ref{sec:threshold-tuning}).
 
 \textbf{RQ3: For large RDF/XML ontologies, which stages dominate runtime, and can structural parsing/materialization reduce the bottleneck while retaining implementation-aligned semantic behavior?}  
-\textbf{Answer}: Parsing/materialization dominates large-ontology runtime in the baseline. The structural pipeline substantially reduces this cost while preserving handler-equivalent semantics for the implemented ALC/SHOIQ path, with stage-level A/B reductions reported in Section \ref{sec:realworld}.
+\textbf{Answer}: Parsing/materialization dominates large-ontology runtime in the baseline. The structural pipeline substantially reduces this cost while preserving handler-equivalent semantics for the implemented ALC/SHOIQ path, with stage-level A/B reductions reported in Section \ref{sec:realworld}, including a supplementary ChEBI cold-text stress pair that shows a similar trend.
 
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. In the profile-mixed Standard Workload Suite (3 clean runs), SPACL has the lowest per-ontology median result on 4/7 ontologies and completes 21/21 cases, while ELK is faster on the two deepest hierarchy stress files (\texttt{hierarchy\_10000.owl}, \texttt{hierarchy\_100000.owl}) and Pellet is faster on \texttt{univ-bench.owl}. In the primary Large Head-to-Head benchmark on biomedical RDF/XML ontologies (doid/go-basic/uberon, 3 clean runs), the revised structural parser/materialization pipeline substantially improves end-to-end behavior, and SPACL has the lowest per-ontology median wall-clock time on all 3/3 tested ontologies among reasoners with successful comparable runs under a 900s timeout policy. A supplementary three-run PATO biomedical panel, reported separately from the primary large aggregate, is consistent with this ranking among successful runs. A suite-level failure-aware CEW view over comparable runs reports ELK as strongest on Standard and SPACL as strongest on Large. In the external OWL2Bench core-profile suite (DL/EL/QL/RL), three clean repeated runs show SPACL with 12/12 success and the lowest median wall-clock result on 4/4 ontologies among successful comparable runs in this harness. Head-to-head claims are reported as descriptive repeated-run outcomes for the stated benchmark harness.
+We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. In the profile-mixed Standard Workload Suite (3 clean runs), SPACL has the lowest per-ontology median result on 4/7 ontologies and completes 21/21 cases, while ELK is faster on the two deepest hierarchy stress files (\texttt{hierarchy\_10000.owl}, \texttt{hierarchy\_100000.owl}) and Pellet is faster on \texttt{univ-bench.owl}. In the primary Large Head-to-Head benchmark on biomedical RDF/XML ontologies (doid/go-basic/uberon, 3 clean runs), the revised structural parser/materialization pipeline substantially improves end-to-end behavior, and SPACL has the lowest per-ontology median wall-clock time on all 3/3 tested ontologies among reasoners with successful comparable runs under a 900s timeout policy. A supplementary ChEBI cold-text stress pair shows a similar parser-dominant trend at a larger ontology scale without being folded into the main cross-reasoner large table. A suite-level failure-aware CEW view over comparable runs reports ELK as strongest on Standard and SPACL as strongest on Large. In the external OWL2Bench core-profile suite (DL/EL/QL/RL), three clean repeated runs show SPACL with 12/12 success and the lowest median wall-clock result on 4/4 ontologies among successful comparable runs in this harness. Head-to-head claims are reported as descriptive repeated-run outcomes for the stated benchmark harness.
 
 \subsection{Summary of Contributions}
 \label{sec:summary}
@@ -1449,6 +1473,8 @@ and the aggregate summary
 plus adaptive-threshold calibration outputs
 \path{results/history/adaptive_calibration_20260228_110137},
 \path{results/history/adaptive_calibration_20260228_111338},
+\path{results/history/adaptive_calibration_20260228_235333},
+\path{results/history/adaptive_calibration_20260228_235856},
 plus the stage-level parser A/B outputs referenced in Section~\ref{sec:realworld}.
 A detailed reproduction guide is provided in
 \path{paper/submission/README.txt}
