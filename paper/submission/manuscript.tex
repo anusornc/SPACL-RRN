@@ -7,11 +7,15 @@
 \journal{Journal of Web Semantics}
 
 \usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage{xurl}
 \usepackage[nopatch=footnote]{microtype}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
 
 \setlength{\emergencystretch}{2em}
 \setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
@@ -105,7 +109,7 @@ Parallel reasoning research addresses that tension through shared-memory classif
 \section{Formal Framework}
 \label{sec:formal}
 
-SPACL follows a tableau-style reasoning path for the implemented ALC/SHOIQ fragment exercised in this paper. Conjunction expands in place; existential and universal restrictions propagate as usual; disjunction creates branch points. The main design choice is operational rather than axiomatic: how to schedule those branches, when to parallelize them, and when to prune them safely.
+SPACL follows a tableau-style reasoning path for the implemented ALC/SHOIQ fragment exercised in this paper. Conjunction expands in place, existential and universal restrictions propagate as usual, and disjunction creates branch points. The main design choice is operational rather than axiomatic: how to schedule those branches, when to parallelize them, and when to prune them safely.
 
 Speculative execution in SPACL is a schedule change, not a rule change. The implementation may explore selected disjunctive branches concurrently, but every branch is still evaluated by the same underlying rule-handling path. Learned nogoods are admitted only after contradiction is rechecked, so pruning is used only for branch contexts already verified unsatisfiable.
 
@@ -149,6 +153,73 @@ Figure~\ref{fig:spacl-flow} summarizes the execution flow used in this revision.
 \caption{Compact execution-flow summary of the combined SPACL system.}
 \label{fig:spacl-flow}
 \end{figure}
+
+Figure~\ref{fig:architecture} complements this execution summary with the runtime architecture used in the implementation. The intent is to make the interaction between the parser/materialization path, adaptive controller, speculative workers, and nogood store explicit without reintroducing the longer presentation from the full manuscript.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\linewidth}{!}{
+\begin{tikzpicture}[
+    node distance=8mm and 11mm,
+    box/.style={draw, rounded corners, align=center, minimum width=25mm, minimum height=8mm},
+    line/.style={-Latex, semithick}
+]
+\node[box] (input) {Ontology Input};
+\node[box, right=of input] (parser) {Structural Parser\\+ Materialization};
+\node[box, right=of parser] (gate) {Adaptive\\Controller};
+\node[box, right=of gate] (sched) {Work-Stealing\\Scheduler};
+\node[box, right=of sched] (out) {Consistency\\Result};
+
+\node[box, below=of sched, xshift=-16mm] (w1) {Worker 1};
+\node[box, below=of sched] (w2) {Worker 2};
+\node[box, below=of sched, xshift=16mm] (wn) {Worker N};
+\node[box, below=of gate, yshift=-18mm] (nogood) {Nogood Store\\+ Local Caches};
+
+\draw[line] (input) -- (parser);
+\draw[line] (parser) -- (gate);
+\draw[line] (gate) -- (sched);
+\draw[line] (sched) -- (out);
+\draw[line] (sched) -- (w1);
+\draw[line] (sched) -- (w2);
+\draw[line] (sched) -- (wn);
+\draw[line] (w1) -- (nogood);
+\draw[line] (w2) -- (nogood);
+\draw[line] (wn) -- (nogood);
+\draw[line, dashed] (w1) -- (w2);
+\draw[line, dashed] (w2) -- (wn);
+\end{tikzpicture}
+}
+\caption{Compact runtime architecture of SPACL. Solid arrows denote main control/data flow; dashed arrows denote worker coordination.}
+\label{fig:architecture}
+\end{figure}
+
+Algorithm~\ref{alg:spacl} gives the compact control flow of the reasoning path used in this revision.
+
+\begin{algorithm}[htbp]
+\caption{SPACL Consistency Check}
+\label{alg:spacl}
+\begin{algorithmic}[1]
+\Require Ontology $O$, configuration $C$
+\Ensure \textbf{true} if consistent, \textbf{false} if inconsistent, otherwise timeout/unknown
+\State Parse and materialize $O$ into the internal ontology representation
+\State $b \gets \textsc{EstimateBranchCount}(O)$
+\State $d \gets \textsc{EstimateDetectedDisjunctionCost}(O)$
+\If{$b < C.\tau$ \textbf{or} $d < C.\theta \cdot C.\text{workers}$}
+    \State \Return \textsc{SequentialConsistencyCheck}$(O)$
+\EndIf
+\State $Q \gets$ bounded branch-constrained work items from selected disjunctions
+\State start worker pool with shared nogood store and thread-local caches
+\While{no decisive result has been returned}
+    \State workers pop or steal work items, expand branches, and validate nogoods before pruning
+    \If{a worker finds a clash-free branch}
+        \State \Return \textbf{true}
+    \ElsIf{all reachable work items are closed by clash or verified pruning}
+        \State \Return \textbf{false}
+    \EndIf
+\EndWhile
+\State \Return timeout/unknown
+\end{algorithmic}
+\end{algorithm}
 
 \subsection{Speculative Work-Stealing}
 \label{sec:workstealing}
