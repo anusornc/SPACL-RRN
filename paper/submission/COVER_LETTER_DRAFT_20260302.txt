@@ -1,0 +1,19 @@
+Dear Editor,
+
+Please consider our manuscript, "SPACL: A Combined Speculative Tableaux and Structural RDF/XML System for OWL Ontology Reasoning," for publication in the Journal of Web Semantics.
+
+This manuscript presents SPACL, an open-source OWL reasoning system for the implemented ALC/SHOIQ handling path that combines branch-level speculative tableaux execution, reusable nogood information, and a structural RDF/XML processing pipeline. The paper is framed as a combined systems contribution: speculative reasoning addresses branch-heavy workloads, while the structural parser/materialization path addresses the dominant end-to-end bottleneck observed on large RDF/XML ontologies. The main empirical discovery is that, on the evaluated real-world RDF/XML ontologies, the largest end-to-end gains come from ingest/materialization optimization rather than from speculative scheduling alone.
+
+The manuscript makes four main contributions. First, it presents an integrated speculative work-stealing reasoning path with validated nogood reuse. Second, it introduces a conservative adaptive gating policy that avoids pathological always-parallel overhead on low-branch workloads. Third, it reports a structural RDF/XML pipeline that substantially reduces parser/materialization cost while preserving the evaluated semantic handler path. Fourth, it evaluates the system using repeated-run containerized benchmarks, including synthetic scalability workloads, stage-level parser A/B studies on large biomedical ontologies, a primary large head-to-head benchmark, and OWL2Bench core-profile validation.
+
+In the primary large biomedical benchmark (DOID, GO-Basic, and UBERON), SPACL records the lowest median wall-clock result among successful comparable runs in our harness. Stage-level analysis shows that the largest end-to-end gains in this revision come from parser/materialization acceleration, with parse-only reductions of approximately 97% relative to the previous structural baseline on the primary biomedical A/B pairs. In repeated OWL2Bench core-profile validation, SPACL completes all runs and records the lowest median wall-clock time on the four evaluated profile ontologies in this harness.
+
+The manuscript has been revised to be conservative and evidence-aligned. Synthetic scalability evidence is clearly separated from repeated-run ontology benchmarks, supplementary deployment-level comparisons are separated from the primary comparison basis, and the implementation scope and protocol limitations of the reported results are stated explicitly.
+
+We believe the manuscript fits the Journal of Web Semantics because it focuses on ontology reasoning under realistic Semantic Web deployment conditions, with explicit attention to reproducibility, practical benchmarking, and implementation tradeoffs.
+
+This manuscript is original, has not been published elsewhere, and is not under consideration by another journal. The public implementation referenced in the manuscript is available at:
+https://github.com/anusornc/SPACL
+
+Sincerely,
+Anusorn Chaikaew, Varin Chouvatut, and Ekkarat Boonchieng
