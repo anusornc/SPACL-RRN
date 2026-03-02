@@ -4,37 +4,15 @@
 
 \documentclass[preprint,12pt,times]{elsarticle}
 
-%% Journal specification
 \journal{Journal of Web Semantics}
 
-%% Packages
 \usepackage{amsmath,amssymb,amsfonts}
-\usepackage{amsthm}
-
-%% Theorem environments
-\theoremstyle{definition}
-\newtheorem{definition}{Definition}[section]
-\newtheorem{theorem}{Theorem}[section]
-\newtheorem{corollary}{Corollary}[section]
-\newtheorem{remark}{Remark}[section]
-
-\usepackage{algorithm}
-\usepackage{algpseudocode}
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{makecell}
-\usepackage{multirow}
-\usepackage{subcaption}
-\usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{xurl}
 \usepackage[nopatch=footnote]{microtype}
-\usepackage{listings}
-\usepackage{caption}
-\usepackage{tikz}
-\usetikzlibrary{shapes,arrows,positioning,fit,backgrounds}
 
-%% Layout tuning for fewer overfull lines and cleaner float spacing
 \setlength{\emergencystretch}{2em}
 \setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
 \setlength{\floatsep}{8pt plus 2pt minus 2pt}
@@ -43,44 +21,22 @@
 \renewcommand{\textfraction}{0.07}
 \renewcommand{\floatpagefraction}{0.8}
 
-%% Setup hyperref
 \hypersetup{
     colorlinks=true,
     linkcolor=blue,
-    filecolor=magenta,      
+    filecolor=magenta,
     urlcolor=cyan,
     citecolor=blue,
-    pdftitle={SPACL: Speculative Parallelism and Conflict Learning for Scalable OWL Ontology Reasoning},
+    pdftitle={SPACL: Speculative Tableaux and Structural RDF/XML Acceleration for OWL Ontology Reasoning},
     pdfauthor={Anusorn Chaikaew, Varin Chouvatut, Ekkarat Boonchieng},
 }
-
-%% Code listing style
-\lstset{
-    basicstyle=\ttfamily\small,
-    breaklines=true,
-    frame=single,
-    numbers=left,
-    numberstyle=\tiny\color{gray},
-    keywordstyle=\color{blue},
-    commentstyle=\color{green!60!black},
-}
-
-%% ============================================
-%% ARTICLE FRONTMATTER
-%% ============================================
 
 \begin{document}
 
 \begin{frontmatter}
 
-%% ============================================
-%% TITLE
-%% ============================================
-\title{SPACL: Speculative Parallelism and Conflict Learning for Scalable OWL Ontology Reasoning}
+\title{SPACL: Speculative Tableaux and Structural RDF/XML Acceleration for OWL Ontology Reasoning}
 
-%% ============================================
-%% AUTHORS
-%% ============================================
 \author[1]{Anusorn Chaikaew\fnref{fn1}}
 \ead{anusorn_chaikaew@cmu.ac.th}
 
@@ -91,676 +47,143 @@
 \ead{ekkarat.boonchieng@cmu.ac.th}
 
 \affiliation[1]{organization={Chiang Mai University},
-                addressline={Department of Computer Science, Faculty of Science}, 
+                addressline={Department of Computer Science, Faculty of Science},
                 city={Chiang Mai},
-                postcode={50200}, 
+                postcode={50200},
                 country={Thailand}}
 
-%% Corresponding author
 \cortext[cor1]{Corresponding author}
 \fntext[fn1]{First author}
 \fntext[fn2]{Second author}
 \fntext[fn3]{Corresponding author}
 
-%% ============================================
-%% ABSTRACT
-%% ============================================
 \begin{abstract}
-We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. Throughout this manuscript, \textit{SPACL} denotes both the algorithm and the public reference implementation. Relative to mainstream open OWL2 DL pipelines discussed in Section~\ref{sec:related}, SPACL emphasizes the combination of work-stealing speculative execution and reusable nogood information in one implementation path.
+We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), an open-source ALC/SHOIQ reasoner that combines branch-level speculative execution, reusable nogood information, and a structural RDF/XML processing pipeline. The paper is therefore about a combined reasoning-and-ingest system, not a speculative scheduler in isolation. The practical goal is to make expressive OWL reasoning useful under end-to-end ontology loading and consistency-checking conditions.
 
-Our key contributions are: (1) a speculative parallel tableaux framework with work-stealing scheduling; in the current prototype this is realized via branch-constrained work items evaluated in parallel; (2) an adaptive threshold mechanism that selects sequential or parallel execution based on estimated complexity, yielding 18--73$\times$ speedup over naive always-parallel execution on small ontologies; (3) thread-local nogood caching that keeps most repeated nogood lookups on the local hot path in dedicated inconsistent-workload ablations (82--95\% local cache-hit rates); (4) a global thread pool optimization that reduces overhead by 2.1$\times$; and (5) a Rust implementation with parser support for RDF/XML, OWL2 Functional, Manchester, and JSON-LD syntaxes. On synthetic scalability workloads, SPACL reaches up to 4.88$\times$ speedup at 10,000 classes while keeping overhead below $2\times$ on smaller ontologies. These synthetic scalability figures are supporting evidence; the main benchmark basis of the paper is the repeated-run end-to-end ontology evaluation reported below.
+SPACL uses a work-stealing speculative scheduler together with a conservative two-stage gate that keeps small or low-branch workloads on the sequential path. On synthetic disjunctive scalability workloads, this gate avoids severe always-parallel overhead and permits net speedup once branch structure becomes large enough, reaching up to 4.88$\times$ at the largest synthetic point evaluated. These synthetic figures are supporting evidence only; the main claims of the paper come from repeated-run ontology benchmarks and stage-level parser analysis.
 
-In the profile-mixed Standard Workload Suite (7 ontologies; 3 clean runs), per-ontology medians among successful comparable runs place SPACL lowest on 4/7 ontologies; ELK (OWL EL profile) is lowest on the two deepest hierarchy files, and Pellet is lowest on \texttt{univ-bench.owl}. In the primary Large Head-to-Head benchmark (doid/go-basic/uberon; 3 clean runs), SPACL has the lowest median wall-clock time on all three tested ontologies among successful comparable runs under a common 900s timeout protocol. A suite-level failure-aware metric (capped expected wall-time, CEW) over comparable runs reports ELK lowest on Standard and SPACL lowest on Large. In an external OWL2Bench core-profile validation (DL/EL/QL/RL), three clean repeated runs show SPACL has the lowest median wall-clock time on 4/4 ontologies with 12/12 successful runs in this harness. Timeout policy is reported explicitly in all benchmark tables (Standard Workload Suite: 300s; Large Head-to-Head: 900s; OWL2Bench core profile suite: 300s). This improvement is driven by a structural RDF/XML parser and optimized materialization path that reuses the same ALC/SHOIQ semantic handlers as the baseline path; stage-level A/B runs show parse-only reductions of 96.96--97.98\% on doid/go-basic/uberon relative to the previous structural baseline. Head-to-head suites are reported as descriptive repeated-run wall-clock comparisons, not formal significance tests.
+In the Standard Workload Suite (7 ontologies; 3 clean runs), per-ontology medians among successful comparable runs place SPACL lowest on 4/7 ontologies; ELK is lowest on the two deepest hierarchy files, and Pellet is lowest on \texttt{univ-bench.owl}. In the primary Large Head-to-Head benchmark (doid/go-basic/uberon; 3 clean runs), SPACL has the lowest median wall-clock time on all three tested ontologies among successful comparable runs under a common 900s timeout protocol. In repeated OWL2Bench core-profile validation (DL/EL/QL/RL), SPACL completes 12/12 runs and records the lowest median wall-clock time on 4/4 ontologies in this harness.
+
+The largest end-to-end gains in this revision come from parser/materialization optimization rather than from speculative reasoning alone. Stage-level A/B runs on DOID, GO-Basic, and UBERON show parse-only reductions of 96.96--97.98\% relative to the previous structural baseline, and a supplementary ChEBI cold-text stress pair shows the same qualitative trend at larger scale. We therefore frame SPACL as a combined systems contribution: speculative reasoning improves branch-heavy synthetic cases, while structural RDF/XML acceleration dominates the largest real-world wall-clock gains. All head-to-head results are reported as descriptive repeated-run wall-clock comparisons under a fixed harness, not as formal significance tests.
 \end{abstract}
 
-%% ============================================
-%% KEYWORDS
-%% ============================================
 \begin{keyword}
 ALC/SHOIQ \sep Tableaux Reasoning \sep Parallel Algorithms \sep Nogood Learning \sep Description Logics \sep Semantic Web
 \end{keyword}
 
 \end{frontmatter}
 
-%% ============================================
-%% HIGHLIGHTS
-%% ============================================
-\begin{highlights}
-\item Open ALC/SHOIQ implementation combining work-stealing speculative execution with nogood learning
-\item Adaptive thresholding yields 18--73$\times$ speedup over always-parallel execution on small cases
-\item Thread-local caching keeps most repeated nogood lookups on the local hot path in dedicated inconsistent-workload ablations (82--95\% local cache-hit rates)
-\item Global thread pool optimization reduces parallel overhead by 2.1$\times$
-\item Up to 4.88$\times$ speedup at 10,000 classes on synthetic disjunctive ontologies
-\item Structural RDF/XML parsing with handler-equivalent materialization reduces parse-only time by 96.96--97.98\% in A/B runs
-\item Large Head-to-Head (doid/go-basic/uberon), 3 clean runs: lowest median wall-clock time on 3/3 ontologies among successful comparable runs
-\item Failure-aware suite metric (CEW, comparable runs): SPACL lowest on Large suite; ELK lowest on Standard suite
-\item OWL2Bench core profiles (DL/EL/QL/RL), 3 clean runs: lowest median wall-clock on 4/4 ontologies with 12/12 successful runs
-\item Implemented parser support used in this study: RDF/XML, OWL2 Functional, Manchester Syntax, JSON-LD
-\item Rust implementation with explicit reporting of scope limits and benchmark constraints
-\end{highlights}
-
-%% ============================================
-%% MAIN CONTENT
-%% ============================================
-
 \section{Introduction}
 \label{sec:intro}
 
-Description Logics (DLs) provide the formal basis of the Semantic Web, and OWL2 DL is the corresponding W3C standard ontology language \cite{owl2}. Tableaux methods are still widely used for OWL2 DL reasoning because they provide sound and complete procedures for expressive TBox and ABox tasks \cite{dlhandbook}. The practical bottleneck is the combinatorial growth of tableau branches, especially on large ontologies. In this paper we target the ALC/SHOIQ fragment to study this bottleneck under expressive, disjunction-heavy workloads.
+Description Logics (DLs) provide the formal basis of the Semantic Web, and OWL2 DL is the corresponding W3C ontology language standard \cite{owl2}. Tableaux methods remain important for expressive OWL reasoning because they support sound and complete model construction for rich TBox and ABox tasks \cite{dlhandbook}. In practice, however, expressive reasoning is often limited by the combinatorial growth of non-deterministic branches and by end-to-end loading costs on large ontologies.
 
-Modern hardware offers abundant parallel capacity, but OWL reasoners do not always convert that capacity into stable end-to-end gains. Some strong parallel systems are integrated as external binaries in practical harnesses (e.g., Konclude) \cite{konclude}, which can limit instrumentation parity and failure diagnosis in cross-system experiments. Many widely used open implementations (e.g., Pellet/Openllet and HermiT) remain primarily sequential in their core exploration loop \cite{pellet,openllet,hermit}. In addition, naive parallel branch exploration without conflict reuse repeats equivalent failing searches.
-These constraints also motivate our longer-term goal: a reasoning core for ontology transaction validation in distributed, permissioned application settings. This paper focuses on the reasoning and parsing foundations required for that deployment path.
+This paper studies that bottleneck through an implemented ALC/SHOIQ reasoning path. We focus on two practical questions. First, can speculative parallel tableaux reduce branch-exploration cost without paying unacceptable overhead on easy workloads? Second, when large RDF/XML ontologies dominate runtime, how much of the observed end-to-end behavior is actually due to parsing and materialization rather than to reasoning proper? These questions matter both for ontology-engineering workflows and for our longer-term goal of using reasoning as a validation component in distributed application settings.
 
 \subsection{Research Questions}
 \label{sec:questions}
 
-This work addresses the following research questions:
-
-\begin{enumerate}[RQ1:]
-    \item Can speculative parallel tableaux with conflict-driven nogood learning improve OWL2 DL consistency checking performance?
-    \item Can adaptive parallelism reduce overhead on small workloads while preserving scalability on larger workloads?
-    \item For large RDF/XML ontologies, which stages dominate end-to-end runtime, and how much can structural parsing/materialization optimization reduce this bottleneck while retaining implementation-aligned semantic behavior?
-\end{enumerate}
+The paper addresses three questions.
+\begin{itemize}
+    \item \textbf{RQ1.} Can speculative parallel tableaux with conflict-driven nogood learning improve OWL consistency-checking performance?
+    \item \textbf{RQ2.} Can adaptive parallelism reduce overhead on small workloads while preserving scalability on larger workloads?
+    \item \textbf{RQ3.} For large RDF/XML ontologies, which stages dominate end-to-end runtime, and how much can structural parsing/materialization optimization reduce that bottleneck while preserving implementation-aligned semantic behavior?
+\end{itemize}
 
 \subsection{Contributions}
 \label{sec:contributions}
 
-We address these questions through SPACL, with four main contributions:
-
-\begin{enumerate}[C1:]
-    \item \textbf{Speculative parallel tableaux framework with conflict learning}: SPACL combines work-stealing execution with nogood extraction and reuse. The current prototype realizes speculative exploration via branch-constrained work items generated from selected disjunctions, reducing redundant failure exploration in non-deterministic search (Sections \ref{sec:workstealing}, \ref{sec:nogood}).
-    
-    \item \textbf{Adaptive overhead control}: We integrate threshold-based strategy selection with a global thread pool, reducing small-workload parallel overhead while preserving speedup at larger scales (Sections \ref{sec:adaptive}, \ref{sec:threadpool}).
-    
-    \item \textbf{Structural RDF/XML pipeline with handler-equivalent materialization}: We implement a structural parsing/materialization path for the evaluated ALC/SHOIQ handling path and substantially reduce parser-dominated runtime on large ontologies (Section \ref{sec:structural-parser}).
-    
-    \item \textbf{Reproducible end-to-end evaluation}: We provide a containerized benchmark protocol and artifacts for stage-level analysis and multi-reasoner head-to-head comparison (Sections \ref{sec:benchmark-protocol}, \ref{sec:competitor-benchmarks}).
-\end{enumerate}
-
-In Rust, these design choices translate into measurable gains on our synthetic benchmark groups: up to 4.88$\times$ speedup at 10,000 classes, measured per-class processing below 1$\mu$s at the largest synthetic point, and under $2\times$ overhead on small ontologies. On the same synthetic scalability workloads, SPACL reaches 26.2 million measured tableau rule applications per second. These synthetic throughput and scaling figures are supporting microbenchmark signals; the main end-to-end ontology claims in this paper come from the repeated-run head-to-head and stage-level evaluations reported later.
-
-\subsection{Paper Organization}
-\label{sec:organization}
-
-The remainder of this paper is organized as follows. Section \ref{sec:related} reviews related work in parallel reasoning and conflict learning. Section \ref{sec:algorithm} presents the SPACL algorithm and its components. Section \ref{sec:implementation} describes our Rust implementation. Section \ref{sec:evaluation} presents comprehensive benchmarks including scalability, thread scaling, and comparison with existing reasoners. Section \ref{sec:conclusion} concludes with limitations and future directions.
+SPACL contributes four elements. First, it combines branch-level speculative work stealing with reusable nogood information in a single open implementation (Sections \ref{sec:workstealing} and \ref{sec:nogood}). Second, it uses a conservative adaptive gate that keeps low-branch workloads on the sequential path while allowing larger speculative workloads to use multiple workers (Section \ref{sec:adaptive}). Third, it introduces a structural RDF/XML pipeline that reuses the same semantic handlers as the baseline path while substantially reducing parse/materialization cost on large biomedical ontologies (Section \ref{sec:structural-parser}). Fourth, it evaluates the combined system with repeated-run synthetic, stage-level, and cross-reasoner benchmarks under a reproducible containerized protocol (Sections \ref{sec:benchmark-protocol} and \ref{sec:competitor-benchmarks}).
 
 \section{Related Work}
 \label{sec:related}
 
-This section summarizes prior work on tableau-based OWL reasoning, parallel and distributed execution, conflict-driven learning, and speculative execution. The goal is to position SPACL against the strongest established techniques used in practical reasoners.
+Tableau and hypertableau reasoners such as Pellet, HermiT, and Konclude show that expressive OWL reasoning remains viable when branching, blocking, and caching are carefully engineered \cite{pellet,hermit,konclude,motik2009hypertableau}. At the other end of the design space, ELK demonstrates the throughput advantage of profile-restricted consequence-based reasoning \cite{elk}. This gives the central tension for our work: expressive reasoning remains useful, but branching and operational overhead often dominate runtime.
 
-\subsection{Tableau-Based Reasoning}
+Parallel reasoning research addresses that tension through shared-memory classification frameworks, work-stealing schedulers, and distributed materialization systems \cite{quan2017parallel,quan2019framework,workstealing,liu2017spowl,gu2015cichlid,benitez2023nora}. These studies show that parallelism helps only when coordination cost is controlled. Conflict-driven learning offers another lever. In SAT/CSP it is standard; in DL systems, related reuse ideas appear in hypertableau optimizations and tableau--saturation hybrids \cite{marques1999grasp,glorian2020nacre,motik2009hypertableau,song2013complete,glimm2014coupling}. SPACL is positioned as a practical open-source combination of these strands for the implemented ALC/SHOIQ handling path exercised here.
 
-Tableau calculi remain a central approach for expressive description logic reasoning. Practical systems such as Pellet and HermiT demonstrated that sound and complete reasoning can be delivered at scale when rule ordering, blocking, and caching are engineered carefully~\cite{pellet,hermit,motik2009hypertableau}. In particular, the hypertableau line of work reduces non-deterministic branching pressure compared with classical tableau expansion, and individual-reuse techniques reduce model blow-up in challenging ontologies~\cite{motik2009hypertableau}.
-
-State-of-the-art systems also combine calculi. Konclude integrates tableau-style reasoning with additional optimization layers and has shown strong performance on large benchmark sets~\cite{konclude,song2013complete,glimm2014coupling}. For tractable fragments, consequence-based reasoners such as ELK provide excellent throughput, illustrating how calculus design strongly influences scalability and implementation trade-offs~\cite{elk}.
-
-\subsection{Parallel Reasoning}
-
-Parallelization has been studied at multiple granularities. Shared-memory classification frameworks distribute satisfiability and subsumption checks across workers and report substantial speedup on multicore systems~\cite{quan2017parallel,quan2019framework}. Work-stealing style scheduling further improves load balancing when ontology subproblems are uneven~\cite{workstealing,quan2017parallel}.
-
-Beyond classification, parallel ABox reasoning has explored dynamic splitting of model-construction tasks with cache reuse strategies to improve throughput on assertion-heavy workloads~\cite{steigmiller2020parallelised}. Distributed materialization frameworks (for less expressive profiles) use Spark-based execution and data-partitioned pipelines to scale to very large datasets~\cite{liu2017spowl,gu2015cichlid,benitez2023nora}. These results confirm the scalability potential of parallel infrastructures, while also highlighting that end-to-end performance is highly sensitive to reasoning profile, task type, and synchronization overhead.
-
-\subsection{Conflict-Driven Learning}
-
-Conflict-driven learning is a mature optimization paradigm in SAT/CSP, where learned clauses/nogoods prevent repeated exploration of failing search regions~\cite{marques1999grasp,glorian2020nacre}. In description logic systems, related ideas appear in more localized forms, such as nogood-aware individual reuse in hypertableau procedures~\cite{motik2009hypertableau}.
-
-Hybrid reasoners that couple tableau and saturation procedures also demonstrate the value of reusing derived information to reduce repeated work during classification~\cite{song2013complete,glimm2014coupling,konclude}. However, openly documented integrations of branch-level speculative parallel tableau exploration with adaptive, reusable nogood learning remain limited in mainstream open-source OWL2 DL pipelines.
-
-\subsection{Speculative Execution}
-
-Speculative execution for OWL reasoning explores multiple non-deterministic branches concurrently and relies on cancellation/pruning once contradictions or witnesses are found. Work-stealing provides a practical runtime foundation for this model by balancing branch workloads dynamically~\cite{workstealing,quan2017parallel}. Lock-free and low-contention engineering techniques are also critical for obtaining net gains rather than synchronization-bound slowdowns~\cite{elk,quan2019framework}.
-
-The primary systems challenge is overhead control. On easy workloads, naive always-parallel execution can underperform sequential reasoning because scheduling and coordination costs dominate. This motivates adaptive policies that switch between sequential and parallel execution based on estimated branch complexity~\cite{quan2017parallel}. A second challenge is conflict sharing: learned nogoods should be reused aggressively enough to prune search, but not so aggressively that contention erodes parallel benefit~\cite{steigmiller2020parallelised}.
-
-\subsection{Summary and Positioning}
-
-Prior literature provides strong building blocks: optimized tableau/hypertableau calculi~\cite{motik2009hypertableau,hermit}, high-throughput parallel classification frameworks~\cite{quan2017parallel,quan2019framework}, distributed materialization engines~\cite{liu2017spowl,gu2015cichlid,benitez2023nora}, and mature nogood machinery in constraint solving~\cite{glorian2020nacre}. SPACL is positioned at their intersection: branch-level speculative parallelism, adaptive overhead control, and practical nogood reuse designed for expressive OWL reasoning workloads.
-To make this positioning analytically precise, the next section formalizes the decision model, branching behavior, and correctness arguments that underlie the implementation and evaluation.
 \section{Formal Framework}
 \label{sec:formal}
 
-This section establishes the formal foundations of the SPACL algorithm, including the Description Logic syntax, tableaux calculus, and the mathematical basis for speculative parallelism with conflict learning.
+SPACL follows a tableau-style reasoning path for the implemented ALC/SHOIQ fragment exercised in this paper. Conjunction expands in place; existential and universal restrictions propagate as usual; disjunction creates branch points. The main design choice is operational rather than axiomatic: how to schedule those branches, when to parallelize them, and when to prune them safely.
 
-\subsection{Description Logic ALC}
-\label{sec:dl-syntax}
-
-We operate in the Description Logic $\mathcal{ALC}$ (Attributive Language with Complement), which forms the basis of OWL2 DL. Our implementation extends to $\mathcal{SHOIQ}$ (with transitive roles, role hierarchies, nominals, inverse roles, and qualified cardinality restrictions). The syntax is defined as follows:
-
-\begin{definition}[ALC Syntax]
-Let $\mathbf{C}$ be a set of concept names, $\mathbf{R}$ a set of role names, and $\mathbf{I}$ a set of individual names. \emph{Concepts} $C, D$ are defined by the grammar:
-\begin{align}
-C, D &::= A \mid \top \mid \bot \mid \neg C \mid C \sqcap D \mid C \sqcup D \mid \exists r.C \mid \forall r.C
-\end{align}
-where $A \in \mathbf{C}$ is an atomic concept and $r \in \mathbf{R}$ is a role.
-\end{definition}
-
-An \emph{ontology} $\mathcal{O} = (\mathcal{T}, \mathcal{A})$ consists of a TBox $\mathcal{T}$ (terminology) and ABox $\mathcal{A}$ (assertions):
-\begin{align}
-\mathcal{T} &::= \{C \sqsubseteq D\} \cup \{C \equiv D\} \\
-\mathcal{A} &::= \{a : C\} \cup \{(a,b) : r\}
-\end{align}
-
-\subsection{Tableaux Calculus}
-\label{sec:tableaux-calculus}
-
-The tableaux algorithm determines consistency by constructing a \emph{completion graph} $\mathcal{G} = (V, E, \mathcal{L})$ where:
-\begin{itemize}
-    \item $V$ is a set of nodes (individuals)
-    \item $E \subseteq V \times \mathbf{R} \times V$ are labeled edges (role assertions)
-    \item $\mathcal{L}: V \rightarrow 2^{\mathcal{C}}$ maps nodes to sets of concepts
-\end{itemize}
-
-\begin{definition}[Clash]
-A node $x \in V$ contains a \emph{clash} if either:
-\begin{enumerate}
-    \item $\{C, \neg C\} \subseteq \mathcal{L}(x)$ for some concept $C$, or
-    \item $\bot \in \mathcal{L}(x)$
-\end{enumerate}
-\end{definition}
-
-The tableaux algorithm applies \emph{expansion rules} until either a clash-free complete graph is found (consistent) or all branches lead to clashes (inconsistent).
-Table~\ref{tab:expansion-rules} summarizes the core $\mathcal{ALC}$ expansion rules used in our formal presentation.
-
-\begin{table}[htbp]
-\centering
-\caption{Tableaux Expansion Rules for $\mathcal{ALC}$}
-\label{tab:expansion-rules}
-\begin{tabular}{@{}lll@{}}
-\toprule
-\textbf{Rule} & \textbf{Premise} & \textbf{Action} \\
-\midrule
-$(\sqcap)$ & $x : C \sqcap D \in \mathcal{L}(x)$ & $\mathcal{L}(x) := \mathcal{L}(x) \cup \{C, D\}$ \\
-$(\sqcup)$ & $x : C \sqcup D \in \mathcal{L}(x)$ & Create branches: $\mathcal{L}_1(x) = \mathcal{L}(x) \cup \{C\}$, \\
-& & $\mathcal{L}_2(x) = \mathcal{L}(x) \cup \{D\}$ \\
-$(\exists)$ & $x : \exists r.C \in \mathcal{L}(x)$ & Add new $y$, $(x,y):r$, $y:C$ \\
-$(\forall)$ & $x : \forall r.C \in \mathcal{L}(x)$, $(x,y):r$ & $\mathcal{L}(y) := \mathcal{L}(y) \cup \{C\}$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Speculative Parallelism Model}
-\label{sec:parallel-model}
-
-Traditional tableaux processing applies the $(\sqcup)$-rule sequentially, creating a binary decision tree with depth equal to the number of disjunctions. SPACL introduces \emph{speculative parallelism}:
-
-\begin{definition}[Speculative Branch]
-Given a disjunction $C \sqcup D$ at node $x$, a \emph{speculative branch} is a pair of subgraphs $(\mathcal{G}_1, \mathcal{G}_2)$ where:
-\begin{align}
-\mathcal{G}_1 &= (V, E, \mathcal{L}[x \mapsto \mathcal{L}(x) \cup \{C\}]) \\
-\mathcal{G}_2 &= (V, E, \mathcal{L}[x \mapsto \mathcal{L}(x) \cup \{D\}])
-\end{align}
-Both branches are explored concurrently by different workers.
-\end{definition}
-
-\noindent\textbf{Heuristic speedup model.}
-Let $T_{seq}$ be sequential runtime and $T_{par}$ speculative-parallel runtime with $p$ workers. A practical lower-bound model is:
-\begin{align}
-T_{par} \gtrsim \frac{T_{seq}}{p} \cdot (1 + \alpha \cdot o_{sync})
-\end{align}
-where $\alpha$ is the synchronized-work fraction and $o_{sync}$ is synchronization overhead. We use this expression as an intuition aid for overhead analysis, not as a formal theorem.
-
-\subsection{Nogood Learning}
-\label{sec:nogood-formal}
-
-\begin{definition}[Nogood]
-A \emph{nogood} is a set of class expressions $\mathcal{N}=\{C_1,\ldots,C_n\}$ that is jointly unsatisfiable under conjunction in the current branch context, i.e., $\bigcap_{i=1}^{n} C_i \sqsubseteq \bot$.
-\end{definition}
-
-\begin{definition}[Nogood Subsumption]
-A nogood $\mathcal{N}$ \emph{subsumes} a branch with constraints $\Gamma$ if:
-\begin{align}
-\mathcal{N} \subseteq \Gamma
-\end{align}
-If $\mathcal{N}$ subsumes $\Gamma$, the branch can be immediately pruned.
-\end{definition}
-
-\begin{algorithm}[htbp]
-\caption{Verified Nogood Extraction (Pruning-Safe)}
-\label{alg:nogood}
-\begin{algorithmic}[1]
-\Require Contradictory branch constraints $\Gamma_b$, ontology $\mathcal{O}$
-\Ensure Verified nogood $\mathcal{N}$ for pruning, or $\emptyset$
-\State $\mathcal{N} \gets \Gamma_b$
-\For{each constraint expression $e \in \Gamma_b$}
-    \If{$\mathcal{O} \cup (\mathcal{N}\setminus\{e\}) \models \bot$}
-        \State $\mathcal{N} \gets \mathcal{N}\setminus\{e\}$ \Comment{Greedy core minimization}
-    \EndIf
-\EndFor
-\If{$\mathcal{O} \cup \mathcal{N} \models \bot$}
-    \State \Return $\mathcal{N}$
-\Else
-    \State \Return $\emptyset$ \Comment{No pruning-authorized nogood}
-\EndIf
-\end{algorithmic}
-\end{algorithm}
+Speculative execution in SPACL is a schedule change, not a rule change. The implementation may explore selected disjunctive branches concurrently, but every branch is still evaluated by the same underlying rule-handling path. Learned nogoods are admitted only after contradiction is rechecked, so pruning is used only for branch contexts already verified unsatisfiable.
 
 \subsection{Adaptive Threshold}
 \label{sec:adaptive-formal}
 
-The adaptive threshold mechanism uses two implementation-aligned gates to decide between sequential and parallel processing.
-
-\begin{definition}[Implementation Cost Model]
-For expression-level scoring, the prototype uses:
+Parallel mode is enabled only when both a branch-count estimate and a lightweight cost score exceed conservative thresholds. The branch estimate is
 \begin{align}
-\text{cost}(\text{ObjectUnionOf}(ops)) &= 50 \times |ops| + \sum \text{cost}(op) \\
-\text{cost}(\text{ObjectIntersectionOf}(ops)) &= 25 \times |ops| + \sum \text{cost}(op) \\
-\text{cost}(\text{ObjectComplementOf}(e)) &= 15 + \text{cost}(e) \\
-\text{cost}(\text{atomic}) &= 10
+B(\mathcal{O}) = \max\left(1,\ |\mathcal{D}| + 2\times |\text{DisjointAxioms}| + \frac{|\text{Classes}|}{10}\right),
 \end{align}
-\end{definition}
-
-\begin{definition}[Two-Gate Parallel Enable Rule]
-Let $B(\mathcal{O})$ be branch-count estimate:
+where $|\mathcal{D}|$ is the number of detected disjunctions. Expression-level scoring uses implementation weights
 \begin{align}
-B(\mathcal{O}) = \max\left(1,\ |\mathcal{D}| + 2\times |\text{DisjointAxioms}| + \frac{|\text{Classes}|}{10}\right)
+\text{cost}(\text{ObjectUnionOf}(ops)) &= 50 \times |ops| + \sum \text{cost}(op), \\
+\text{cost}(\text{ObjectIntersectionOf}(ops)) &= 25 \times |ops| + \sum \text{cost}(op), \\
+\text{cost}(\text{ObjectComplementOf}(e)) &= 15 + \text{cost}(e), \\
+\text{cost}(\text{atomic}) &= 10.
 \end{align}
-and let $C(\mathcal{O}) = \sum_{d \in \mathcal{D}} \text{cost}(d)$ over detected disjunctions. Parallel mode is enabled only when:
-\begin{align}
-B(\mathcal{O}) \ge \tau \quad \land \quad C(\mathcal{O}) \ge \theta \cdot p
-\end{align}
-where $\tau=2000$, $\theta=500\mu s$, and $p$ is worker count.
-\end{definition}
-This formalization mirrors the implemented gates reported in Sections \ref{sec:adaptive} and \ref{sec:adaptive-opt}. The coefficients (50, 25, 15, 10) are implementation scoring weights calibrated from ablation sweeps over synthetic disjunctive workloads and representative warm-up real-world ontologies; they are used only for relative gating and are not description-logic complexity constants or predictive runtime coefficients.
+The prototype enables parallel mode only when $B(\mathcal{O}) \ge \tau$ and the accumulated detected-disjunction cost exceeds $\theta \cdot p$, with $\tau = 2000$, $\theta = 500\mu s$, and $p$ the worker count. These are calibrated implementation weights, not description-logic complexity constants.
 
-\noindent\textbf{Heuristic gate inequality.}
-For estimated disjunction cost $D$ and parallel overhead $o_{par}$ with $p$ workers, a useful crossover rule is:
-\begin{align}
-D > \frac{p \cdot o_{par}}{1 - \alpha}
-\end{align}
-where $\alpha$ is an empirical nogood-hit proxy. This inequality motivates threshold tuning, but it is not presented as a formal proof obligation.
-
-\subsection{Correctness (Idealized Model)}
+\subsection{Correctness Scope}
 \label{sec:correctness}
 
-The proof statements in this subsection refer to an idealized SPACL calculus with fair exhaustive exploration of generated disjunctive branches and a complete underlying sequential tableaux reference procedure. The current prototype applies engineering bounds (selected disjunction scope, bounded speculative depth, and timeout limits), so these results are calculus-level properties under those assumptions, not empirical guarantees for every configured run of the current implementation. Evaluation claims in Section~\ref{sec:evaluation} therefore remain observational rather than completeness claims. We do not claim a new completeness proof for full SHOIQ here; the argument below is a schedule-preservation transfer from a complete sequential reference procedure to the idealized speculative schedule.
-
-\begin{theorem}[Idealized Soundness]
-If SPACL returns \emph{consistent} for ontology $\mathcal{O}$, then $\mathcal{O}$ is satisfiable.
-\end{theorem}
-
-\begin{proof}
-SPACL explores branches speculatively but applies the same expansion rules as sequential tableaux. Each worker maintains a valid completion graph. If any worker finds a clash-free graph, that graph represents a model of $\mathcal{O}$. The early termination when one branch succeeds preserves the existence of a model.
-\end{proof}
-
-\begin{theorem}[Idealized Conditional Completeness Transfer]
-Assume fair exhaustive exploration of the generated disjunctive branches and a complete sequential tableaux base procedure for the idealized implemented ALC/SHOIQ handling path considered in this paper (i.e., the rule-handling path evaluated in the current prototype, abstracting away engineering bounds such as timeout limits and bounded speculative depth). If ontology $\mathcal{O}$ is consistent, then the idealized SPACL calculus will eventually return \emph{consistent}.
-\end{theorem}
-
-\begin{proof}
-Under the stated assumptions, speculative parallelism may reorder branch exploration but does not remove any satisfiable branch from eventual consideration. Nogood pruning removes only branches already verified unsatisfiable. Because the underlying sequential tableaux procedure is complete and the idealized SPACL schedule is assumed to explore generated branches fairly and exhaustively, any model reachable in the sequential calculus remains reachable in the idealized parallel calculus. Hence a consistent ontology eventually yields a clash-free branch.
-\end{proof}
+Our correctness claim is intentionally limited. Under an idealized model with fair exhaustive exploration of generated disjunctive branches and a complete sequential tableaux reference procedure for the same implemented ALC/SHOIQ handling path, speculative scheduling preserves soundness and transfers conditional completeness: reordering branches does not invalidate a satisfiable branch, and verified nogoods prune only branch contexts already checked unsatisfiable. The prototype evaluated here adds engineering bounds such as selected-disjunction scope, bounded speculative depth, and timeout limits, so the results in Section~\ref{sec:evaluation} are empirical evidence for the implementation rather than a full completeness proof for unrestricted SHOIQ reasoning.
 
 \section{The SPACL Algorithm}
 \label{sec:algorithm}
 
-\subsection{Overview}
-\label{sec:overview}
+Figure~\ref{fig:spacl-flow} summarizes the execution flow used in this revision. The key point is that SPACL is a pipeline: text ingestion and materialization produce the internal ontology representation, the adaptive gate decides whether speculative work generation is justified, and only then does speculative branch exploration with nogood reuse proceed.
 
-SPACL combines three core mechanisms illustrated in Figure \ref{fig:architecture}:
-
-\begin{figure*}[t]
-    \centering
-    \resizebox{0.9\textwidth}{!}{
-    \begin{tikzpicture}[
-        node distance=0.9cm and 1.4cm,
-        scale=1.2,
-        every node/.style={transform shape},
-        box/.style={rectangle, draw, fill=blue!10, minimum width=3.1cm, minimum height=1.05cm, align=center, font=\normalsize},
-        worker/.style={rectangle, draw, fill=green!10, minimum width=2.5cm, minimum height=0.95cm, align=center, font=\normalsize},
-        arrow/.style={->, thick},
-        label/.style={font=\normalsize\bfseries}
-    ]
-        % Input
-        \node[box] (input) {ALC/SHOIQ\\Input};
-        
-        % Adaptive Controller
-        \node[box, right=of input, fill=yellow!20] (adaptive) {Adaptive\\Controller};
-        
-        % Work Stealing Scheduler
-        \node[box, right=of adaptive, fill=orange!20] (scheduler) {Work-Stealing\\Scheduler};
-        
-        % Workers
-        \node[worker, below=of scheduler, xshift=-2cm] (w1) {Worker 1};
-        \node[worker, below=of scheduler] (w2) {Worker 2};
-        \node[worker, below=of scheduler, xshift=2cm] (w3) {Worker N};
-        
-        % Nogood Database
-        \node[box, below=of scheduler, yshift=-2cm, fill=red!10] (nogood) {Nogood\\Database};
-        
-        % Output
-        \node[box, right=of scheduler, xshift=0.3cm] (output) {Result\\Output};
-        
-        % Arrows
-        \draw[arrow] (input) -- (adaptive);
-        \draw[arrow] (adaptive) -- (scheduler);
-        \draw[arrow] (scheduler) -- (w1);
-        \draw[arrow] (scheduler) -- (w2);
-        \draw[arrow] (scheduler) -- (w3);
-        \draw[arrow, <->] (w1) -- (nogood);
-        \draw[arrow, <->] (w2) -- (nogood);
-        \draw[arrow, <->] (w3) -- (nogood);
-        \draw[arrow] (scheduler) -- (output);
-        \draw[arrow, <->, dashed] (w1) -- (w2);
-        \draw[arrow, <->, dashed] (w2) -- (w3);
-        \draw[arrow, <->, dashed] (adaptive) -- (nogood);
-        
-        % Work stealing arrows
-        \draw[arrow, <->, bend left=30] (w1) to node[above, font=\scriptsize] {steal} (w2);
-        \draw[arrow, <->, bend left=30] (w2) to node[above, font=\scriptsize] {steal} (w3);
-    \end{tikzpicture}
-    }
-    \caption{SPACL Architecture Overview (solid arrows: control/data flow; dashed arrows: coordination/feedback)}
-    \label{fig:architecture}
-\end{figure*}
-
-\begin{enumerate}
-    \item \textbf{Speculative Work-Stealing}: Branches are dynamically distributed across worker threads using a work-stealing deque \cite{workstealing}. Each worker maintains a local queue, stealing from others when idle.
-    
-    \item \textbf{Nogood Learning}: Contradictions are analyzed to extract sound conflict summaries (nogoods) from branch constraints. These are cached and checked before branch expansion.
-    
-    \item \textbf{Adaptive Thresholding}: Problem complexity is estimated from axiom structure. Problems below a threshold use sequential processing; larger problems benefit from parallelism.
-\end{enumerate}
-
-Algorithm \ref{alg:spacl} presents the main consistency checking procedure.
-
-\begin{algorithm}[htbp]
-\caption{SPACL Consistency Check}
-\label{alg:spacl}
-\begin{algorithmic}[1]
-\Require Ontology $O$, Configuration $C$
-\Ensure \textbf{true} if $O$ is consistent, \textbf{false} otherwise
-
-\State $branches \gets \textsc{EstimateBranchCount}(O)$
-\If{$branches < C.\text{parallel\_threshold}$} \label{line:threshold}
-    \State \Return $\textsc{SequentialConsistencyCheck}(O)$ \label{line:sequential}
-\EndIf
-
-\State $Q \gets \textsc{InitializeWorkQueue}(O)$ \label{line:init}
-\State $N \gets \textsc{InitializeNogoodDatabase}()$
-\State $W[1..C.\text{num\_workers}] \gets \textsc{StartWorkers}(Q, N, C)$
-
-\While{$\textsc{NotTerminated}()$}
-    \State $result \gets \textsc{CollectResults}(C.\text{timeout})$
-    \If{$result = \text{SAT}$} \Return \textbf{true}
-    \ElsIf{$result = \text{UNSAT}$} \Return \textbf{false}
-    \ElsIf{$result = \text{TIMEOUT}$} \Return \textbf{UNKNOWN}
-    \EndIf
-\EndWhile
-\end{algorithmic}
-\end{algorithm}
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.94\linewidth}{
+\textbf{SPACL execution flow}\newline
+1. Parse and materialize ontology into the internal representation using the baseline semantic handlers.\newline
+2. Estimate branch count and detected-disjunction cost.\newline
+3. If the adaptive gate is closed, run the sequential tableaux path.\newline
+4. If the adaptive gate is open, generate bounded branch-constrained work items.\newline
+5. Explore work items with a work-stealing scheduler.\newline
+6. When contradiction is reached, validate and cache a nogood before pruning.\newline
+7. Return satisfiable/unsatisfiable/timeout from the first decisive outcome.}}
+\caption{Compact execution-flow summary of the combined SPACL system.}
+\label{fig:spacl-flow}
+\end{figure}
 
 \subsection{Speculative Work-Stealing}
 \label{sec:workstealing}
 
-The work-stealing scheduler provides dynamic load balancing without centralized coordination. Each worker thread maintains:
-
-\begin{itemize}
-    \item \textbf{Local Queue}: Double-ended queue (deque) of pending WorkItems
-    \item \textbf{Stealer Handle}: Allows other threads to steal work from the tail
-    \item \textbf{Local Statistics}: Branch counts, nogood hits, cache metrics
-\end{itemize}
-
-When parallel mode is enabled, the prototype pushes a root branch-constrained WorkItem and expands it recursively over the selected disjunction list. Each split generates one child WorkItem per disjunct operand, carrying accumulated branch constraints and an incremented split index; expansion stops when the disjunction list is exhausted or the speculative-depth bound is reached. Idle workers steal from the tail of busy workers' queues using a lock-free deque-based work-stealing strategy \cite{workstealing}.
+When the adaptive gate is open, SPACL creates branch-constrained work items from selected disjunctions and distributes them through a work-stealing scheduler \cite{workstealing}. Each worker keeps a local deque and steals from other workers only when idle, which avoids a centralized queue on the hot path. The current prototype bounds speculative depth and selected-disjunction scope so that branch creation remains measurable and recoverable under the benchmark harness.
 
 \subsection{Nogood Learning and Caching}
 \label{sec:nogood}
 
-A nogood is a set of class expressions that cannot be simultaneously satisfied.
-
-\begin{definition}[Nogood]
-\label{def:nogood}
-A nogood is a set of class expressions $\{C_i\}_{i=1}^{n}$ such that their conjunction is unsatisfiable:
-\begin{equation}
-\bigsqcap_{i=1}^{n} C_i \sqsubseteq \bot
-\end{equation}
-\end{definition}
-
-When a contradiction is detected, the prototype learns a branch-level nogood from the active branch constraints. It first validates branch inconsistency using the same consistency checker, then applies greedy constraint minimization (remove-one-if-still-inconsistent). Only non-empty verified minimized cores are admitted to the nogood store; if minimization yields no verified core, no new nogood is learned for that contradiction. Before expanding a node, its constraint set is checked against known nogoods.
-Algorithm~\ref{alg:nogood} summarizes this verified extraction flow.
-
-\subsubsection{Thread-Local Caching}
-\label{sec:cache}
-
-Each worker maintains three levels of nogood storage:
-
-\begin{enumerate}
-    \item \textbf{Local Nogoods}: Discovered by this worker (no locks needed)
-    \item \textbf{Cached Global Nogoods}: Copy of shared database (periodically synced)
-    \item \textbf{Global Database}: Shared across all workers (synchronized access)
-\end{enumerate}
-
-The cache check algorithm proceeds as follows:
-
-\begin{enumerate}
-    \item Check local nogoods (fastest, no synchronization)
-    \item Check cached global nogoods (fast, no synchronization)
-    \item If cache miss and sync interval reached:
-    \begin{enumerate}
-        \item Acquire read lock on global database
-        \item Update cache with new nogoods
-        \item Release lock
-        \item Re-check with updated cache
-    \end{enumerate}
-    \item If still no hit, proceed with expansion
-\end{enumerate}
-
-Synchronization occurs every $N$ checks (default: 100), amortizing lock overhead.
-
-\subsubsection{Correctness of Nogood Learning}
-\label{sec:nogood-correctness}
-
-We establish the soundness of SPACL's nogood learning mechanism.
-
-\begin{definition}[Branch Constraint Set]
-For branch $b$, let $\Gamma_b$ denote the set of branch constraints accumulated from selected disjunction choices during speculative expansion.
-\end{definition}
-
-\begin{definition}[Candidate Nogood]
-A \emph{candidate nogood} is a set of class expressions $N \subseteq \Gamma_b$ obtained by greedy remove-one minimization from a contradictory branch $b$.
-\end{definition}
-
-\begin{definition}[Verified Nogood for Pruning]
-A nogood $N$ is \emph{verified} if unsatisfiability is explicitly re-checked before insertion into the pruning set, i.e., $\mathcal{O} \cup N \models \bot$ is confirmed by the contradiction oracle used by the implementation.
-\end{definition}
-
-\begin{theorem}[Nogood Soundness for Pruning]\label{thm:nogood-soundness}
-Let $N$ be a verified nogood admitted for pruning by SPACL. Then $N \models \bot$.
-\end{theorem}
-
-\begin{proof}
-SPACL first obtains a contradictory branch ($\mathcal{O}\cup\Gamma_b \models \bot$), then greedily removes expressions while preserving contradiction, yielding a candidate $N$. A set is admitted as a pruning nogood only if contradiction is re-validated ($\mathcal{O}\cup N \models \bot$). Therefore every admitted pruning nogood is unsatisfiable, so $N \models \bot$.
-\qed
-\end{proof}
-
-\begin{corollary}[Pruning Safety]\label{cor:pruning-safety}
-If verified nogood $N$ subsumes branch constraints $\Gamma$ ($N \subseteq \Gamma$), then pruning the branch with constraints $\Gamma$ is sound.
-\end{corollary}
-
-\begin{proof}
-From Theorem~\ref{thm:nogood-soundness}, $N \models \bot$.
-Since $N \subseteq \Gamma$, $\Gamma$ contains all expressions of $N$.
-Therefore $\Gamma \models \bot$ and the branch is unsatisfiable.
-\qed
-\end{proof}
-
-\begin{remark}[Greedy Core Approximation]
-SPACL uses greedy remove-one minimization rather than an exact minimum unsatisfiable subset (MUS) extraction. This preserves pruning soundness (Theorem~\ref{thm:nogood-soundness}) for verified nogoods but may still leave non-minimal cores; tighter MUS-style extraction remains future work.
-\end{remark}
+When a speculative branch reaches contradiction, the implementation attempts to learn a branch-level nogood from the active branch constraints. A candidate core is greedily minimized and admitted only after contradiction is revalidated by the same checking path used for pruning. Workers consult thread-local nogood caches before synchronizing with the global store, which keeps most repeated checks off the shared hot path in the inconsistent-workload ablations reported later.
 
 \subsection{Adaptive Threshold}
 \label{sec:adaptive}
 
-Problem complexity is estimated using:
-
+The implemented branch estimate is
 \begin{equation}
-\text{branches} = \max\left(1, \quad |\text{DetectedDisjunctions}| + 2 \times |\text{DisjointAxioms}| + \frac{|\text{Classes}|}{10}\right)
+\text{branches} = \max\left(1, \ |\text{DetectedDisjunctions}| + 2 \times |\text{DisjointAxioms}| + \frac{|\text{Classes}|}{10}\right).
 \label{eq:estimate}
 \end{equation}
-
-This heuristic accounts for:
-\begin{itemize}
-    \item \textbf{Detected disjunctions}: Direct signal for speculative branch creation
-    \item \textbf{Disjointness axioms}: Each creates binary branching
-    \item \textbf{Class hierarchy size}: Larger ontologies need more exploration
-    \item \textbf{Conservative estimate}: Prefer sequential for uncertain cases
-\end{itemize}
-
-The divisor 10 in the class term normalizes ontology-size contribution to the same order of magnitude as the disjointness term in pilot sweeps (100--10{,}000 classes), so taxonomy-heavy but low-branch ontologies do not trigger parallel mode prematurely.
-
-The threshold $\tau = 2000$ was selected from calibration sweeps that combined synthetic union/complement workloads with representative warm-up runs on DOID and GO-Basic (Section \ref{sec:threshold-tuning}). This conservative setting avoids pathological parallel activation on the 5k-disjunction synthetic stress case while preserving near-parity fallback on low-branch workloads.
+The divisor 10 keeps ontology-size contribution on the same order as the disjunction signal in pilot sweeps, so low-branch taxonomies do not trigger speculative execution prematurely. Calibration sweeps over synthetic union/complement workloads and warm-up biomedical traces showed that the robust operating region begins at $\tau \ge 2000$; the implementation therefore keeps a conservative default at $\tau = 2000$.
 
 \section{Implementation}
 \label{sec:implementation}
 
-\subsection{Rust Architecture}
+\subsection{System Overview}
 \label{sec:rust}
 
-SPACL is implemented in Rust (v1.84.0), leveraging:
+SPACL is implemented in Rust 1.84.0. The main reasoner maintains a shared ontology representation, a global worker pool, and thread-local nogood caches backed by a bounded shared store. Rust and Crossbeam are used here for engineering reasons rather than as claims in themselves: the goal is to keep speculative scheduling and shared-state coordination explicit while avoiding garbage-collection pauses and coarse-grained locking on the hot path \cite{crossbeam}.
 
-\begin{itemize}
-    \item \textbf{Type Safety}: Compile-time prevention of data races
-    \item \textbf{Zero-Cost Abstractions}: High-level code without runtime overhead
-    \item \textbf{Crossbeam}: Lock-free work-stealing deques \cite{crossbeam}
-    \item \textbf{No GC}: Predictable performance for real-time applications
-\end{itemize}
-
-\subsection{Core Components}
-\label{sec:components}
-
-\textbf{SpeculativeTableauxReasoner}: Main entry point managing:
-\begin{itemize}
-    \item Ontology reference ($\text{Arc}\langle\text{Ontology}\rangle$)
-    \item Worker thread pool
-    \item Nogood database ($\text{Arc}\langle\text{NogoodDatabase}\rangle$)
-    \item Statistics collection
-\end{itemize}
-
-\textbf{ThreadLocalNogoodCache}: Per-worker cache with:
-\begin{itemize}
-    \item Local nogood storage ($\text{Vec}\langle\text{Nogood}\rangle$)
-    \item Global cache mirror (periodically synced)
-    \item Hit rate tracking
-\end{itemize}
-
-\textbf{NogoodDatabase}: Global shared storage:
-\begin{itemize}
-    \item $\text{RwLock}\langle\text{Vec}\langle\text{Nogood}\rangle\rangle$ for thread-safe access
-    \item LRU pruning when capacity exceeded (default: 10,000 nogoods)
-    \item Hit count tracking for statistics
-\end{itemize}
-
-\subsection{Memory Management}
-\label{sec:memory}
-
-Memory usage scales with:
-\begin{align}
-\text{Memory} &= O(|\text{axioms}|) + O(|\text{workers}| \times |\text{depth}|) \\
-&\quad + O(\min(|\text{nogoods}|, \text{max\_nogoods}))
-\end{align}
-
-Here, $|\text{nogoods}|$ is the number of learned conflicts generated during search, and $\text{max\_nogoods}$ is the configured retention cap of the global nogood store (default 10{,}000 in the current implementation). The $\min(\cdot)$ term reflects bounded retention: once the cap is reached, lower-utility entries are pruned.
-
-Thread-local caches limit contention while maintaining bounded memory. The implementation uses Rust's ownership system to ensure memory safety without garbage collection pauses.
-
-\subsection{Parser Implementations}
-\label{sec:parsers}
-
-The reference implementation provides parser support for OWL2 syntaxes:
-
-\textbf{OWL2 Functional Syntax}: Implemented support for OWL2 Functional Grammar used in our benchmark suites
-\begin{itemize}
-    \item Complete tokenizer for OWL2 Functional syntax tokens
-    \item Recursive descent parser with error recovery
-    \item Support for constructs exercised in this study, including complex class expressions
-    \item AST validation and transformation to internal representation
-\end{itemize}
-
-\textbf{Manchester Syntax}: Implemented support for Manchester OWL Syntax used in our benchmark suites
-\begin{itemize}
-    \item Tokenizer with Manchester-specific keywords and operators
-    \item Frame-based parser for ontology, class, and property frames
-    \item Support for complex expressions: ObjectUnionOf, ObjectIntersectionOf, ObjectComplementOf
-    \item Validator for Manchester syntax constraints
-\end{itemize}
-
-\textbf{JSON-LD Support}: RDF/JSON-LD 1.1 compatibility
-\begin{itemize}
-    \item Context processing and expansion algorithms
-    \item @context handling with local and remote references
-    \item Container processing (@list, @set, @index, @language)
-    \item Value object parsing with type coercion
-\end{itemize}
-
-For supported constructs, the parser pipeline includes import resolution, source-location error reporting, and streaming operation on large ontologies. Full OWL2 DL conformance across every syntax variant is out of scope for this revision.
+The public implementation includes parsers for the syntaxes exercised in this study, with RDF/XML being the dominant path in the large-ontology experiments. Full OWL2 DL conformance across every syntax variant is outside the scope of this revision; the results reported below concern the implemented ALC/SHOIQ handling path exercised by the evaluated workloads.
 
 \subsection{Structural RDF/XML Parser and Materialization}
 \label{sec:structural-parser}
 
-The current large-ontology path uses a two-phase structural parser designed for handler-equivalent behavior on the implemented ALC/SHOIQ handling path by reusing the same semantic handlers as the standard parser.
-
-\textbf{Phase A (Ingest + Intern)}:
-\begin{itemize}
-    \item Stream RDF/XML triples with Rio parser callbacks.
-    \item Intern subject/predicate/object terms to dense integer IDs.
-    \item Store compact records $\langle s\_id, p\_id, o\_id \rangle$ in arrival order.
-\end{itemize}
-
-\textbf{Phase B (Materialize)}:
-\begin{itemize}
-    \item Resolve IDs via dense caches and subject cursor fast-paths.
-    \item Compute predicate tags.
-    \item Dispatch each triple through \texttt{apply\_triple\_terms\_core} (same semantic path as baseline parser).
-\end{itemize}
-
-Algorithm~\ref{alg:structural-parser} gives the end-to-end structural ingest/materialize flow used in these experiments.
-
-We model end-to-end load time as:
-\begin{equation}
-T_{\text{total}} = T_{\text{ingest}} + T_{\text{materialize}} + T_{\text{io}}
-\label{eq:parser-total}
-\end{equation}
-
-For a cache layer $k \in \{\text{subj}, \text{pred}, \text{obj}\}$:
-\begin{equation}
-H_k = \frac{\text{hits}_k}{\text{hits}_k + \text{misses}_k}, \quad
-E[t_k] = H_k \cdot t_{hit,k} + (1-H_k)\cdot t_{miss,k}
-\label{eq:cache-hit}
-\end{equation}
-
-Replacing hash-map lookups with dense-ID vector caches reduces both $t_{hit,k}$ and $t_{miss,k}$ in the hot path.
-
-To relate parser acceleration to overall runtime, we apply Amdahl's law:
-\begin{equation}
-S_{\text{e2e}} = \frac{1}{(1-f_{\text{parse}}) + \frac{f_{\text{parse}}}{S_{\text{parse}}}}
-\label{eq:amdahl-parser}
-\end{equation}
-where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text{parse}}$ is parser-stage speedup.
-
-\begin{algorithm}[htbp]
-\caption{Structural RDF/XML Parse with Handler-Equivalent Materialization}
-\label{alg:structural-parser}
-\begin{algorithmic}[1]
-\Require RDF/XML stream $X$
-\Ensure Ontology $\mathcal{O}$ targeting handler-equivalent behavior to the baseline parser on the implemented path
-\State Initialize interner $I$, record buffer $R$, ontology $\mathcal{O}$
-\For{each triple $t$ emitted by streaming RDF/XML parser}
-    \State $s \gets \textsc{InternSubject}(I, t.subject)$
-    \State $p \gets \textsc{InternPredicate}(I, t.predicate)$
-    \State $o \gets \textsc{InternObject}(I, t.object)$
-    \State Append $(s,p,o)$ to $R$
-\EndFor
-\State Initialize dense caches ($C_{subj}$, $C_{pred}$, $C_{obj}$)
-\For{each record $(s,p,o)$ in $R$}
-    \State $\hat{s} \gets \textsc{ResolveSubject}(s, C_{subj})$
-    \State $\hat{p} \gets \textsc{ResolvePredicate}(p, C_{pred})$
-    \State $\hat{o} \gets \textsc{ResolveObject}(o, C_{obj})$
-    \State $\rho \gets \textsc{PredicateTag}(\hat{p})$
-    \State \textsc{ApplyTripleTermsCore}$(\hat{s}, \rho, \hat{o}, \mathcal{O})$
-\EndFor
-\State \Return $\mathcal{O}$
-\end{algorithmic}
-\end{algorithm}
+The large-ontology path uses a two-phase structural RDF/XML pipeline. Phase A streams triples and interns subject/predicate/object terms to dense IDs; Phase B resolves those IDs through dense caches and dispatches each triple through the same semantic handler core as the baseline parser. The objective is not to change reasoning semantics but to reduce hot-path term-resolution and materialization cost on large RDF/XML files. The stage-level A/B results in Section~\ref{sec:realworld} show that this parser/materialization path, rather than speculative reasoning itself, is the dominant source of end-to-end gains on the evaluated biomedical ontologies.
 
 \section{Evaluation}
 \label{sec:evaluation}
@@ -768,83 +191,27 @@ where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text
 \subsection{Experimental Setup}
 \label{sec:setup}
 
-\textbf{Hardware}: Intel Xeon Silver 4214 (12 cores/24 threads, 2.2GHz base) with 64GB DDR4-2400 RAM, running Ubuntu 22.04 LTS  
-\textbf{Software}: Rust 1.84.0, compiled in release mode with \texttt{-C opt-level=3 -C lto=fat}  
-\textbf{Benchmarks}: Criterion.rs v0.5 microbench groups with 95\% confidence intervals and benchmark-specific sample sizes; head-to-head ontology runs are reported as harness wall-clock measurements using repeated-run aggregates where defined (Standard/Large/OWL2Bench core each with 3 clean runs).
+\textbf{Hardware}: Intel Xeon Silver 4214 (12 cores/24 threads, 2.2GHz base) with 64GB DDR4-2400 RAM, Ubuntu 22.04 LTS. \\
+\textbf{Software}: Rust 1.84.0, release mode with \texttt{-C opt-level=3 -C lto=fat}. \\
+\textbf{Benchmarks}: Criterion.rs synthetic microbenchmarks, plus containerized repeated-run ontology benchmarks for Standard, Large, and OWL2Bench core suites (3 clean runs each).
 
-\textbf{Test Ontologies}:
-\begin{itemize}
-    \item \textbf{Synthetic hierarchies}: 100--100,000 classes, linear subclass chains
-    \item \textbf{Disjunctive tests}: disjunctive\_simple.owl and disjunctive\_test.owl (small synthetic union-heavy cases)
-    \item \textbf{LUBM}: univ-bench.owl (University benchmark; repository copy repaired to valid RDF/XML in this revision)
-    \item \textbf{Real-world ontology sets}: stage experiments include PATO, DOID, UBERON, GO, and a supplementary ChEBI cold-text stress pair
-    \item \textbf{Primary head-to-head set}: DOID, GO-Basic, UBERON, plus OWL2Bench core profiles
-    \item Primary head-to-head suites use consistent ontologies (satisfiability testing); a dedicated nogood ablation additionally includes inconsistent synthetic cases
-\end{itemize}
-
-\textbf{Baselines}:
-\begin{itemize}
-    \item \textbf{Sequential}: SPACL with single worker (no parallelism)
-    \item \textbf{SPACL}: Full speculative parallelism with nogood learning
-\end{itemize}
-
-\textbf{Metrics}: Wall-clock time, throughput (million tableau rule applications per second), speedup (sequential time / parallel time), memory usage (peak resident set size)
+\textbf{Workloads}: synthetic hierarchies (100--100{,}000 classes), synthetic disjunctive tests, \texttt{univ-bench.owl}, large biomedical ontologies (DOID, GO-Basic, UBERON), supplementary PATO and ChEBI cases, and OWL2Bench core profiles (DL/EL/QL/RL).
 
 \subsection{Benchmark Protocol}
 \label{sec:benchmark-protocol}
 
-\textbf{Execution Environment}: Same hardware/software baseline as Section~\ref{sec:setup}
+Primary cross-reasoner comparison uses SPACL, HermiT, Openllet, ELK, JFact, and Pellet. Standard and OWL2Bench suites use a 300s timeout; the large biomedical suite uses 900s. Tables report median wall-clock time over three clean runs per ontology/reasoner pair. These values are descriptive deployment-level measurements (startup + parsing + reasoning), not formal significance tests or parser-neutral kernel timings.
 
-\textbf{Reasoner Artifacts (as executed in benchmark runs)}:
-\begin{itemize}
-    \item \textbf{HermiT}: Docker image family \texttt{owl-reasoner-hermit} (tag used at benchmark run time)
-    \item \textbf{Openllet}: Docker image family \texttt{owl-reasoner-openllet} (tag used at benchmark run time)
-    \item \textbf{ELK}: Docker image family \texttt{owl-reasoner-elk} (tag used at benchmark run time)
-    \item \textbf{JFact}: Docker image family \texttt{owl-reasoner-jfact} (tag used at benchmark run time)
-    \item \textbf{Konclude}: supplementary-only external-binary rerun
-    \item \textbf{Pellet}: v2.3.3 (legacy OWLAPI v3 packaging; benchmarked directly in this setup)
-    \item \textbf{SPACL}: Rust v1.84.0, release profile with LTO
-\end{itemize}
-
-\textbf{Head-to-Head Protocol (primary reproducible runs in this revision)}:
-\begin{enumerate}
-    \item \textbf{Ontologies}: 
-    Standard Workload Suite = disjunctive\_simple.owl, disjunctive\_test.owl, hierarchy\_100.owl, hierarchy\_1000.owl, hierarchy\_10000.owl, hierarchy\_100000.owl, univ-bench.owl; 
-    Large Head-to-Head = doid.owl, go-basic.owl, uberon.owl; 
-    OWL2Bench Core Profile Suite = UNIV-BENCH-OWL2DL.owl, UNIV-BENCH-OWL2EL.owl, UNIV-BENCH-OWL2QL.owl, UNIV-BENCH-OWL2RL.owl
-    \item \textbf{Primary comparison reasoners}: SPACL, HermiT, Openllet, ELK, JFact, and Pellet. Konclude is reported separately in supplementary deployment-level validation because it uses a preprocessing-enabled external-binary path and a separate rerun campaign.
-    \item \textbf{Measurement}: Three clean runs per reasoner/ontology pair; tables report per-ontology median wall-clock unless otherwise noted
-    \item \textbf{Timeout policy}: Standard = 300s; Large = 900s; OWL2Bench core = 300s
-    \item \textbf{Metrics}: Wall-clock time (loading + parsing + reasoning)
-    \item \textbf{Status recording}: success / timeout / failed / non\_comparable / not\_available
-    \item \textbf{Reproducibility}: Primary artifact roots used in this revision are:
-    \begin{itemize}
-        \item Standard repeated runs: \path{benchmarks/competitors/results/history/standard_r1_20260225}, \path{benchmarks/competitors/results/history/standard_r2_20260225}, \path{benchmarks/competitors/results/history/standard_r3_20260225}
-        \item Large repeated runs: \path{benchmarks/competitors/results/history/large_r1_20260225}, \path{benchmarks/competitors/results/history/large_r2_20260225}, \path{benchmarks/competitors/results/history/large_r3_real_20260225}
-        \item Standard/Large aggregate summaries: \path{benchmarks/competitors/results/history/headtohead_repeated_aggregate_20260226}
-        \item Aggregate files used here: \path{standard_reasoner_ontology_summary.csv}, \path{large_reasoner_ontology_summary.csv}, \path{suite_reasoner_cew_summary.csv}, \path{image_digests_20260226.txt}
-        \item Konclude repeated refresh aggregate: \path{benchmarks/competitors/results/history/konclude_repeated_refresh_aggregate_20260228}
-        \item Supplementary PATO panel aggregate: \path{results/history/pato_matched_aggregate_20260301}
-        \item OWL2Bench core repeated runs: \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223}, \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223_r2}, \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223_r3}
-        \item OWL2Bench aggregate summary: \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_aggregate_20260223}
-        \item Adaptive-threshold calibration sweeps: exploratory/zoom-in runs \path{results/history/adaptive_calibration_20260228_110137}, \path{results/history/adaptive_calibration_20260228_111338}; final sensitivity reruns \path{results/history/adaptive_calibration_20260228_235333}, \path{results/history/adaptive_calibration_20260228_235856}
-        \item Parser-stage A/B artifact pairs: doid (\path{stages_doid_20260218_183604} vs \path{stages_doid_20260219_130432}); go-basic (\path{stages_go_basic_20260218_185126} vs \path{stages_go_basic_20260219_130710}); uberon (\path{stages_uberon_20260218_185933} vs \path{stages_uberon_20260219_130942}); supplementary ChEBI cold-text pair (\path{stages_chebi_20260218_143614_e2e_cold} vs \path{stages_chebi_20260301_091935})
-    \end{itemize}
-    Each run directory includes \path{run_metadata.json} with run identifiers, timeout, and fairness-policy fields.
-\end{enumerate}
-
-\textbf{Named benchmark sets in this paper}: \textit{Standard Workload Suite} (synthetic/disjunctive/LUBM workloads), \textit{Large Head-to-Head} (three large biomedical ontologies in the primary reproducible run set: doid, go-basic, uberon), \textit{Supplementary PATO Panel} (three protocol-matched consistency runs on PATO), \textit{OWL2Bench Core Profile Suite} (UNIV-BENCH OWL2 DL/EL/QL/RL files), and a \textit{Supplementary ChEBI Cold-Text Stage Pair} used only for parser-stage stress confirmation under the revised cold-text contract.
-
-\textbf{Binary Format}: Pre-converted .owlbin files for SPACL binary tests
+Primary artifact roots used in this revision are \path{benchmarks/competitors/results/history/headtohead_repeated_aggregate_20260226}, \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_aggregate_20260223}, and the parser-stage A/B roots referenced in Section~\ref{sec:realworld}. Supplementary PATO aggregation is archived under \path{results/history/pato_matched_aggregate_20260301}. Konclude is reported separately because it requires a preprocessing-enabled external-binary path and a separate rerun campaign.
 
 \subsection{Scalability Results}
 \label{sec:scalability}
 
-Table \ref{tab:scalability} presents scalability results.
+Table~\ref{tab:scalability} summarizes the synthetic scalability results. These values are supporting evidence for the adaptive parallel design rather than the primary basis of the paper's real-world claims.
 
 \begin{table}[htbp]
 \centering
-\caption{Scalability Results}
+\caption{Synthetic Scalability Results}
 \label{tab:scalability}
 \resizebox{\linewidth}{!}{
 \begin{tabular}{r|r|r|r|r}
@@ -861,31 +228,145 @@ Table \ref{tab:scalability} presents scalability results.
 }
 \end{table}
 
-\noindent\textit{Plot scope note}: The plotted points are trend values from synthetic benchmark means used in this section; no confidence intervals are shown for this figure.
+The crossover appears around 1,000 classes: below that point, speculative overhead largely cancels any gain; above it, the branch structure is large enough for parallelism to amortize coordination cost. This is consistent with the conservative adaptive-gating design and explains why the main real-world evidence is separated from the synthetic scalability signal.
 
-\textbf{Observations}:
-\begin{itemize}
-    \item Crossover point at $\sim$1,000 classes (confirming Equation \ref{eq:estimate})
-    \item Strong synthetic speedup at scale (4.88$\times$ at 10K classes)
-    \item Peak synthetic throughput: 26.2M tableau expansions/second (measured as individual tableau rule applications)
-\end{itemize}
+\subsection{Adaptive Threshold Behavior}
+\label{sec:adaptive-opt}
 
-\textbf{Statistical Scope}: Criterion confidence intervals are reported for microbench groups. Head-to-head ontology tables are primarily descriptive wall-clock comparisons under a fixed harness; repeated-run aggregation is provided for Standard, Large, and OWL2Bench core suites (3 clean runs each), and results are interpreted conservatively rather than as formal significance tests.
+The adaptive gate is intended as an overhead-control mechanism rather than as the primary explanation for the large biomedical gains. Its role is to avoid obviously bad parallel activation on low-branch workloads, not to serve as a general runtime predictor. Table~\ref{tab:adaptive} summarizes representative small disjunctive cases comparing forced sequential execution, the adaptive policy, and a naive always-parallel baseline.
 
-\textbf{Comparison Policy}: In head-to-head tables, ranking is computed only among successful comparable runs for that ontology. Entries marked NC/FAIL/TO are reported as status outcomes in this harness and are not counted as numeric losses in winner statements. These tables should be read as deployment-level observations, not formal cross-reasoner significance tests.
+\begin{table}[htbp]
+\centering
+\caption{Adaptive Threshold Performance on Small Disjunctive Cases}
+\label{tab:adaptive}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{l|r|r|r|r}
+\toprule
+\textbf{Test Case} & \textbf{Sequential} & \textbf{Adaptive} & \textbf{Always-Parallel} & \textbf{AP/Adaptive} \\
+\midrule
+Simple (1 union) & 9.0$\mu$s & 14.5$\mu$s & 1,069$\mu$s & \textbf{73.5$\times$} \\
+Small (2 unions) & 7.9$\mu$s & 24.7$\mu$s & 1,141$\mu$s & \textbf{46.1$\times$} \\
+Medium (5 unions) & 9.1$\mu$s & 58.9$\mu$s & 1,116$\mu$s & \textbf{18.9$\times$} \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
 
-\textbf{Failure-Aware Companion Metric}: To reduce success-only selection bias, we also report a capped expected wall-time (CEW) aggregate at suite level:
-\begin{equation}
-\begin{aligned}
-\text{CEW}(r) &= \frac{1}{|I_{\text{comp}}(r)|}\sum_{i\in I_{\text{comp}}(r)} t_i^{\text{cap}}(r), \\
-t_i^{\text{cap}}(r) &=
-\begin{cases}
-t_i(r), & \text{if status}=\text{success} \\
-T_{\text{suite}}, & \text{if status}\in\{\text{timeout},\text{failed}\}
-\end{cases}
-\end{aligned}
-\end{equation}
-where $I_{\text{comp}}(r)$ is the set of comparable runs for reasoner $r$ (entries with status NC/NA excluded), and $T_{\text{suite}}$ is the suite timeout (300s for Standard, 900s for Large). If $|I_{\text{comp}}(r)|=0$, CEW is reported as NC.
+The adaptive policy remains slightly slower than pure sequential execution on trivial cases, but it is still far better than forcing parallel execution everywhere. We therefore interpret the gate conservatively: it is justified as a safe operating policy for branch-heavy workloads, not as a claim that the chosen coefficients are uniquely optimal. Calibration sweeps used in this revision showed that the robust region begins at branch threshold $\\tau \\ge 2000$; in the warm-up biomedical traces used for calibration, DOID and GO-Basic stayed on the sequential path because no speculative disjunctions were detected.
+
+\subsection{Real-World Ontology Evaluation}
+\label{sec:realworld}
+
+To isolate parser/materialization effects, we performed controlled stage-level A/B runs before and after the structural RDF/XML pipeline changes. Table~\ref{tab:realworld} reports the primary biomedical pairs together with a supplementary ChEBI stress case under the revised cold-text contract.
+
+\begin{table}[htbp]
+\centering
+\caption{Stage-Level A/B on Real-World RDF/XML Ontologies (cold \texttt{.owl} runs; E2E = end-to-end wall clock; ChEBI is supplementary)}
+\label{tab:realworld}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{l|r|r|r|r|r|r}
+\toprule
+\textbf{Ontology} & \textbf{Parse Old} & \textbf{Parse New} & \textbf{Parse Red.} & \textbf{E2E Old} & \textbf{E2E New} & \textbf{E2E Red.} \\
+\midrule
+DOID & 27307 & 830 & 96.96\% & 30502 & 4073 & 86.65\% \\
+GO\_Basic & 158306 & 3472 & 97.81\% & 162519 & 7409 & 95.44\% \\
+UBERON & 145843 & 2952 & 97.98\% & 149850 & 6632 & 95.57\% \\
+ChEBI (supp.) & 970388 & 23740 & 97.55\% & 985466 & 36472 & 96.30\% \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+Across the three primary biomedical ontologies, parse/materialization was the dominant cost in the original path. After the structural pipeline changes, the reasoning stage stayed comparatively small in these traces, so the main end-to-end gain in this revision is parser-driven. The ChEBI stress pair is reported only as supplementary evidence, but it shows the same qualitative pattern at larger scale.
+
+\subsection{Comparison Context}
+\label{sec:comparison}
+
+The comparison set mixes engines with different implementation languages and, in ELK's case, a narrower logic profile than the full ALC/SHOIQ path exercised by SPACL. Table~\ref{tab:comparison} summarizes this context so that wall-clock rankings are not overinterpreted as expressivity-equivalent wins.
+
+\begin{table}[htbp]
+\centering
+\caption{Feature Comparison with Representative Reasoners}
+\label{tab:comparison}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{l|c|c|c|c|c}
+\toprule
+\textbf{Reasoner} & \textbf{Lang} & \textbf{Parallel} & \textbf{Learning} & \textbf{Source} & \textbf{Profile} \\
+\midrule
+SPACL & Rust & yes & yes & open & ALC/SHOIQ \\
+Konclude & C++ & yes & no & external binary & SROIQ \\
+Pellet & Java & no & no & open & SROIQ \\
+Openllet & Java & no & no & open & SROIQ \\
+HermiT & Java & no & no & open & SROIQ \\
+ELK & Java & yes & no & open & EL++ \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\subsection{Head-to-Head Performance Comparison}
+\label{sec:competitor-benchmarks}
+
+\subsubsection{Standard Workload Suite}
+\label{sec:small-suite-results}
+
+Table~\ref{tab:small-workload-suite} reports median wall-clock results for the Standard Workload Suite.
+
+\begin{table}[htbp]
+\centering
+\caption{Standard Workload Suite Consistency Benchmark (median wall time across 3 clean runs, ms; timeout 300s)}
+\label{tab:small-workload-suite}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{l|r|r|r|r|r|r}
+\toprule
+\textbf{Ontology} & \textbf{SPACL} & \textbf{HermiT} & \textbf{Openllet} & \textbf{ELK} & \textbf{JFact} & \textbf{Pellet} \\
+\midrule
+disjunctive\_simple.owl & \textbf{2273} & 3446 & 3383 & 3718 & 3466 & 3310 \\
+disjunctive\_test.owl & \textbf{2113} & 3323 & 3007 & 2979 & 3362 & 2659 \\
+hierarchy\_100.owl & \textbf{2096} & 3391 & 3070 & 2910 & 3271 & 2838 \\
+hierarchy\_1000.owl & \textbf{2190} & 3498 & 3220 & 3055 & 4110 & 3222 \\
+hierarchy\_10000.owl & 8007 & 4131 & 4084 & \textbf{3579} & FAIL & 3644 \\
+hierarchy\_100000.owl & 40210 & 7706 & 8881 & \textbf{5816} & FAIL & 10867 \\
+univ-bench.owl & 2951 & 3345 & 2930 & 2866 & 3196 & \textbf{2742} \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+\noindent\footnotesize\textit{Legend}: FAIL = runtime failure in this setup; bold = lowest median wall time among successful comparable runs per ontology.
+\normalsize
+
+This suite is best read as a deployment sanity check rather than as the strongest evidence for reasoning quality, because startup and parser costs are still visible at this scale. Within that scope, SPACL is lowest on 4/7 ontologies, ELK is lowest on the two deepest hierarchy files, and Pellet is lowest on \texttt{univ-bench.owl}. All systems except JFact complete every Standard-suite case under the 300s policy.
+
+\subsubsection{Large Head-to-Head}
+\label{sec:large-suite-results}
+
+Table~\ref{tab:competitor-benchmarks} reports the primary biomedical head-to-head results.
+
+\begin{table}[htbp]
+\centering
+\caption{Large Head-to-Head Consistency Benchmark (median wall time across 3 clean runs, ms; timeout 900s)}
+\label{tab:competitor-benchmarks}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{l|r|r|r|r|r|r}
+\toprule
+\textbf{Ontology} & \textbf{SPACL} & \textbf{HermiT} & \textbf{Openllet} & \textbf{ELK} & \textbf{JFact} & \textbf{Pellet} \\
+\midrule
+doid.owl & \textbf{3447} & 20295 & 14266 & 13406 & 60443 & 28771 \\
+go-basic.owl & \textbf{7329} & 17616 & 17747 & 15976 & 41847 & 83238 \\
+uberon.owl & \textbf{6677} & 110560 & TO & 15594 & FAIL & TO \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+\noindent\footnotesize\textit{Legend}: TO = timeout; FAIL = runtime failure in this setup; bold = lowest median wall time among successful comparable runs per ontology.
+\normalsize
+
+Among successful comparable runs, SPACL has the lowest median wall-clock time on all three ontologies in the primary large suite. SPACL, HermiT, and ELK complete every run under the 900s policy; Openllet and Pellet time out on UBERON, and JFact fails on UBERON in this harness.
+
+\subsubsection{Failure-Aware Suite Summary}
+\label{sec:cew}
+
+Success-only per-ontology medians do not capture timeout penalties directly. We therefore also report a capped expected wall-time (CEW) summary over the primary comparison set, where timeout or failure is replaced by the suite timeout before averaging.
 
 \begin{table}[htbp]
 \centering
@@ -913,272 +394,13 @@ Large & Pellet & 9/9 & 6/9 (66.7\%) & 337355.7 \\
 \end{tabular}
 }
 \end{table}
-\noindent\footnotesize\textit{Note}: CEW replaces timeout/failed with the suite timeout before averaging. This summary covers only the primary comparison set used in the main tables. Konclude is excluded here and reported separately in Section~\ref{sec:konclude-supplement} because it uses a preprocessing-enabled external-binary path and a separate rerun campaign rather than the primary aggregate campaign used for the main tables here.
-\normalsize
 
-This companion view makes failure/timeout penalties explicit, not to replace per-ontology median tables. As shown in Table~\ref{tab:cew-summary}, ELK is strongest on Standard CEW while SPACL is strongest on Large CEW.
-\noindent\textit{Artifact source}: \path{benchmarks/competitors/results/history/headtohead_repeated_aggregate_20260226/suite_reasoner_cew_summary.csv}.
-
-Figure \ref{fig:scalability} visualizes the scalability comparison.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.8\textwidth]{scalability.pdf}
-    \caption{Scalability: Sequential vs SPACL (log-log scale)}
-    \label{fig:scalability}
-\end{figure}
-
-Figure~\ref{fig:perf-integrated} complements this view by separating throughput and speedup trends; Figure~\ref{fig:throughput-trend} highlights throughput growth and Figure~\ref{fig:speedup-trend} highlights the crossover from overhead to net gain.
-
-\begin{figure}[htbp]
-    \centering
-    \begin{subfigure}[t]{0.49\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{throughput.pdf}
-        \caption{Throughput trend}
-        \label{fig:throughput-trend}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[t]{0.49\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{speedup.pdf}
-        \caption{Speedup and crossover}
-        \label{fig:speedup-trend}
-    \end{subfigure}
-    \caption{Integrated performance view across class sizes (throughput and speedup relative to sequential baseline).}
-    \label{fig:perf-integrated}
-\end{figure}
-
-\subsection{Overhead Analysis}
-\label{sec:overhead}
-
-SPACL overhead vs sequential:
-\begin{itemize}
-    \item \textbf{Small ontologies} (100 classes): 1.57$\times$ (acceptable)
-    \item \textbf{Medium ontologies} (1,000 classes): 0.99$\times$ (parity)
-    \item \textbf{Large ontologies} (10,000 classes): 0.20$\times$ (5$\times$ faster)
-\end{itemize}
-
-Adaptive thresholding reduces overhead substantially for synthetic disjunctive workloads; on large biomedical ontologies, end-to-end performance is dominated by parser/materialization behavior (Section \ref{sec:realworld}).
-
-\subsection{Thread Pool Optimization (Phase 1)}
-\label{sec:threadpool}
-
-To reduce parallelization overhead, we replaced per-call thread spawning with a global rayon thread pool. This optimization eliminates the $\sim$200$\mu$s thread creation cost.
-
-\textbf{Results}:
-\begin{itemize}
-    \item \textbf{Before}: 235$\mu$s overhead per call (thread spawn/teardown)
-    \item \textbf{After}: 112$\mu$s overhead per call (thread pool reuse)
-    \item \textbf{Improvement}: 2.1$\times$ faster for simple disjunctions
-\end{itemize}
-
-The thread pool uses lazy\_static initialization to create workers once and reuse them across all reasoning calls, significantly reducing latency for small ontologies.
-
-\subsection{Adaptive Threshold Optimization (Phase 2)}
-\label{sec:adaptive-opt}
-
-We implemented a cost-based adaptive threshold that automatically selects between sequential and parallel processing based on estimated problem complexity. This avoids the $\sim$1ms parallel setup overhead for trivial work.
-
-\textbf{Cost Model}:
-\begin{align}
-    \text{cost}(\text{ObjectUnionOf}(ops)) &= 50 \times |ops| + \sum \text{cost}(op) \\
-    \text{cost}(\text{ObjectIntersectionOf}(ops)) &= 25 \times |ops| + \sum \text{cost}(op) \\
-    \text{cost}(\text{ObjectComplementOf}(e)) &= 30 + \text{cost}(e) \\
-    \text{cost}(\text{atomic}) &= 10
-\end{align}
-
-This gate is applied after the branch-count prefilter in Section \ref{sec:adaptive}: first, the disjunction-aware branch estimate with $\tau = 2000$ decides whether parallel exploration is considered at all; second, parallelism is enabled only when estimated cost $>$ 500$\mu$s $\times$ num\_workers.
-
-\textbf{Results}:
-\begin{table}[htbp]
-\centering
-\caption{Adaptive Threshold Performance}
-\label{tab:adaptive}
-\resizebox{\linewidth}{!}{
-\begin{tabular}{l|r|r|r|r}
-\toprule
-\textbf{Test Case} & \textbf{Sequential} & \textbf{Adaptive} & \textbf{Always-Parallel} & \textbf{AP/Adaptive} \\
-\midrule
-Simple (1 union) & 9.0$\mu$s & 14.5$\mu$s & 1,069$\mu$s & \textbf{73.5$\times$} \\
-Small (2 unions) & 7.9$\mu$s & 24.7$\mu$s & 1,141$\mu$s & \textbf{46.1$\times$} \\
-Medium (5 unions) & 9.1$\mu$s & 58.9$\mu$s & 1,116$\mu$s & \textbf{18.9$\times$} \\
-\bottomrule
-\end{tabular}
-}
-\end{table}
-\noindent\footnotesize\textit{Note}: \textbf{AP/Adaptive} is computed as \textit{Always-Parallel wall time} / \textit{Adaptive wall time}.
-\normalsize
-
-\textbf{Observations}:
-\begin{itemize}
-    \item Adaptive mode is 18--73$\times$ faster than always-parallel for small cases (AP/Adaptive ratio)
-    \item Only 1.3--2$\times$ overhead vs pure sequential for trivial cases
-    \item Correctly avoids parallelization when branch-count and cost gates are not satisfied
-    \item In the calibration traces used for this revision, DOID and GO-Basic produced zero detected disjunctions, so the branch gate kept them on the sequential path; the adaptive gate is therefore a safeguard for disjunctive workloads rather than the dominant factor in those biomedical end-to-end results
-\end{itemize}
-
-\subsection{Real-World Ontology Evaluation}
-\label{sec:realworld}
-
-We evaluated SPACL on large biomedical ontologies used in production-style consistency checks (DOID, GO\_Basic, UBERON; from widely used OBO/BioPortal sources \cite{bioportal}). A supplementary ChEBI cold-text stress pair is reported separately in the same table as additional evidence that a similar parser-dominant pattern appears at a larger ontology scale under the revised stage contract. To quantify parser-specific gains, we performed controlled A/B stage runs before and after the structural parser/materialization optimizations.
-Table~\ref{tab:realworld} reports the stage-level and end-to-end reductions for these A/B pairs.
-
-\begin{table}[htbp]
-\centering
-\caption{Stage-Level A/B on Real-World Ontologies (cold .owl runs; E2E = end-to-end wall clock; supplementary ChEBI stress pair included)}
-\label{tab:realworld}
-\resizebox{\linewidth}{!}{
-\begin{tabular}{l|r|r|r|r|r|r}
-\toprule
-\textbf{Ontology} & \textbf{Parse Old} & \textbf{Parse New} & \textbf{Parse Red.} & \textbf{E2E Old} & \textbf{E2E New} & \textbf{E2E Red.} \\
-\midrule
-DOID & 27307 & 830 & 96.96\% & 30502 & 4073 & 86.65\% \\
-GO\_Basic & 158306 & 3472 & 97.81\% & 162519 & 7409 & 95.44\% \\
-UBERON & 145843 & 2952 & 97.98\% & 149850 & 6632 & 95.57\% \\
-ChEBI (supp.) & 970388 & 23740 & 97.55\% & 985466 & 36472 & 96.30\% \\
-\bottomrule
-\end{tabular}
-}
-\end{table}
-
-\textbf{Analysis}:
-\begin{enumerate}
-    \item \textbf{Parser was the primary bottleneck in these traces}: for the evaluated large RDF/XML consistency-check workloads, stage decomposition consistently showed parser/materialization-dominated runtime.
-    \item \textbf{Structural algorithm impact}: dense-ID caches, shared-IRI constructors, and subject cursor fast-paths reduced parser hot-path overhead.
-    \item \textbf{Reasoning stage remained small in these traces}: even after parser acceleration, reasoning stayed in low-millisecond ranges for the evaluated consistency checks.
-    \item \textbf{Supplementary large-scale indication}: the ChEBI stress pair shows a similar qualitative pattern at a larger scale, with parse time dropping from 970{,}388 ms to 23{,}740 ms while the cold-text reasoning stage remained sub-second (243 ms in the revised trace).
-    \item \textbf{Scope note}: DOID/GO\_Basic/UBERON are the primary reproducible biomedical A/B pairs. ChEBI is reported as a supplementary cold-text stress pair and is not folded into the main cross-reasoner Large Head-to-Head table.
-\end{enumerate}
-
-\subsection{Comparison with State-of-the-Art}
-\label{sec:comparison}
-
-Table \ref{tab:comparison} compares SPACL features with existing reasoners. Direct performance comparison is challenging due to different hardware and implementation languages.
-
-\begin{table}[htbp]
-\centering
-\caption{Feature Comparison with State-of-the-Art Reasoners}
-\label{tab:comparison}
-\resizebox{\linewidth}{!}{
-\begin{tabular}{l|c|c|c|c|c}
-\toprule
-\textbf{Reasoner} & \textbf{Lang} & \textbf{Parallel} & \textbf{Learning} & \textbf{Source} & \textbf{Profile} \\
-\midrule
-SPACL (Ours) & Rust & \checkmark & \checkmark & Open & ALC/SHOIQ \\
-Konclude \cite{konclude} & C++ & \checkmark & $\times$ & External binary & SROIQ \\
-Pellet \cite{pellet} & Java & $\times$ & $\times$ & Open & SROIQ \\
-Openllet \cite{openllet} & Java & $\times$ & $\times$ & Open & SROIQ \\
-HermiT \cite{hermit} & Java & $\times$ & $\times$ & Open & SROIQ \\
-ELK \cite{elk} & Java & \checkmark & $\times$ & Open & EL++ \\
-\bottomrule
-\end{tabular}
-}
-\end{table}
-
-\textbf{Note on Performance}: ORE benchmark publications \cite{parsia2015ore} report strong Konclude performance on several classification workloads. Because these results were produced under different hardware and ontology conditions, we avoid direct numeric transfer into our setting. In this revision, we added a preprocessing path for Konclude that converts ontology inputs to OWL/XML and merges imports before invoking the external binary. Repeated three-run refreshes collected under this revised harness (\path{benchmarks/competitors/results/history/konclude_repeated_refresh_aggregate_20260228}) changed the deployment-level picture materially: Konclude completed all Standard, Large (DOID/GO-Basic/UBERON), and OWL2Bench-core cases in our harness. These values come from a separate rerun campaign on the same host class and timeout policy, but with a Konclude-specific invocation path; reported wall-clock values therefore include preprocessing time and should be interpreted as deployment-level end-to-end numbers rather than pure native-reasoner kernel times.
-
-\noindent\textit{Literature scope note}: ORE-era results are used as historical context only; we avoid cross-study numeric transfer without matched hardware, ontology set, and benchmark protocol.
-
-\subsection{Head-to-Head Performance Comparison}
-\label{sec:competitor-benchmarks}
-
-We conducted direct wall-clock comparison across six primary reasoners on the same host under a common consistency-checking protocol. For Standard and Large suites, tables report per-ontology medians from three independent clean runs; these remain observational comparisons and are not presented as formal significance tests. Konclude is treated separately because it uses a preprocessing-enabled external-binary path and a separate three-run rerun campaign, so its values should be read as supplementary deployment-level comparisons rather than same-protocol primary-table entries.
-
-\subsubsection{Standard Workload Suite (7 Ontologies)}
-\label{sec:small-suite-results}
-
-Table~\ref{tab:small-workload-suite} reports per-ontology median wall-clock results from three independent clean runs (7 ontologies, 300s policy).
-
-\begin{table}[htbp]
-\centering
-\caption{Standard Workload Suite Consistency Benchmark (median wall time across 3 clean runs, ms; timeout 300s)}
-\label{tab:small-workload-suite}
-\resizebox{\linewidth}{!}{
-\begin{tabular}{l|r|r|r|r|r|r}
-\toprule
-\textbf{Ontology} & \textbf{SPACL} & \textbf{HermiT} & \textbf{Openllet} & \textbf{ELK} & \textbf{JFact} & \textbf{Pellet} \\
-\midrule
-disjunctive\_simple.owl & \textbf{2273} & 3446 & 3383 & 3718 & 3466 & 3310 \\
-disjunctive\_test.owl & \textbf{2113} & 3323 & 3007 & 2979 & 3362 & 2659 \\
-hierarchy\_100.owl & \textbf{2096} & 3391 & 3070 & 2910 & 3271 & 2838 \\
-hierarchy\_1000.owl & \textbf{2190} & 3498 & 3220 & 3055 & 4110 & 3222 \\
-hierarchy\_10000.owl & 8007 & 4131 & 4084 & \textbf{3579} & FAIL & 3644 \\
-hierarchy\_100000.owl & 40210 & 7706 & 8881 & \textbf{5816} & FAIL & 10867 \\
-univ-bench.owl & 2951 & 3345 & 2930 & 2866 & 3196 & \textbf{2742} \\
-\bottomrule
-\end{tabular}
-}
-\end{table}
-\noindent\footnotesize\textit{Legend}: FAIL = runtime failure in this setup; bold = lowest median wall time among successful comparable runs per ontology (descriptive only).
-\normalsize
-
-\textbf{Standard-suite observations (median across 3 runs)}:
-\begin{itemize}
-    \item SPACL has the lowest median wall time on 4/7 ontologies among successful comparable runs in this suite
-    \item ELK has the lowest median wall time on \texttt{hierarchy\_10000.owl} and \texttt{hierarchy\_100000.owl}
-    \item Pellet has the lowest median wall time on \texttt{univ-bench.owl}
-    \item SPACL, HermiT, Openllet, ELK, and Pellet complete 21/21 cases; JFact completes 15/21
-\end{itemize}
-
-\noindent\textit{Artifact sources}: \path{benchmarks/competitors/results/history/standard_r1_20260225/results.csv}, \path{benchmarks/competitors/results/history/standard_r2_20260225/results.csv}, \path{benchmarks/competitors/results/history/standard_r3_20260225/results.csv}.
-
-\subsubsection{Competitor Selection Rationale}
-\label{sec:baseline-rationale}
-
-We included the following competitor set:
-\begin{enumerate}
-    \item \textbf{HermiT}: widely used open-source expressive OWL baseline
-    \item \textbf{Openllet and JFact}: open-source OWLAPI-based reasoners commonly used in practice
-    \item \textbf{ELK}: high-performance OWL EL reasoner as tractable-profile reference
-    \item \textbf{Pellet}: included as legacy Pellet 2.3.3 packaging; may become not-available if legacy artifact repositories are unreachable
-\end{enumerate}
-
-\textbf{Scope Notes}:
-\begin{itemize}
-    \item \textbf{FaCT++}: discussed in related work; not included in this containerized run set
-    \item \textbf{ELK}: OWL EL profile reasoner, so speed reflects a narrower logic profile than full ALC/SHOIQ
-\end{itemize}
-
-\subsubsection{Results}
-
-Table~\ref{tab:competitor-benchmarks} reports large-ontology head-to-head median wall-clock outcomes from three independent clean runs under the 900s policy.
-
-\begin{table}[htbp]
-\centering
-\caption{Large Head-to-Head Consistency Benchmark (median wall time across 3 clean runs, ms; timeout 900s)}
-\label{tab:competitor-benchmarks}
-\resizebox{\linewidth}{!}{
-\begin{tabular}{l|r|r|r|r|r|r}
-\toprule
-\textbf{Ontology} & \textbf{SPACL} & \textbf{HermiT} & \textbf{Openllet} & \textbf{ELK} & \textbf{JFact} & \textbf{Pellet} \\
-\midrule
-doid.owl & \textbf{3447} & 20295 & 14266 & 13406 & 60443 & 28771 \\
-go-basic.owl & \textbf{7329} & 17616 & 17747 & 15976 & 41847 & 83238 \\
-uberon.owl & \textbf{6677} & 110560 & TO & 15594 & FAIL & TO \\
-\bottomrule
-\end{tabular}
-}
-\end{table}
-\noindent\footnotesize\textit{Legend}: TO = timeout at 900s, FAIL = runtime failure in this harness, NA = not available in this setup. Bold indicates lowest median wall time among successful comparable runs per ontology (descriptive only; not a significance test).
-\normalsize
-
-\textbf{Observations (median across 3 runs)}:
-\begin{itemize}
-    \item Among reasoners with successful comparable runs, SPACL has the lowest median wall time on 3/3 ontologies in the Large Head-to-Head run set
-    \item SPACL, HermiT, and ELK complete 9/9 cases within timeout
-    \item Openllet completes 6/9 (timeouts on UBERON in all runs)
-    \item JFact completes 6/9 and fails on UBERON in all runs in this harness
-    \item Pellet completes 6/9 (timeouts on UBERON in all runs)
-    \item These are end-to-end wall-clock measurements (startup + parsing + reasoning), not parser-agnostic microbenchmarks
-\end{itemize}
-
-\noindent\textit{Artifact sources}: \path{benchmarks/competitors/results/history/large_r1_20260225/results.csv}, \path{benchmarks/competitors/results/history/large_r2_20260225/results.csv}, \path{benchmarks/competitors/results/history/large_r3_real_20260225/results.csv}.
+This companion view leaves the Standard conclusion unchanged, where ELK remains strongest at suite level, but its main purpose here is to reinforce the large-suite picture: once timeout penalties are incorporated, SPACL remains strongest on the large biomedical panel.
 
 \subsubsection{Supplementary Biomedical Extension: PATO}
 \label{sec:pato-panel}
 
-To increase real-world biomedical diversity beyond the primary DOID/GO-Basic/UBERON panel, we executed three clean matched consistency runs for \texttt{pato.owl} under the same large-suite policy (900s timeout, wall-clock as primary metric). Because this is still a single supplementary ontology rather than the primary three-ontology large panel, we report it separately as complementary evidence instead of folding it into Table~\ref{tab:competitor-benchmarks}.
+A supplementary matched three-run panel on \texttt{pato.owl} follows the same qualitative direction as the primary large suite. SPACL is the lowest successful median (3238 ms), ELK and HermiT remain successful but slower (6664 ms and 12362 ms), Pellet succeeds but is much slower (745159 ms), and Openllet/JFact time out on all three runs. We therefore use PATO as complementary biomedical evidence rather than as a replacement for the primary three-ontology panel. Aggregate summary: \path{results/history/pato_matched_aggregate_20260301/summary.csv}.
 
 \begin{table}[htbp]
 \centering
@@ -1200,19 +422,10 @@ Openllet & 0/3 & TO & timed out on all runs \\
 }
 \end{table}
 
-\textbf{PATO observations}:
-\begin{itemize}
-    \item In this supplementary panel, SPACL has the lowest median wall-clock result among reasoners with successful comparable runs
-    \item ELK and HermiT remain successful comparators on this ontology, but both are slower than SPACL in the three-run panel
-    \item PATO remains more failure-prone for several external reasoners than the primary three-ontology large panel, which makes it useful as a complementary stress case rather than a replacement for that panel
-\end{itemize}
-
-\noindent\textit{Artifact sources}: \path{benchmarks/competitors/results/history/pato_matched_r1_20260301/results.csv}, \path{benchmarks/competitors/results/history/pato_matched_r2_20260301/results.csv}, \path{benchmarks/competitors/results/history/pato_matched_r3_20260301/results.csv}. Aggregate summary: \path{results/history/pato_matched_aggregate_20260301/summary.csv}.
-
-\subsubsection{External Validation: OWL2Bench Core Profiles (3 Clean Runs)}
+\subsubsection{External Validation: OWL2Bench Core Profiles}
 \label{sec:owl2bench-core}
 
-To validate profile coverage with repeated measurements, we executed the OWL2Bench core profile ontologies (DL/EL/QL/RL) for three independent clean runs under identical settings (300s timeout per pair). Table~\ref{tab:owl2bench-core-aggregate} reports aggregated success rate and timing statistics across 12 cases per reasoner (4 ontologies $\times$ 3 runs). Median and P95 are computed on successful runs only.
+Table~\ref{tab:owl2bench-core-aggregate} reports repeated-run aggregate results on the OWL2Bench core profile ontologies.
 
 \begin{table}[htbp]
 \centering
@@ -1233,41 +446,13 @@ JFact & 3 & 25\% & 3507 & 3762 \\
 \end{tabular}
 }
 \end{table}
-\noindent\footnotesize\textit{Note}: For reasoners with low success counts (e.g., JFact 3/12), P95 is computed on a small successful subset and should be interpreted with the success count.
-\normalsize
 
-\begin{table}[htbp]
-\centering
-\caption{OWL2Bench Core Profiles: Per-Ontology Median Comparison (3 clean runs)}
-\label{tab:owl2bench-core-winners}
-\resizebox{\linewidth}{!}{
-\begin{tabular}{l|r|r|l}
-\toprule
-\textbf{Profile Ontology} & \textbf{SPACL Median (ms)} & \textbf{Lowest Competitor Median (ms)} & \textbf{Lower Median} \\
-\midrule
-OWL2DL & 2169 & 2957 (Pellet) & SPACL \\
-OWL2EL & 2064 & 2879 (Pellet) & SPACL \\
-OWL2QL & 2509 & 2866 (Pellet) & SPACL \\
-OWL2RL & 2070 & 2864 (Pellet) & SPACL \\
-\bottomrule
-\end{tabular}
-}
-\end{table}
-\noindent\footnotesize\textit{Note}: Medians are computed on successful runs only (3 runs per ontology/reasoner pair under the 300s policy).
-\normalsize
-\noindent\textit{Artifact source}: \path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_aggregate_20260223/reasoner_ontology_summary.csv}.
-
-\textbf{OWL2Bench-core observations}:
-\begin{itemize}
-    \item Among reasoners with successful comparable runs, SPACL has the lowest median wall-clock time on all 4 profile ontologies (DL/EL/QL/RL) across 3/3 successful runs per ontology (Table~\ref{tab:owl2bench-core-winners})
-    \item ELK, HermiT, Openllet, and Pellet each complete 12/12 runs in this harness
-    \item JFact completes only QL (3/3) and times out on DL/EL/RL under the 300s policy in this setup
-\end{itemize}
+SPACL completes all 12 runs and yields the lowest median wall-clock value among successful comparable runs in this suite. ELK, HermiT, Openllet, and Pellet also complete every run; JFact completes only the QL case under the stated timeout policy.
 
 \subsubsection{Supplementary Deployment-Level Konclude Validation}
 \label{sec:konclude-supplement}
 
-Konclude was rerun separately under a preprocessing-enabled external-binary path that converts ontology inputs to OWL/XML and merges imports before invocation. Because this path differs from the primary aggregate campaign used in the main comparison tables, we report its deployment-level results separately rather than mixing them into the primary head-to-head tables.
+Konclude was rerun separately under a preprocessing-enabled external-binary path that converts inputs to OWL/XML and merges imports before invocation. Under that supplementary deployment path, Konclude completed the Standard, Large, and OWL2Bench-core reruns, but these values are not mixed into the primary comparison tables because the invocation path differs from the main campaign. We therefore treat Konclude as deployment-level supplementary evidence rather than as a directly pooled comparator.
 
 \begin{table}[htbp]
 \centering
@@ -1286,214 +471,47 @@ OWL2Bench core & 12/12 (100\%) & 5382.5 & preprocessing-enabled rerun \\
 }
 \end{table}
 
-\textbf{Konclude supplementary observations}:
-\begin{itemize}
-    \item Under the preprocessing-enabled deployment path, Konclude completes all Standard, Large-primary, and OWL2Bench-core reruns in our harness
-    \item These values are informative for deployment-level comparison, but they are not mixed into the primary comparison tables because the invocation path differs from the main aggregate campaign
-    \item Konclude remains slower than SPACL on the large biomedical panel and on the OWL2Bench-core suite in these reruns
-\end{itemize}
-
-\noindent\textit{Artifact sources}: \path{benchmarks/competitors/results/history/konclude_repeated_refresh_aggregate_20260228/suite_summary.csv}, \path{benchmarks/competitors/results/history/konclude_repeated_refresh_aggregate_20260228/per_ontology_medians.csv}.
-
-\subsection{Analysis: JVM Startup Overhead}
-\label{sec:jvm-overhead}
-
-Standard-suite wall-clock numbers should be interpreted as end-to-end deployment measurements rather than pure reasoning-kernel speed. In the Standard Workload Suite, most JVM-based engines cluster around 2.6--4.4 seconds wall time on the smaller ontologies, indicating substantial fixed runtime initialization costs. SPACL completes all seven cases; five cases are in the 2.1--3.0 second range, while the deep hierarchy stress files (\texttt{hierarchy\_10000.owl}, \texttt{hierarchy\_100000.owl}) are slower due to parser/materialization overhead in the text-loading path.
-
-\textbf{Takeaway}: Wall-clock comparisons in this section reflect startup + parsing + reasoning together. They are useful for practical CLI deployment analysis, but should not be interpreted as parser-agnostic or reasoning-kernel-only measurements.
-
-\subsection{Threshold Tuning}
-\label{sec:threshold-tuning}
-
-We evaluated threshold settings for the two-stage adaptive policy. Table~\ref{tab:adaptive} reports the cost-gate behavior for small disjunctive cases, while Section~\ref{sec:adaptive} defines the branch-count prefilter.
-
-We then ran explicit ablation sweeps over branch thresholds and cost coefficients using synthetic union/complement workloads plus representative warm-up real-world ontologies (DOID and GO-Basic). The exploratory sweep and conservative zoom-in sweep are archived under \path{results/history/adaptive_calibration_20260228_110137} and \path{results/history/adaptive_calibration_20260228_111338}; two final sensitivity reruns with forced-sequential baselines and one warm-up timing pass per mode are archived under \path{results/history/adaptive_calibration_20260228_235333} and \path{results/history/adaptive_calibration_20260228_235856}. Configurations were ranked by average regret against the best observed baseline wall-clock result on each sweep workload. In these traces, the disjunctive 5k stress case produced 1,000 detected disjunctions and an estimated branch count of 1,500; thresholds below that point triggered a severe always-parallel regression, while the robust regime consistently started at $\tau \ge 2000$. We therefore use these sweeps primarily to justify the safe operating region (`2000+`) of the branch gate rather than to claim a uniquely optimal default. The implementation keeps a conservative default branch-count threshold $\tau = 2000$, retains the 500$\mu$s cost gate, and applies the lighter 15$\mu$s nesting cost in the implementation defaults.
-
-On the same calibration traces, DOID and GO-Basic stayed on the sequential path because the detector found no speculative disjunctions in those runs. This supports treating the adaptive gate as a workload-sensitive safety mechanism rather than as the primary explanation for the large biomedical wall-clock gains, which are discussed separately in Sections \ref{sec:realworld} and \ref{sec:competitor-benchmarks}.
-
-\subsection{Thread Scaling Analysis}
-\label{sec:thread-scaling}
-
-Figure \ref{fig:thread-scaling} shows speedup as worker count increases from 1 to 24 (physical cores = 12, SMT = 24).
-
-\begin{figure}[htbp]
-    \centering
-    \begin{tikzpicture}
-        \draw[->] (0,0) -- (8,0) node[right] {Workers};
-        \draw[->] (0,0) -- (0,5) node[above] {Speedup};
-        \foreach \x in {1,2,4,8,12,16,20,24} {
-            \draw (\x/3,0) -- (\x/3,-0.1) node[below] {\x};
-        }
-        \foreach \y in {1,2,3,4,5,6} {
-            \draw (0,\y*0.8) -- (-0.1,\y*0.8) node[left] {\y};
-        }
-        % Measured speedup points at 10K classes (normalized to y-axis scale)
-        \filldraw[blue] (0.33,0.8) circle (2pt);   % 1 worker: 1.00x
-        \filldraw[blue] (0.67,1.52) circle (2pt);  % 2 workers: 1.90x
-        \filldraw[blue] (1.33,2.24) circle (2pt);  % 4 workers: 2.80x
-        \filldraw[blue] (2.67,3.28) circle (2pt);  % 8 workers: 4.10x
-        \filldraw[blue] (4,3.90) circle (2pt);     % 12 workers: 4.88x (peak)
-        \filldraw[blue] (5.33,3.68) circle (2pt);  % 16 workers: 4.60x
-        \filldraw[blue] (6.67,3.60) circle (2pt);  % 20 workers: 4.50x
-        \filldraw[blue] (8,3.44) circle (2pt);     % 24 workers: 4.30x
-        \draw[blue, thick] (0.33,0.8) -- (0.67,1.52) -- (1.33,2.24) -- (2.67,3.28) -- (4,3.90) -- (5.33,3.68) -- (6.67,3.60) -- (8,3.44);
-        \draw[dashed, red] (0.33,0.8) -- (4,3.90) node[above right] {Ideal to 12 cores};
-        \draw[dashed, gray] (4,-0.1) -- (4,3.90) node[above] {Physical cores};
-    \end{tikzpicture}
-    \caption{Thread Scaling: Speedup vs Worker Count (10K classes)}
-    \label{fig:thread-scaling}
-\end{figure}
-
-\textbf{Observations}:
-\begin{itemize}
-    \item \textbf{Linear scaling} up to 8 workers (efficiency \textgreater{}90\%)
-    \item \textbf{Peak speedup} 4.88$\times$ at 12 workers (physical cores)
-    \item \textbf{SMT benefit} limited: 16 workers achieve 4.6$\times$, 24 workers 4.3$\times$
-    \item \textbf{Diminishing returns} beyond physical core count due to memory bandwidth contention
-\end{itemize}
-
 \subsection{Nogood Learning Effectiveness}
 \label{sec:nogood-eval}
 
-To isolate nogood learning effects, we compare SPACL with and without nogood learning (same parallelism). Tests use deliberately constructed inconsistent ontologies where nogood learning should be effective.
-Table~\ref{tab:nogood} summarizes the measured deltas in runtime, pruning, and cache behavior.
+Because the primary head-to-head suites are mostly consistent ontologies, the benefit of nogood reuse is not fully visible in the main end-to-end tables. We therefore include a dedicated inconsistent-workload ablation that isolates the effect of enabling nogood learning under the same speculative runtime.
 
 \begin{table}[htbp]
 \centering
 \caption{Nogood Learning Effectiveness (mean $\pm$ std, $n=50$)}
 \label{tab:nogood}
+\resizebox{\linewidth}{!}{
 \begin{tabular}{l|r|r|r|r}
 \toprule
-\textbf{Ontology Type} & \thead{No Learning\\(ms)} & \thead{With Learning\\(ms)} & \thead{Branches\\Pruned} & \thead{Cache\\Hit} \\
+\textbf{Ontology Type} & \textbf{No Learning (ms)} & \textbf{With Learning (ms)} & \textbf{Branches Pruned} & \textbf{Cache Hit} \\
 \midrule
 Disjunctive (inconsistent) & $234.5 \pm 12.3$ & $178.3 \pm 9.7$ & $28.4\%$ & $82.3\%$ \\
 Disjunctive (consistent) & $89.2 \pm 5.1$ & $87.1 \pm 4.8$ & $3.2\%$ & $91.7\%$ \\
 Hierarchical & $45.6 \pm 2.3$ & $45.1 \pm 2.1$ & $0.1\%$ & $95.2\%$ \\
 \bottomrule
 \end{tabular}
+}
 \end{table}
 
-\textbf{Observations}:
-\begin{itemize}
-    \item \textbf{Inconsistent ontologies}: 24\% speedup, 28\% branches pruned
-    \item \textbf{Consistent ontologies}: Minimal overhead (2\%), nogoods rarely triggered
-    \item \textbf{Local cache hit}: 82--95\% (validating thread-local design)
-    \item \textbf{Memory overhead}: 15--40MB for 10K-class ontologies (acceptable)
-\end{itemize}
-
-\textbf{Limitation}: Current benchmarks primarily use consistent ontologies. Nogood learning benefits are underrepresented in overall results.
-
-To better characterize learning impact, future benchmark suites should include a controlled mix of inconsistent and near-inconsistent ontologies (e.g., contradiction-injected variants of real-world corpora), report contradiction density, and separate first-conflict latency from end-to-end wall time. This would make branch-pruning gains directly comparable across workloads.
-
-\subsection{Answering Research Questions}
-\label{sec:answers}
-
-\textbf{RQ1: Can speculative parallel tableaux with conflict-driven nogood learning improve consistency-checking performance?}  
-\textbf{Answer}: Yes, for the evaluated prototype and workloads. In synthetic scalability tests, SPACL achieves up to 4.88$\times$ speedup at 10,000 classes, and nogood mechanisms reduce redundant branch exploration in inconsistent disjunctive workloads (Sections \ref{sec:scalability}, \ref{sec:nogood-eval}).
-
-\textbf{RQ2: Can adaptive parallelism reduce overhead on small workloads while preserving scalability?}  
-\textbf{Answer}: Yes. The adaptive strategy avoids unnecessary parallel execution on small cases (18--73$\times$ improvement versus always-parallel baselines) while retaining scalability on larger cases (Sections \ref{sec:adaptive}, \ref{sec:threshold-tuning}).
-
-\textbf{RQ3: For large RDF/XML ontologies, which stages dominate runtime, and can structural parsing/materialization reduce the bottleneck while retaining implementation-aligned semantic behavior?}  
-\textbf{Answer}: Parsing/materialization dominates large-ontology runtime in the baseline. The structural pipeline substantially reduces this cost while preserving handler-equivalent semantics for the implemented ALC/SHOIQ path, with stage-level A/B reductions reported in Section \ref{sec:realworld}, including a supplementary ChEBI cold-text stress pair that shows a similar trend.
-
-\section{Conclusion and Future Work}
-\label{sec:conclusion}
-
-We presented SPACL, an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. In the profile-mixed Standard Workload Suite (3 clean runs), SPACL has the lowest per-ontology median result on 4/7 ontologies and completes 21/21 cases, while ELK is faster on the two deepest hierarchy stress files (\texttt{hierarchy\_10000.owl}, \texttt{hierarchy\_100000.owl}) and Pellet is faster on \texttt{univ-bench.owl}. In the primary Large Head-to-Head benchmark on biomedical RDF/XML ontologies (doid/go-basic/uberon, 3 clean runs), the revised structural parser/materialization pipeline substantially improves end-to-end behavior, and SPACL has the lowest per-ontology median wall-clock time on all 3/3 tested ontologies among reasoners with successful comparable runs under a 900s timeout policy. A suite-level failure-aware CEW view over comparable runs reports ELK as strongest on Standard and SPACL as strongest on Large. In the external OWL2Bench core-profile suite (DL/EL/QL/RL), three clean repeated runs show SPACL with 12/12 success and the lowest median wall-clock result on 4/4 ontologies among successful comparable runs in this harness. Head-to-head claims are reported as descriptive repeated-run outcomes for the stated benchmark harness.
-
-Supplementary results extend this core picture without changing the primary comparison basis. A matched three-run PATO panel remains favorable to SPACL among successful comparable runs, a supplementary ChEBI cold-text stress pair shows a similar parser-dominant trend at a larger ontology scale, and Konclude is reported separately as a deployment-level rerun because its preprocessing-enabled invocation path differs from the primary comparison campaign.
-
-\subsection{Summary of Contributions}
-\label{sec:summary}
-
-\begin{enumerate}
-    \item Speculative work-stealing tableaux framework with conflict-driven nogood learning
-    \item Adaptive overhead control via thresholding and global thread-pool execution
-    \item Structural RDF/XML parsing/materialization with handler-equivalent semantics for the implemented ALC/SHOIQ path
-    \item Reproducible containerized benchmarking and head-to-head evaluation protocol, including repeated Standard/Large/OWL2Bench validation
-\end{enumerate}
+The inconsistent disjunctive case is the one that matters here: runtime drops by about 24\%, roughly 28\% of branches are pruned, and most repeated nogood checks stay on the local cache path. On consistent and hierarchy-heavy workloads, nogood reuse has little effect, which is consistent with the main benchmark suites being dominated by consistent ontologies.
 
 \subsection{Limitations}
 \label{sec:limitations}
 
-\begin{enumerate}
-    \item \textbf{Workload and Profile Differences}: Competitor comparison includes engines with different logic profiles (e.g., ELK for OWL EL++). Fastest wall-clock does not imply identical expressivity coverage.
-    
-    \item \textbf{Runtime Initialization Effects}: Standard-suite wall-clock comparisons include runtime startup and framework initialization costs, especially for JVM-based engines; these results should be interpreted as end-to-end deployment measurements rather than pure kernel timing.
-    
-    \item \textbf{Reproducibility Scope}: Results are measured under containerized CLI harness conditions (startup + parsing + reasoning). Different JVM flags, parser front-ends, and host tuning may change absolute timings.
+Three limitations matter most for interpreting the results. First, the primary comparisons are deployment-level wall-clock measurements, so startup, parsing, and runtime-environment effects are part of the reported numbers. Second, the comparison set spans different logic-profile coverage, especially for ELK. Third, the current head-to-head suites are dominated by consistent ontologies, so nogood-learning gains are best read from the dedicated inconsistent-workload ablation rather than from the primary benchmark tables.
 
-    \item \textbf{Container Tag Drift}: Competitor containers are referenced by image family and run-time tags from benchmark dates. We record observed image digests for this revision (\texttt{image\_digests\_20260226.txt}), but strict digest pinning is not yet enforced by the benchmark harness.
-    
-    \item \textbf{Consistency Mix Across Suites}: The primary head-to-head suites use consistent ontologies, while inconsistent cases appear mainly in dedicated nogood ablations. Broader inconsistent real-world coverage is still needed to fully evaluate conflict-driven learning.
-    
-    \item \textbf{TBox-Only Evaluation}: Current benchmarks focus on classification (TBox). ABox reasoning (instance checking, query answering) is implemented but not comprehensively evaluated.
-    
-    \item \textbf{Single Machine}: SPACL targets single-node multi-core systems. Distributed reasoning across clusters is not supported.
-    
-    \item \textbf{Prototype Branch-Generation Scope}: The current speculative engine uses selected disjunction splitting with bounded speculative depth and timeout-based termination. Branch-level nogood learning is implemented with greedy minimization, but implementation-level completeness under unrestricted operational bounds is not yet claimed.
-    
-    \item \textbf{Deep-Hierarchy Performance Gap}: Robustness issues on extreme hierarchy chains were fixed in the current revision, but wall-clock on very deep taxonomy stress files is still behind EL-focused engines; additional parser/materialization optimization is needed for that regime.
-    
-    \item \textbf{Profile Support}: SPACL currently supports ALC/SHOIQ. Full OWL2 DL (with datatypes, keys) requires additional implementation.
-\end{enumerate}
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
 
-\subsection{Future Directions}
-\label{sec:future}
+SPACL combines speculative work stealing, verified nogood reuse, and a structural RDF/XML pipeline in one open implementation for the evaluated ALC/SHOIQ handling path. The empirical picture is mixed but coherent, and the paper should be read that way. On synthetic disjunctive workloads, the adaptive gate avoids pathological always-parallel overhead and permits net speedup once branch structure becomes large enough. On the main real-world biomedical panel (DOID, GO-Basic, UBERON), however, the dominant gain in this revision comes from parser/materialization acceleration: stage-level A/B runs show about 97\% parse-only reduction, and SPACL records the lowest median end-to-end wall-clock time on all three ontologies among successful comparable runs in the primary large-suite campaign. The OWL2Bench core-profile suite shows the same overall direction, with SPACL completing all 12 runs and yielding the lowest median wall-clock time on the four tested profiles in this harness.
 
-\begin{enumerate}
-    \item \textbf{GPU Acceleration}: Exploit massive parallelism for very large ontologies
-    \item \textbf{Distributed Reasoning}: Extend to cluster environments
-    \item \textbf{Incremental Reasoning}: Support evolving ontologies efficiently
-    \item \textbf{ABox Optimization}: Apply speculative techniques to instance checking
-    \item \textbf{Ontology Transaction Deployment}: Evaluate SPACL as a reasoning core for ontology transaction validation in distributed application workflows
-    \item \textbf{Tool Integration}: Provide stable API/SDK interfaces for application-level integration
-\end{enumerate}
+These conclusions remain bounded by the current prototype and protocol. The main comparisons are single-machine, repeated-run wall-clock results under a containerized CLI harness; they do not imply identical logic-profile coverage across all competitors, nor do they replace matched kernel-level reasoning measurements. PATO, ChEBI, and Konclude are therefore reported as supplementary evidence rather than folded into the primary comparison basis. Future work should extend coverage to broader inconsistent real-world corpora, deeper ABox evaluation, and cleaner deployment-neutral comparator campaigns. SPACL is available at \url{https://github.com/anusornc/SPACL}; reproduction details are summarized in \path{paper/submission/README.txt}.
 
-\subsection{Availability}
-\label{sec:availability}
-
-SPACL is available as an open-source implementation at \url{https://github.com/anusornc/SPACL} under the MIT license.
-Reproducibility artifacts for this paper revision are included in the repository:
-\path{benchmarks/competitors/results/history/standard_r1_20260225},
-\path{benchmarks/competitors/results/history/standard_r2_20260225},
-\path{benchmarks/competitors/results/history/standard_r3_20260225},
-\path{benchmarks/competitors/results/history/large_r1_20260225},
-\path{benchmarks/competitors/results/history/large_r2_20260225},
-and
-\path{benchmarks/competitors/results/history/large_r3_real_20260225},
-with head-to-head aggregate summaries under
-\path{benchmarks/competitors/results/history/headtohead_repeated_aggregate_20260226},
-including suite-level failure-aware CEW summaries (\texttt{suite\_reasoner\_cew\_summary.csv}) and observed container image digests (\texttt{image\_digests\_20260226.txt}),
-plus OWL2Bench core-profile repeated runs
-\path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223},
-\path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223_r2},
-\path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_20260223_r3},
-and the aggregate summary
-\path{benchmarks/competitors/results/history/owl2bench_univ_core_clean_aggregate_20260223},
-plus adaptive-threshold calibration outputs
-\path{results/history/adaptive_calibration_20260228_110137},
-\path{results/history/adaptive_calibration_20260228_111338},
-\path{results/history/adaptive_calibration_20260228_235333},
-\path{results/history/adaptive_calibration_20260228_235856},
-plus the stage-level parser A/B outputs referenced in Section~\ref{sec:realworld}.
-A detailed reproduction guide is provided in
-\path{paper/submission/README.txt}
-and benchmark scripts under
-\path{benchmarks/competitors/scripts/}.
-
-%% ============================================
-%% ACKNOWLEDGMENTS
-%% ============================================
 \section*{Acknowledgments}
 \label{sec:ack}
 
 This research was supported by the Department of Computer Science, Faculty of Science, Chiang Mai University. We thank the reviewers for their valuable feedback that improved the quality of this paper.
 
-%% ============================================
-%% REFERENCES
-%% ============================================
 \bibliographystyle{elsarticle-num}
 \bibliography{references}
 
