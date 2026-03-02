@@ -110,7 +110,7 @@ Description Logics, Semantic Web
 CODE REPOSITORY
 ================================================================================
 
-https://github.com/anusornchaikaew/tableauxx
+https://github.com/anusornc/SPACL
 
 LICENSE
 --------

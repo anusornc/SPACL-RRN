@@ -106,7 +106,7 @@
 %% ABSTRACT
 %% ============================================
 \begin{abstract}
-We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. The reference implementation and repository are named \textit{Tableauxx}; throughout this manuscript, we use \textit{SPACL} for the algorithm/system and \textit{Tableauxx} only when referring to the software artifact. Relative to mainstream open OWL2 DL pipelines discussed in Section~\ref{sec:related}, SPACL emphasizes the combination of work-stealing speculative execution and reusable nogood information in one implementation path.
+We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), an open-source ALC/SHOIQ reasoner that combines speculative parallelism with conflict-driven learning. Throughout this manuscript, \textit{SPACL} denotes both the algorithm and the public reference implementation. Relative to mainstream open OWL2 DL pipelines discussed in Section~\ref{sec:related}, SPACL emphasizes the combination of work-stealing speculative execution and reusable nogood information in one implementation path.
 
 Our key contributions are: (1) a speculative parallel tableaux framework with work-stealing scheduling; in the current prototype this is realized via branch-constrained work items evaluated in parallel; (2) an adaptive threshold mechanism that selects sequential or parallel execution based on estimated complexity, yielding 18--73$\times$ speedup over naive always-parallel execution on small ontologies; (3) thread-local nogood caching that keeps most repeated nogood lookups on the local hot path in dedicated inconsistent-workload ablations (82--95\% local cache-hit rates); (4) a global thread pool optimization that reduces overhead by 2.1$\times$; and (5) a Rust implementation with parser support for RDF/XML, OWL2 Functional, Manchester, and JSON-LD syntaxes. On synthetic scalability workloads, SPACL reaches up to 4.88$\times$ speedup at 10,000 classes while keeping overhead below $2\times$ on smaller ontologies. These synthetic scalability figures are supporting evidence; the main benchmark basis of the paper is the repeated-run end-to-end ontology evaluation reported below.
 
@@ -666,7 +666,7 @@ Thread-local caches limit contention while maintaining bounded memory. The imple
 \subsection{Parser Implementations}
 \label{sec:parsers}
 
-The reference implementation (Tableauxx) provides parser support for OWL2 syntaxes:
+The reference implementation provides parser support for OWL2 syntaxes:
 
 \textbf{OWL2 Functional Syntax}: Implemented support for OWL2 Functional Grammar used in our benchmark suites
 \begin{itemize}
@@ -803,7 +803,7 @@ where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text
     \item \textbf{JFact}: Docker image family \texttt{owl-reasoner-jfact} (tag used at benchmark run time)
     \item \textbf{Konclude}: supplementary-only external-binary rerun
     \item \textbf{Pellet}: v2.3.3 (legacy OWLAPI v3 packaging; benchmarked directly in this setup)
-    \item \textbf{SPACL (Tableauxx implementation)}: Rust v1.84.0, release profile with LTO
+    \item \textbf{SPACL}: Rust v1.84.0, release profile with LTO
 \end{itemize}
 
 \textbf{Head-to-Head Protocol (primary reproducible runs in this revision)}:
@@ -835,7 +835,7 @@ where $f_{\text{parse}}$ is the parse fraction before optimization and $S_{\text
 
 \textbf{Named benchmark sets in this paper}: \textit{Standard Workload Suite} (synthetic/disjunctive/LUBM workloads), \textit{Large Head-to-Head} (three large biomedical ontologies in the primary reproducible run set: doid, go-basic, uberon), \textit{Supplementary PATO Panel} (three protocol-matched consistency runs on PATO), \textit{OWL2Bench Core Profile Suite} (UNIV-BENCH OWL2 DL/EL/QL/RL files), and a \textit{Supplementary ChEBI Cold-Text Stage Pair} used only for parser-stage stress confirmation under the revised cold-text contract.
 
-\textbf{Binary Format}: Pre-converted .owlbin files for SPACL (Tableauxx implementation) binary tests
+\textbf{Binary Format}: Pre-converted .owlbin files for SPACL binary tests
 
 \subsection{Scalability Results}
 \label{sec:scalability}
@@ -1298,7 +1298,7 @@ OWL2Bench core & 12/12 (100\%) & 5382.5 & preprocessing-enabled rerun \\
 \subsection{Analysis: JVM Startup Overhead}
 \label{sec:jvm-overhead}
 
-Standard-suite wall-clock numbers should be interpreted as end-to-end deployment measurements rather than pure reasoning-kernel speed. In the Standard Workload Suite, most JVM-based engines cluster around 2.6--4.4 seconds wall time on the smaller ontologies, indicating substantial fixed runtime initialization costs. SPACL (Tableauxx implementation) completes all seven cases; five cases are in the 2.1--3.0 second range, while the deep hierarchy stress files (\texttt{hierarchy\_10000.owl}, \texttt{hierarchy\_100000.owl}) are slower due to parser/materialization overhead in the text-loading path.
+Standard-suite wall-clock numbers should be interpreted as end-to-end deployment measurements rather than pure reasoning-kernel speed. In the Standard Workload Suite, most JVM-based engines cluster around 2.6--4.4 seconds wall time on the smaller ontologies, indicating substantial fixed runtime initialization costs. SPACL completes all seven cases; five cases are in the 2.1--3.0 second range, while the deep hierarchy stress files (\texttt{hierarchy\_10000.owl}, \texttt{hierarchy\_100000.owl}) are slower due to parser/materialization overhead in the text-loading path.
 
 \textbf{Takeaway}: Wall-clock comparisons in this section reflect startup + parsing + reasoning together. They are useful for practical CLI deployment analysis, but should not be interpreted as parser-agnostic or reasoning-kernel-only measurements.
 
@@ -1454,7 +1454,7 @@ Supplementary results extend this core picture without changing the primary comp
 \subsection{Availability}
 \label{sec:availability}
 
-SPACL is available as the Tableauxx open-source implementation at \url{https://github.com/anusornc/tableauxx} under the MIT license.
+SPACL is available as an open-source implementation at \url{https://github.com/anusornc/SPACL} under the MIT license.
 Reproducibility artifacts for this paper revision are included in the repository:
 \path{benchmarks/competitors/results/history/standard_r1_20260225},
 \path{benchmarks/competitors/results/history/standard_r2_20260225},
