@@ -208,6 +208,7 @@ Our correctness claim is intentionally limited. Under an idealized model with fa
 \label{sec:algorithm}
 
 Figure~\ref{fig:spacl-flow} summarizes the execution flow used in this revision. The key point is that SPACL is a pipeline: text ingestion and materialization produce the internal ontology representation, the adaptive gate decides whether speculative work generation is justified, and only then does speculative branch exploration with nogood reuse proceed.
+At branch level, SPACL still relies on the same underlying sequential tableaux rule-handling path; the contribution lies in how work is scheduled, bounded, and pruned around that baseline path rather than in replacing the local rule application semantics themselves.
 
 \begin{figure}[htbp]
 \centering
