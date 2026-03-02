@@ -177,7 +177,7 @@ Pruning is authorized only after revalidation on the same checking path used by 
 \begin{align}
 \mathcal{N} \subseteq \Gamma_b \quad \land \quad \mathcal{O} \cup \mathcal{N} \models \bot.
 \end{align}
-This is intentionally conservative. SPACL does not treat every contradictory trace as globally reusable; it only admits verified branch-level cores that remain contradiction-preserving under the current ontology and constraint context.
+This is intentionally conservative. SPACL does not treat every contradictory trace as globally reusable; it only admits verified branch-level cores that remain contradiction-preserving under the current ontology and constraint context. Algorithm~\ref{alg:nogood} summarizes the pruning-safe extraction procedure used to validate such cores before they are admitted for reuse.
 
 \begin{algorithm}[htbp]
 \caption{Verified Nogood Extraction (Pruning-Safe)}
@@ -230,8 +230,8 @@ Figure~\ref{fig:architecture} complements this execution summary with the runtim
 \centering
 \resizebox{0.95\linewidth}{!}{
 \begin{tikzpicture}[
-    node distance=8mm and 11mm,
-    box/.style={draw, rounded corners, align=center, minimum width=25mm, minimum height=8mm},
+    node distance=10mm and 14mm,
+    box/.style={draw, rounded corners, align=center, minimum width=22mm, minimum height=8mm},
     line/.style={-Latex, semithick}
 ]
 \node[box] (input) {Ontology Input};
@@ -240,10 +240,10 @@ Figure~\ref{fig:architecture} complements this execution summary with the runtim
 \node[box, right=of gate] (sched) {Work-Stealing\\Scheduler};
 \node[box, right=of sched] (out) {Consistency\\Result};
 
-\node[box, below=of sched, xshift=-16mm] (w1) {Worker 1};
-\node[box, below=of sched] (w2) {Worker 2};
-\node[box, below=of sched, xshift=16mm] (wn) {Worker N};
-\node[box, below=of gate, yshift=-18mm] (nogood) {Nogood Store\\+ Local Caches};
+\node[box, below=13mm of sched, xshift=-26mm] (w1) {Worker 1};
+\node[box, below=13mm of sched] (w2) {Worker 2};
+\node[box, below=13mm of sched, xshift=26mm] (wn) {Worker N};
+\node[box, below=15mm of w2, minimum width=32mm] (nogood) {Nogood Store\\+ Local Caches};
 
 \draw[line] (input) -- (parser);
 \draw[line] (parser) -- (gate);
@@ -304,7 +304,7 @@ When a speculative branch reaches contradiction, the implementation attempts to 
 \subsection{Adaptive Threshold}
 \label{sec:adaptive}
 
-The implemented branch estimate is
+The implemented branch estimate is given in Equation~\ref{eq:estimate}:
 \begin{equation}
 \text{branches} = \max\left(1, \ |\text{DetectedDisjunctions}| + 2 \times |\text{DisjointAxioms}| + \frac{|\text{Classes}|}{10}\right).
 \label{eq:estimate}
@@ -328,12 +328,12 @@ The large-ontology path uses a two-phase structural RDF/XML pipeline. Phase A st
 
 \textbf{Phase A (Ingest + Intern)} streams RDF/XML triples, interns subject/predicate/object terms to dense integer IDs, and stores compact records $\langle s,p,o\rangle$ in arrival order. \textbf{Phase B (Materialize)} resolves those IDs through dense caches and subject-cursor fast paths, computes predicate tags, and then dispatches through \texttt{apply\_triple\_terms\_core}, preserving the same semantic handler path as the baseline parser.
 
-We model end-to-end parser load time as
+We model end-to-end parser load time with Equation~\ref{eq:parser-total}:
 \begin{equation}
 T_{\text{total}} = T_{\text{ingest}} + T_{\text{materialize}} + T_{\text{io}}.
 \label{eq:parser-total}
 \end{equation}
-For a cache layer $k \in \{\text{subj}, \text{pred}, \text{obj}\}$, the hit rate and expected lookup time are
+For a cache layer $k \in \{\text{subj}, \text{pred}, \text{obj}\}$, Equation~\ref{eq:cache-hit} defines the hit rate and expected lookup time:
 \begin{equation}
 H_k = \frac{\text{hits}_k}{\text{hits}_k + \text{misses}_k}, \quad
 E[t_k] = H_k \cdot t_{hit,k} + (1-H_k)\cdot t_{miss,k}.
@@ -341,13 +341,13 @@ E[t_k] = H_k \cdot t_{hit,k} + (1-H_k)\cdot t_{miss,k}.
 \end{equation}
 Replacing repeated hash-map resolution with dense-ID vector caches reduces both $t_{hit,k}$ and $t_{miss,k}$ on the hot path.
 
-To relate parser acceleration to overall wall-clock improvement, we use Amdahl's law:
+To relate parser acceleration to overall wall-clock improvement, Equation~\ref{eq:amdahl-parser} applies Amdahl's law:
 \begin{equation}
 S_{\text{e2e}} = \frac{1}{(1-f_{\text{parse}}) + \frac{f_{\text{parse}}}{S_{\text{parse}}}},
 \label{eq:amdahl-parser}
 \end{equation}
 where $f_{\text{parse}}$ is the pre-optimization parse/materialization fraction and $S_{\text{parse}}$ is the parser-stage speedup.
-These equations are explanatory bookkeeping relations for interpreting the measured stage shifts in Section~\ref{sec:realworld}; they are not presented as a fitted predictive ingest model.
+These equations are explanatory bookkeeping relations for interpreting the measured stage shifts in Section~\ref{sec:realworld}; they are not presented as a fitted predictive ingest model. Algorithm~\ref{alg:structural-parser} then summarizes the two-phase handler-equivalent ingest/materialization path used in the implementation.
 
 \begin{algorithm}[htbp]
 \caption{Structural RDF/XML Parse with Handler-Equivalent Materialization}
@@ -555,7 +555,7 @@ Among successful comparable runs, SPACL yields the smallest median wall-clock va
 \subsubsection{Failure-Aware Suite Summary}
 \label{sec:cew}
 
-Success-only per-ontology medians do not capture timeout penalties directly. We therefore also report a capped expected wall-time (CEW) summary over the primary comparison set, where timeout or failure is replaced by the suite timeout before averaging.
+Success-only per-ontology medians do not capture timeout penalties directly. We therefore also report a capped expected wall-time (CEW) summary over the primary comparison set in Table~\ref{tab:cew-summary}, where timeout or failure is replaced by the suite timeout before averaging.
 
 \begin{table}[htbp]
 \centering
@@ -589,7 +589,7 @@ This companion view leaves the Standard conclusion unchanged, where ELK remains 
 \subsubsection{Supplementary Biomedical Extension: PATO}
 \label{sec:pato-panel}
 
-A supplementary matched three-run panel on \texttt{pato.owl} follows the same qualitative direction as the primary large suite. SPACL is the lowest successful median (3238 ms), ELK and HermiT remain successful but slower (6664 ms and 12362 ms), Pellet succeeds but is much slower (745159 ms), and Openllet/JFact time out on all three runs. We therefore use PATO as complementary biomedical evidence rather than as a replacement for the primary three-ontology panel. Aggregate summary: \path{results/history/pato_matched_aggregate_20260301/summary.csv}.
+A supplementary matched three-run panel on \texttt{pato.owl} is reported in Table~\ref{tab:pato-panel} and follows the same qualitative direction as the primary large suite. SPACL is the lowest successful median (3238 ms), ELK and HermiT remain successful but slower (6664 ms and 12362 ms), Pellet succeeds but is much slower (745159 ms), and Openllet/JFact time out on all three runs. We therefore use PATO as complementary biomedical evidence rather than as a replacement for the primary three-ontology panel. Aggregate summary: \path{results/history/pato_matched_aggregate_20260301/summary.csv}.
 
 \begin{table}[htbp]
 \centering
@@ -646,7 +646,7 @@ Konclude was rerun separately under a preprocessing-enabled external-binary path
 \subsection{Nogood Learning Effectiveness}
 \label{sec:nogood-eval}
 
-Because the primary head-to-head suites are mostly consistent ontologies, the benefit of nogood reuse is not fully visible in the main end-to-end tables. We therefore include a dedicated inconsistent-workload ablation that isolates the effect of enabling nogood learning under the same speculative runtime.
+Because the primary head-to-head suites are mostly consistent ontologies, the benefit of nogood reuse is not fully visible in the main end-to-end tables. We therefore include the dedicated inconsistent-workload ablation in Table~\ref{tab:nogood}, which isolates the effect of enabling nogood learning under the same speculative runtime.
 
 \begin{table}[htbp]
 \centering
