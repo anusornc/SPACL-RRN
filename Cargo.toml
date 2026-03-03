@@ -184,6 +184,10 @@ name = "benchmark_edge_cases"
 path = "scripts/benchmark_edge_cases.rs"
 
 [[bin]]
+name = "run_spacl_synthetic_ablation"
+path = "scripts/run_spacl_synthetic_ablation.rs"
+
+[[bin]]
 name = "owl2-reasoner"
 path = "src/bin/owl2-reasoner.rs"
 

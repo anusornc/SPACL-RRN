@@ -444,6 +444,24 @@ Medium (5 unions) & 9.1$\mu$s & 58.9$\mu$s & 1,116$\mu$s & \textbf{18.9$\times$}
 
 The adaptive policy remains slightly slower than pure sequential execution on trivial cases, but it is still far better than forcing parallel execution everywhere. We therefore interpret the gate conservatively: it is justified as a safe operating policy for branch-heavy workloads, not as a claim that the chosen coefficients are uniquely optimal. Calibration sweeps used in this revision showed that the robust region begins at branch threshold $\\tau \\ge 2000$; in the warm-up biomedical traces used for calibration, DOID and GO-Basic stayed on the sequential path because no speculative disjunctions were detected.
 
+To expose scheduler policy more directly under controlled conditions, we also ran a fixed synthetic workload (\texttt{union\_4x10}) with deliberately lowered gate settings ($\tau=4$, $\theta=1\mu s$) so that all speculative modes would activate on the same branch-heavy instance. Table~\ref{tab:scheduler-ablation} reports the resulting medians. This is a policy-isolation experiment rather than a default-setting benchmark: its role is to show that, once speculative execution is forced into play on the same workload, the adaptive policy materially improves over naive always-parallel scheduling. In this artifact, \texttt{nogood\_hits} remained zero, so we treat it as scheduler evidence only, not as positive nogood-learning evidence. The corresponding summary artifact is archived under \path{results/history/spacl_scheduler_policy_ablation_20260303}.
+
+\begin{table}[htbp]
+\centering
+\caption{Controlled Scheduler Policy Ablation on \texttt{union\_4x10} (median wall-clock over 3 runs; gate overrides $\tau=4$, $\theta=1\mu s$ used only to expose policy behavior)}
+\label{tab:scheduler-ablation}
+\begin{tabular}{l|r|c}
+\toprule
+\textbf{Mode} & \textbf{Median (ms)} & \textbf{Used Parallel} \\
+\midrule
+Sequential & 0.146 & No \\
+Adaptive & 53.149 & Yes \\
+Adaptive, no nogood & 84.560 & Yes \\
+Always-parallel & 108.012 & Yes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Real-World Ontology Evaluation}
 \label{sec:realworld}
 

@@ -26,7 +26,8 @@ use std::time::Instant;
 use owl2_reasoner::{
     detect_profile, select_consistency_reasoner, serializer::BinaryOntologyFormat,
     util::ontology_io::load_ontology_with_env, ConsistencyReasoner, Ontology,
-    OntologyCharacteristics, SimpleReasoner, SpeculativeTableauxReasoner,
+    OntologyCharacteristics, SchedulingMode, SimpleReasoner, SpeculativeConfig,
+    SpeculativeTableauxReasoner,
 };
 
 fn flush_stdout() {
@@ -35,6 +36,62 @@ fn flush_stdout() {
 
 fn phase_log(label: &str, detail: &str) {
     eprintln!("[phase] {} {}", label, detail);
+}
+
+fn env_truthy(key: &str) -> bool {
+    match env::var(key) {
+        Ok(value) => {
+            let value = value.trim().to_ascii_lowercase();
+            !(value.is_empty() || value == "0" || value == "false" || value == "no")
+        }
+        Err(_) => false,
+    }
+}
+
+fn scheduling_mode_from_env() -> Result<SchedulingMode, String> {
+    match env::var("SPACL_SCHED_MODE") {
+        Ok(value) => match value.trim().to_ascii_lowercase().as_str() {
+            "" | "adaptive" => Ok(SchedulingMode::Adaptive),
+            "sequential" => Ok(SchedulingMode::Sequential),
+            "always_parallel" | "always-parallel" | "parallel" | "forced_parallel" => {
+                Ok(SchedulingMode::AlwaysParallel)
+            }
+            other => Err(format!(
+                "unsupported SPACL_SCHED_MODE='{}' (expected adaptive|sequential|always_parallel)",
+                other
+            )),
+        },
+        Err(_) => Ok(SchedulingMode::Adaptive),
+    }
+}
+
+fn speculative_config_from_env() -> Result<SpeculativeConfig, String> {
+    let mut config = SpeculativeConfig::default();
+    config.scheduling_mode = scheduling_mode_from_env()?;
+    if env::var("SPACL_NOGOOD").is_ok() {
+        config.enable_learning = env_truthy("SPACL_NOGOOD");
+    }
+    Ok(config)
+}
+
+fn emit_spacl_stats(reasoner: &SpeculativeTableauxReasoner) {
+    if !env_truthy("SPACL_EMIT_STATS") {
+        return;
+    }
+    let stats = reasoner.get_stats();
+    eprintln!(
+        "[spacl] mode={} used_parallel={} branches_created={} work_items_expanded={} branches_pruned={} nogood_hits={} local_cache_hits={} global_cache_hits={} steal_attempts={} steal_successes={}",
+        stats.scheduling_mode,
+        stats.used_parallel,
+        stats.branches_created,
+        stats.work_items_expanded,
+        stats.branches_pruned,
+        stats.nogood_hits,
+        stats.local_cache_hits,
+        stats.global_cache_hits,
+        stats.steal_attempts,
+        stats.steal_successes
+    );
 }
 
 fn print_usage() {
@@ -72,6 +129,9 @@ fn print_usage() {
     println!("  OWL2_REASONER_EXPERIMENTAL_XML_PARSER=1  Enable experimental RDF/XML pipeline");
     println!("  OWL2_REASONER_EXPERIMENTAL_XML_STRICT=1  Fail if unsupported experimental terms are skipped");
     println!("  OWL2_REASONER_BIN_FORMAT=v1   Write legacy .owlbin format (default v2)");
+    println!("  SPACL_SCHED_MODE=adaptive|sequential|always_parallel");
+    println!("  SPACL_NOGOOD=0|1             Disable/enable nogood learning for ablations");
+    println!("  SPACL_EMIT_STATS=1           Emit one-line SPACL telemetry after reasoning");
     println!();
     println!("Examples:");
     println!("  OWL2_REASONER_LARGE_PARSE=1 owl2-reasoner check large.owl");
@@ -165,8 +225,18 @@ fn cmd_check_auto(args: &[String]) {
                 decision.reasoner.as_str(),
                 decision.rationale
             );
-            let mut reasoner = SpeculativeTableauxReasoner::from_arc(Arc::clone(&ontology));
-            reasoner.is_consistent()
+            let config = match speculative_config_from_env() {
+                Ok(config) => config,
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                    return;
+                }
+            };
+            let mut reasoner =
+                SpeculativeTableauxReasoner::with_config_arc(Arc::clone(&ontology), config);
+            let result = reasoner.is_consistent();
+            emit_spacl_stats(&reasoner);
+            result
         }
     };
 
@@ -287,9 +357,17 @@ fn cmd_check(args: &[String]) {
     let start = Instant::now();
     phase_log("reason_start", "reasoner=SpeculativeTableauxReasoner");
 
-    let mut reasoner = SpeculativeTableauxReasoner::from_arc(ontology);
+    let config = match speculative_config_from_env() {
+        Ok(config) => config,
+        Err(err) => {
+            eprintln!("Error: {}", err);
+            return;
+        }
+    };
+    let mut reasoner = SpeculativeTableauxReasoner::with_config_arc(ontology, config);
     match reasoner.is_consistent() {
         Ok(consistent) => {
+            emit_spacl_stats(&reasoner);
             let check_time = start.elapsed();
             println!("✓ Consistency check complete in {:?}", check_time);
             flush_stdout();
@@ -313,6 +391,7 @@ fn cmd_check(args: &[String]) {
             }
         }
         Err(e) => {
+            emit_spacl_stats(&reasoner);
             eprintln!("Error during reasoning: {:?}", e);
         }
     }
@@ -415,8 +494,17 @@ fn cmd_compare(args: &[String]) {
     // SpeculativeTableauxReasoner
     println!("Running SpeculativeTableauxReasoner (SPACL)...");
     let start = Instant::now();
-    let mut speculative_reasoner = SpeculativeTableauxReasoner::from_arc(Arc::clone(&ontology));
+    let config = match speculative_config_from_env() {
+        Ok(config) => config,
+        Err(err) => {
+            eprintln!("Error: {}", err);
+            return;
+        }
+    };
+    let mut speculative_reasoner =
+        SpeculativeTableauxReasoner::with_config_arc(Arc::clone(&ontology), config);
     let speculative_result = speculative_reasoner.is_consistent();
+    emit_spacl_stats(&speculative_reasoner);
     let speculative_time = start.elapsed();
     println!(
         "  Result: {:?} in {:?}",

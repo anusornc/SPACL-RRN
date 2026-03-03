@@ -99,6 +99,8 @@ impl Nogood {
 /// Statistics for speculative reasoning
 #[derive(Debug, Default, Clone)]
 pub struct SpeculativeStats {
+    /// Effective scheduling mode for the run
+    pub scheduling_mode: String,
     /// Number of unique disjunction expressions detected for gating
     pub disjunctions_detected: usize,
     /// Heuristic branch-count estimate used by the parallel gate
@@ -115,6 +117,8 @@ pub struct SpeculativeStats {
     pub cost_gate_passed: bool,
     /// Whether this run actually entered speculative parallel execution
     pub used_parallel: bool,
+    /// Work items that expanded into child work
+    pub work_items_expanded: usize,
     /// Total branches created
     pub branches_created: usize,
     /// Branches pruned by nogoods
@@ -133,6 +137,10 @@ pub struct SpeculativeStats {
     pub global_cache_hits: usize,
     /// Total nogood checks performed
     pub nogood_checks: usize,
+    /// Times a worker attempted to steal work
+    pub steal_attempts: usize,
+    /// Successful steal operations
+    pub steal_successes: usize,
     /// Time spent in speculative work that was later cancelled
     pub wasted_time_ms: u64,
     /// Total reasoning time in milliseconds
@@ -227,11 +235,30 @@ struct ParallelDecision {
     use_parallel: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SchedulingMode {
+    Adaptive,
+    Sequential,
+    AlwaysParallel,
+}
+
+impl SchedulingMode {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            SchedulingMode::Adaptive => "adaptive",
+            SchedulingMode::Sequential => "sequential",
+            SchedulingMode::AlwaysParallel => "always_parallel",
+        }
+    }
+}
+
 /// Configuration for speculative parallelism
 #[derive(Debug, Clone)]
 pub struct SpeculativeConfig {
     /// Number of worker threads
     pub num_workers: usize,
+    /// Scheduling policy for speculative branch exploration
+    pub scheduling_mode: SchedulingMode,
     /// Maximum speculative depth (to prevent explosion)
     pub max_speculative_depth: usize,
     /// Threshold for parallelizing disjunctions (min branch size)
@@ -257,6 +284,7 @@ impl Default for SpeculativeConfig {
     fn default() -> Self {
         Self {
             num_workers: num_cpus::get(),
+            scheduling_mode: SchedulingMode::Adaptive,
             max_speculative_depth: 10,
             // Calibrated conservatively so branch-count gate avoids pathological
             // parallelization on medium disjunctive workloads while still leaving
@@ -268,7 +296,7 @@ impl Default for SpeculativeConfig {
             adaptive_tuning: true,
             cost_threshold_us: 500, // 500µs minimum to justify parallelization
             cost_per_operand_us: 50, // 50µs per operand
-            cost_per_nesting_us: 30, // 30µs per nesting level
+            cost_per_nesting_us: 15, // Conservative refinement from calibration; keeps default in the 2000+ plateau
         }
     }
 }
@@ -634,6 +662,12 @@ impl SpeculativeTableauxReasoner {
         } else {
             true
         };
+        let adaptive_parallel = branch_gate_passed && cost_gate_passed;
+        let use_parallel = match self.config.scheduling_mode {
+            SchedulingMode::Adaptive => adaptive_parallel,
+            SchedulingMode::Sequential => false,
+            SchedulingMode::AlwaysParallel => !disjunctions.is_empty(),
+        };
 
         ParallelDecision {
             disjunctions_detected,
@@ -643,7 +677,7 @@ impl SpeculativeTableauxReasoner {
             cost_gate_threshold_us,
             branch_gate_passed,
             cost_gate_passed,
-            use_parallel: branch_gate_passed && cost_gate_passed,
+            use_parallel,
         }
     }
 
@@ -732,6 +766,7 @@ impl SpeculativeTableauxReasoner {
         let decision = self.evaluate_parallel_decision(&disjunctions);
 
         if let Ok(mut stats) = self.stats.lock() {
+            stats.scheduling_mode = self.config.scheduling_mode.as_str().to_string();
             stats.disjunctions_detected = decision.disjunctions_detected;
             stats.estimated_branch_count = decision.estimated_branch_count;
             stats.estimated_cost_us = decision.estimated_cost_us;
@@ -915,13 +950,31 @@ impl SpeculativeTableauxReasoner {
 
             // Try to get work
             let work_item = if let Ok(queue) = shared_queue.try_lock() {
-                // Try local queue first
-                queue.pop().or_else(|| {
-                    // Then try stealing
-                    stealer.steal().success()
-                })
+                if let Some(local) = queue.pop() {
+                    Some(local)
+                } else {
+                    if let Ok(mut s) = stats.lock() {
+                        s.steal_attempts += 1;
+                    }
+                    let stolen = stealer.steal().success();
+                    if stolen.is_some() {
+                        if let Ok(mut s) = stats.lock() {
+                            s.steal_successes += 1;
+                        }
+                    }
+                    stolen
+                }
             } else {
-                stealer.steal().success()
+                if let Ok(mut s) = stats.lock() {
+                    s.steal_attempts += 1;
+                }
+                let stolen = stealer.steal().success();
+                if stolen.is_some() {
+                    if let Ok(mut s) = stats.lock() {
+                        s.steal_successes += 1;
+                    }
+                }
+                stolen
             };
 
             let work_item = match work_item {
@@ -991,6 +1044,7 @@ impl SpeculativeTableauxReasoner {
                     // Parent item was expanded into child items.
                     outstanding_work.fetch_sub(1, Ordering::SeqCst);
                     if let Ok(mut s) = stats.lock() {
+                        s.work_items_expanded += 1;
                         s.branches_created += new_work.len();
                     }
 
@@ -1234,6 +1288,16 @@ impl SpeculativeTableauxReasoner {
     pub fn set_adaptive_tuning(&mut self, enabled: bool) {
         self.config.adaptive_tuning = enabled;
     }
+
+    /// Override the scheduling policy for ablations and controlled experiments.
+    pub fn set_scheduling_mode(&mut self, mode: SchedulingMode) {
+        self.config.scheduling_mode = mode;
+    }
+
+    /// Enable/disable nogood learning for ablations and controlled experiments.
+    pub fn set_learning_enabled(&mut self, enabled: bool) {
+        self.config.enable_learning = enabled;
+    }
 }
 
 /// Adaptive parameter tuner using evolutionary optimization
@@ -1323,6 +1387,44 @@ mod tests {
         let config = SpeculativeConfig::default();
         assert!(config.enable_learning);
         assert_eq!(config.max_speculative_depth, 10);
+        assert_eq!(config.scheduling_mode, SchedulingMode::Adaptive);
+    }
+
+    #[test]
+    fn test_parallel_decision_respects_forced_modes() {
+        let mut ontology = Ontology::new();
+        let a = Class::new("http://example.org/A");
+        let b = Class::new("http://example.org/B");
+        let c = Class::new("http://example.org/C");
+        ontology.add_class(a.clone()).unwrap();
+        ontology.add_class(b.clone()).unwrap();
+        ontology.add_class(c.clone()).unwrap();
+        ontology
+            .add_subclass_axiom(SubClassOfAxiom::new(
+                ClassExpression::Class(a),
+                ClassExpression::ObjectUnionOf(
+                    vec![
+                        Box::new(ClassExpression::Class(b)),
+                        Box::new(ClassExpression::Class(c)),
+                    ]
+                    .into(),
+                ),
+            ))
+            .unwrap();
+
+        let mut config = SpeculativeConfig::default();
+        config.parallel_threshold = usize::MAX;
+        let reasoner = SpeculativeTableauxReasoner::with_config(ontology.clone(), config.clone());
+        let disjunctions = reasoner.find_disjunctions();
+        assert!(!reasoner.evaluate_parallel_decision(&disjunctions).use_parallel);
+
+        config.scheduling_mode = SchedulingMode::AlwaysParallel;
+        let reasoner = SpeculativeTableauxReasoner::with_config(ontology.clone(), config.clone());
+        assert!(reasoner.evaluate_parallel_decision(&disjunctions).use_parallel);
+
+        config.scheduling_mode = SchedulingMode::Sequential;
+        let reasoner = SpeculativeTableauxReasoner::with_config(ontology, config);
+        assert!(!reasoner.evaluate_parallel_decision(&disjunctions).use_parallel);
     }
 
     #[test]
