@@ -23,3 +23,7 @@ This summary consolidates the controlled synthetic scheduler-policy ablation use
 - The run is a controlled scheduler-policy exposure experiment, not a default-setting benchmark.
 - It shows that once speculative execution is deliberately activated on the same branch-heavy synthetic workload, the adaptive policy is materially better than forcing parallel execution everywhere.
 - `nogood_hits` remained `0` in this artifact, so the table supports scheduling-policy claims only and should not be interpreted as positive nogood-learning evidence.
+
+## Variance note
+- For later scheduler-ablation runs, pinned-core execution is recommended (for example via `TASKSET_CPUS=0-3` in `benchmarks/competitors/scripts/run_spacl_ablation.sh`).
+- Core pinning reduces machine-noise variance, but it does not remove scheduler/search-order nondeterminism inside speculative runs.

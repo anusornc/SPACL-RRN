@@ -53,6 +53,9 @@ Use these to show that adaptive scheduling stays out of the way on branch-light 
 - Use `5` clean runs for Tier 1 if runtime remains practical.
 - Keep parser path fixed across all modes.
 - Prefer `reason_time_ms` plus emitted scheduler telemetry for interpretation.
+- Prefer pinned-core runs for variance-sensitive measurements.
+  - Recommended: set `TASKSET_CPUS=0-3` in `run_spacl_ablation.sh` runs.
+  - This reduces machine-noise variance but does not remove scheduler/search-order nondeterminism.
 
 ## Expected Pattern
 

@@ -11,6 +11,7 @@ RUN_DIR="$RESULTS_DIR/$RUN_ID"
 REPEATS="${REPEATS:-3}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-300}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
+TASKSET_CPUS="${TASKSET_CPUS:-}"
 
 # Default workload mix:
 # - branch-heavy synthetic disjunctive cases
@@ -96,6 +97,7 @@ write_metadata() {
 - Run ID: \`$RUN_ID\`
 - Repeats: \`$REPEATS\`
 - Timeout seconds: \`$TIMEOUT_SECONDS\`
+- Taskset CPUs: \`${TASKSET_CPUS:-none}\`
 - Binary path: \`$PROJECT_ROOT/target/debug/owl2-reasoner\`
 - Workloads: \`${#WORKLOAD_LIST[@]}\`
 - Modes: \`${#MODE_LIST[@]}\`
@@ -133,12 +135,18 @@ run_one() {
   local start_ns end_ns wall_ms status parse_ms reason_ms
   start_ns="$(date +%s%N)"
 
+  local -a cmd_prefix=()
+  if [[ -n "$TASKSET_CPUS" ]]; then
+    cmd_prefix=(taskset -c "$TASKSET_CPUS")
+  fi
+
   if timeout --kill-after=5s "${TIMEOUT_SECONDS}s" \
     env \
       OWL2_REASONER_LARGE_PARSE="${OWL2_REASONER_LARGE_PARSE:-1}" \
       SPACL_SCHED_MODE="$mode" \
       SPACL_NOGOOD="$nogood" \
       SPACL_EMIT_STATS=1 \
+      "${cmd_prefix[@]}" \
       "$PROJECT_ROOT/target/debug/owl2-reasoner" check "$workload_path" \
       >"$log_file" 2>&1; then
     status="success"

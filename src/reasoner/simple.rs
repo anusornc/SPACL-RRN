@@ -525,8 +525,36 @@ impl SimpleReasoner {
             }
         }
 
+        // Check whether a single individual is asserted into two classes
+        // that are explicitly disjoint.
+        use std::collections::{HashMap, HashSet};
+        let mut individual_classes: HashMap<&IRI, HashSet<&IRI>> = HashMap::new();
+        for assertion in self.ontology.class_assertions() {
+            if let crate::logic::axioms::ClassExpression::Class(class) = assertion.class_expr() {
+                individual_classes
+                    .entry(assertion.individual().as_ref())
+                    .or_default()
+                    .insert(class.iri().as_ref());
+            }
+        }
+
+        for classes in individual_classes.values() {
+            if classes.len() < 2 {
+                continue;
+            }
+            for axiom in self.ontology.disjoint_classes_axioms() {
+                let disjoint_count = axiom
+                    .classes()
+                    .iter()
+                    .filter(|class_iri| classes.contains(class_iri.as_ref()))
+                    .count();
+                if disjoint_count >= 2 {
+                    return Ok(false);
+                }
+            }
+        }
+
         // Check for contradictory subclass relationships - optimized with hash map
-        use std::collections::HashMap;
         let mut subclass_map: HashMap<&IRI, Vec<&IRI>> = HashMap::new();
         for axiom in self.ontology.subclass_axioms() {
             if let (
@@ -913,5 +941,79 @@ impl SimpleReasoner {
         instances.dedup();
 
         Ok(instances)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::entities::{Class, NamedIndividual};
+    use crate::logic::axioms::{ClassAssertionAxiom, DisjointClassesAxiom};
+    use crate::logic::axioms::ClassExpression;
+
+    #[test]
+    fn class_assertions_in_disjoint_classes_are_inconsistent() {
+        let mut ontology = Ontology::new();
+        let a = Class::new("http://example.org/A");
+        let b = Class::new("http://example.org/B");
+        let x = NamedIndividual::new("http://example.org/x");
+        ontology.add_class(a.clone()).unwrap();
+        ontology.add_class(b.clone()).unwrap();
+        ontology.add_named_individual(x.clone()).unwrap();
+        ontology
+            .add_disjoint_classes_axiom(DisjointClassesAxiom::new(vec![
+                a.iri().clone(),
+                b.iri().clone(),
+            ]))
+            .unwrap();
+        ontology
+            .add_class_assertion(ClassAssertionAxiom::new(
+                x.iri().clone(),
+                ClassExpression::Class(a),
+            ))
+            .unwrap();
+        ontology
+            .add_class_assertion(ClassAssertionAxiom::new(
+                x.iri().clone(),
+                ClassExpression::Class(b),
+            ))
+            .unwrap();
+
+        let reasoner = SimpleReasoner::new(ontology);
+        assert!(!reasoner.is_consistent().unwrap());
+    }
+
+    #[test]
+    fn disjoint_classes_on_different_individuals_remain_consistent() {
+        let mut ontology = Ontology::new();
+        let a = Class::new("http://example.org/A");
+        let b = Class::new("http://example.org/B");
+        let x = NamedIndividual::new("http://example.org/x");
+        let y = NamedIndividual::new("http://example.org/y");
+        ontology.add_class(a.clone()).unwrap();
+        ontology.add_class(b.clone()).unwrap();
+        ontology.add_named_individual(x.clone()).unwrap();
+        ontology.add_named_individual(y.clone()).unwrap();
+        ontology
+            .add_disjoint_classes_axiom(DisjointClassesAxiom::new(vec![
+                a.iri().clone(),
+                b.iri().clone(),
+            ]))
+            .unwrap();
+        ontology
+            .add_class_assertion(ClassAssertionAxiom::new(
+                x.iri().clone(),
+                ClassExpression::Class(a),
+            ))
+            .unwrap();
+        ontology
+            .add_class_assertion(ClassAssertionAxiom::new(
+                y.iri().clone(),
+                ClassExpression::Class(b),
+            ))
+            .unwrap();
+
+        let reasoner = SimpleReasoner::new(ontology);
+        assert!(reasoner.is_consistent().unwrap());
     }
 }
