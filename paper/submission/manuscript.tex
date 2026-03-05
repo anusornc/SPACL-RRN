@@ -62,7 +62,7 @@
 \fntext[fn3]{Corresponding author}
 
 \begin{abstract}
-We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), an open-source ALC/SHOIQ reasoner that combines branch-level speculative execution, reusable nogood information, and a structural RDF/XML processing pipeline. The paper is therefore about a combined reasoning-and-ingest system, not a speculative scheduler in isolation. The practical goal is to make expressive OWL reasoning useful under end-to-end ontology loading and consistency-checking conditions.
+We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), an open-source ALC/SHOIQ reasoner that combines branch-level speculative execution, reusable nogood information, and a structural RDF/XML processing pipeline for end-to-end ontology loading and consistency checking. The practical goal is to make expressive OWL reasoning usable under real deployment conditions.
 
 SPACL uses a work-stealing speculative scheduler together with a conservative two-stage gate that keeps small or low-branch workloads on the sequential path. On synthetic disjunctive scalability workloads, this gate avoids severe always-parallel overhead and permits net speedup once branch structure becomes large enough, reaching up to 4.88$\times$ at the largest synthetic point evaluated. These synthetic figures are supporting evidence only; the main claims of the paper come from repeated-run ontology benchmarks and stage-level parser analysis.
 
