@@ -462,6 +462,24 @@ Always-parallel & 108.012 & Yes \\
 \end{tabular}
 \end{table}
 
+To verify that branch-level pruning can activate in the current implementation, we ran a second controlled synthetic stress case (\texttt{reused\_conflict\_12}) with gate overrides ($\tau=8$, $\theta=1\mu s$). Table~\ref{tab:nogood-activation} summarizes this run. Adaptive mode showed non-zero pruning in all repeats (hits/prunes of 418, 4159, and 13), while the no-learning and always-parallel variants stayed at zero pruning. Runtime spread is still high, so we report this as mechanism-activation evidence rather than as a stable production-level speedup claim. The summary is archived under \path{results/history/spacl_nogood_activation_ablation_20260303}.
+
+\begin{table}[htbp]
+\centering
+\caption{Controlled Nogood-Activation Ablation on \texttt{reused\_conflict\_12} (median wall-clock over 3 runs; gate overrides $\tau=8$, $\theta=1\mu s$)}
+\label{tab:nogood-activation}
+\begin{tabular}{l|r|r}
+\toprule
+\textbf{Mode} & \textbf{Median (ms)} & \textbf{Median nogood hits} \\
+\midrule
+Sequential & 0.452 & 0 \\
+Adaptive & 1037.632 & 418 \\
+Adaptive, no nogood & 6821.705 & 0 \\
+Always-parallel & 14424.697 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Real-World Ontology Evaluation}
 \label{sec:realworld}
 
