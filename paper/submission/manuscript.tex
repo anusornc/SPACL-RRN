@@ -62,7 +62,7 @@
 \fntext[fn3]{Corresponding author}
 
 \begin{abstract}
-We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), an open-source ALC/SHOIQ reasoner that combines branch-level speculative execution, reusable nogood information, and a structural RDF/XML processing pipeline for end-to-end ontology loading and consistency checking. The practical goal is to make expressive OWL reasoning usable under real deployment conditions.
+Expressive OWL reasoning is often constrained by combinatorial non-deterministic branch growth and high ontology ingest/materialization cost on large inputs. We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), an open-source ALC/SHOIQ reasoner that combines branch-level speculative execution, reusable nogood information, and a structural RDF/XML processing pipeline for end-to-end ontology loading and consistency checking. The practical goal is to make expressive OWL reasoning usable under real deployment conditions.
 
 SPACL uses a work-stealing speculative scheduler together with a conservative two-stage gate that keeps small or low-branch workloads on the sequential path. On synthetic disjunctive scalability workloads, this gate avoids severe always-parallel overhead and permits net speedup once branch structure becomes large enough, reaching up to 4.88$\times$ at the largest synthetic point evaluated.
 
@@ -99,7 +99,7 @@ The paper addresses three questions.
 \subsection{Contributions}
 \label{sec:contributions}
 
-SPACL contributes four elements. First, it combines branch-level speculative work stealing with reusable nogood information in a single open implementation (Sections \ref{sec:workstealing} and \ref{sec:nogood}). Second, it uses a conservative adaptive gate that keeps low-branch workloads on the sequential path while allowing larger speculative workloads to use multiple workers (Section \ref{sec:adaptive}). Third, it introduces a structural RDF/XML pipeline that reuses the same semantic handlers as the baseline path while substantially reducing parse/materialization cost on large biomedical ontologies (Section \ref{sec:structural-parser}). Fourth, it evaluates the combined system with repeated-run synthetic, stage-level, and cross-reasoner benchmarks under a reproducible containerized protocol (Sections \ref{sec:benchmark-protocol} and \ref{sec:competitor-benchmarks}). In the current evaluation, the clearest practical headline result is parser/materialization improvement on large RDF/XML ontologies, while speculative-reasoning impact is most visible on branch-heavy synthetic and inconsistent workloads.
+SPACL contributes four elements. First, it combines branch-level speculative work stealing with reusable nogood information in a single open-source implementation (Sections \ref{sec:workstealing} and \ref{sec:nogood}). Second, it uses a conservative adaptive gate that keeps low-branch workloads on the sequential path while allowing larger speculative workloads to use multiple workers (Section \ref{sec:adaptive}). Third, it introduces a structural RDF/XML pipeline that reuses the same semantic handlers as the baseline path while substantially reducing parse/materialization cost on large biomedical ontologies (Section \ref{sec:structural-parser}). Fourth, it evaluates the combined system with repeated-run synthetic, stage-level, and cross-reasoner benchmarks under a reproducible Docker-containerized protocol (Sections \ref{sec:benchmark-protocol} and \ref{sec:competitor-benchmarks}). In the current evaluation, the clearest practical headline result is parser/materialization improvement on large RDF/XML ontologies, while speculative-reasoning impact is most visible on branch-heavy synthetic and inconsistent workloads.
 
 \section{Related Work}
 \label{sec:related}
@@ -227,7 +227,7 @@ At branch level, SPACL still relies on the same underlying sequential tableaux r
 \label{fig:spacl-flow}
 \end{figure}
 
-Figure~\ref{fig:architecture} complements this execution summary with the runtime architecture used in the implementation. The intent is to make the interaction between the parser/materialization path, adaptive controller, speculative workers, and nogood store explicit without reintroducing the longer presentation from the full manuscript.
+Figure~\ref{fig:architecture} complements this execution summary with the runtime architecture used in the implementation. The intent is to make the interaction between the parser/materialization path, adaptive controller, speculative workers, and nogood store explicit without reintroducing a longer architectural walkthrough.
 
 \begin{figure}[htbp]
 \centering
@@ -385,7 +385,7 @@ These equations are explanatory bookkeeping relations for interpreting the measu
 
 \textbf{Hardware}: Intel Xeon Silver 4214 (12 cores/24 threads, 2.2GHz base) with 64GB DDR4-2400 RAM, Ubuntu 22.04 LTS. \\
 \textbf{Software}: Rust 1.84.0, release mode with \texttt{-C opt-level=3 -C lto=fat}. \\
-\textbf{Benchmarks}: Criterion.rs synthetic microbenchmarks, plus containerized repeated-run ontology benchmarks for Standard, Large, and OWL2Bench core suites (3 clean runs each).
+\textbf{Benchmarks}: Criterion.rs synthetic microbenchmarks, plus Docker-containerized repeated-run ontology benchmarks for Standard, Large, and OWL2Bench core suites (3 clean runs each).
 
 \textbf{Workloads}: synthetic hierarchies (100--100{,}000 classes), synthetic disjunctive tests, \texttt{univ-bench.owl}, large biomedical ontologies (DOID, GO-Basic, UBERON), supplementary PATO and ChEBI cases, and OWL2Bench core profiles (DL/EL/QL/RL).
 
@@ -408,7 +408,7 @@ Table~\ref{tab:scalability} summarizes the synthetic scalability results. These 
 \resizebox{\linewidth}{!}{
 \begin{tabular}{r|r|r|r|r}
 \toprule
-\textbf{Classes} & \textbf{Sequential ($\mu$s)} & \textbf{SPACL ($\mu$s)} & \textbf{Speedup} & \textbf{Throughput (M ops/s)} \\
+\textbf{Classes} & \textbf{Sequential ($\mu$s)} & \textbf{SPACL ($\mu$s)} & \textbf{Speedup} & \textbf{Throughput (M exp./s)} \\
 \midrule
 100 & 13.3 & 20.9 & 0.64$\times$ & 4.8 \\
 500 & 75.9 & 84.3 & 0.90$\times$ & 5.9 \\
@@ -420,7 +420,7 @@ Table~\ref{tab:scalability} summarizes the synthetic scalability results. These 
 }
 \end{table}
 
-The crossover appears around 1,000 classes: below that point, speculative overhead largely cancels any gain; above it, the branch structure is large enough for parallelism to amortize coordination cost. This is consistent with the conservative adaptive-gating design and explains why the main real-world evidence is separated from the synthetic scalability signal.
+The crossover appears around 1,000 classes: below that point, speculative overhead largely cancels any gain; above it, the branch structure is large enough for parallelism to amortize coordination cost. Throughput here denotes synthetic expansion operations per second in the microbenchmark harness. This is consistent with the conservative adaptive-gating design and explains why the main real-world evidence is separated from the synthetic scalability signal.
 
 \subsection{Adaptive Threshold Behavior}
 \label{sec:adaptive-opt}
@@ -432,13 +432,13 @@ The adaptive gate is intended as an overhead-control mechanism rather than as th
 \caption{Adaptive Threshold Performance on Small Disjunctive Cases}
 \label{tab:adaptive}
 \resizebox{\linewidth}{!}{
-\begin{tabular}{l|r|r|r|r}
+\begin{tabular}{l|r|r|r|r|r}
 \toprule
-\textbf{Test Case} & \textbf{Sequential} & \textbf{Adaptive} & \textbf{Always-Parallel} & \textbf{AP/Adaptive} \\
+\textbf{Test Case} & \textbf{Sequential} & \textbf{Adaptive} & \textbf{Always-Parallel} & \textbf{Adaptive/Sequential} & \textbf{AP/Adaptive} \\
 \midrule
-Simple (1 union) & 9.0$\mu$s & 14.5$\mu$s & 1,069$\mu$s & \textbf{73.5$\times$} \\
-Small (2 unions) & 7.9$\mu$s & 24.7$\mu$s & 1,141$\mu$s & \textbf{46.1$\times$} \\
-Medium (5 unions) & 9.1$\mu$s & 58.9$\mu$s & 1,116$\mu$s & \textbf{18.9$\times$} \\
+Simple (1 union) & 9.0$\mu$s & 14.5$\mu$s & 1,069$\mu$s & 1.61$\times$ & \textbf{73.5$\times$} \\
+Small (2 unions) & 7.9$\mu$s & 24.7$\mu$s & 1,141$\mu$s & 3.13$\times$ & \textbf{46.1$\times$} \\
+Medium (5 unions) & 9.1$\mu$s & 58.9$\mu$s & 1,116$\mu$s & 6.47$\times$ & \textbf{18.9$\times$} \\
 \bottomrule
 \end{tabular}
 }
