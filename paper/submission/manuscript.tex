@@ -24,6 +24,7 @@
 \renewcommand{\topfraction}{0.9}
 \renewcommand{\textfraction}{0.07}
 \renewcommand{\floatpagefraction}{0.8}
+\newcommand{\dlfrag}{\ensuremath{\mathcal{ALC/SHOIQ}}}
 
 \hypersetup{
     colorlinks=true,
@@ -62,7 +63,7 @@
 \fntext[fn3]{Corresponding author}
 
 \begin{abstract}
-Expressive OWL reasoning is often constrained by combinatorial non-deterministic branch growth and high ontology ingest/materialization cost on large inputs. We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), an open-source ALC/SHOIQ reasoner that combines branch-level speculative execution, reusable nogood information, and a structural RDF/XML processing pipeline for end-to-end ontology loading and consistency checking. The practical goal is to make expressive OWL reasoning usable under real deployment conditions.
+Expressive OWL reasoning is often constrained by combinatorial non-deterministic branch growth and high ontology ingest/materialization cost on large inputs. We present SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning), an open-source \dlfrag reasoner that combines branch-level speculative execution, reusable nogood information, and a structural RDF/XML processing pipeline for end-to-end ontology loading and consistency checking. The practical goal is to make expressive OWL reasoning usable under real deployment conditions.
 
 SPACL uses a work-stealing speculative scheduler together with a conservative two-stage gate that keeps small or low-branch workloads on the sequential path. On synthetic disjunctive scalability workloads, this gate avoids severe always-parallel overhead and permits net speedup once branch structure becomes large enough, reaching up to 4.88$\times$ at the largest synthetic point evaluated.
 
@@ -74,7 +75,7 @@ The largest end-to-end gains in the current evaluation come from parser and mate
 \end{abstract}
 
 \begin{keyword}
-ALC/SHOIQ \sep Tableaux Reasoning \sep Parallel Algorithms \sep Nogood Learning \sep Description Logics \sep Semantic Web
+\dlfrag \sep Tableaux Reasoning \sep Parallel Algorithms \sep Nogood Learning \sep Description Logics \sep Semantic Web
 \end{keyword}
 
 \end{frontmatter}
@@ -84,7 +85,7 @@ ALC/SHOIQ \sep Tableaux Reasoning \sep Parallel Algorithms \sep Nogood Learning 
 
 Description Logics (DLs) provide the formal basis of the Semantic Web, and OWL2 DL is the corresponding W3C ontology language standard \cite{owl2}. Tableaux methods remain important for expressive OWL reasoning because they support sound and complete model construction for rich TBox and ABox tasks \cite{dlhandbook}. In practice, however, expressive reasoning is often limited by the combinatorial growth of non-deterministic branches and by end-to-end loading costs on large ontologies.
 
-This paper studies that bottleneck through an implemented ALC/SHOIQ reasoning path. We focus on two practical questions. First, can speculative parallel tableaux reduce branch-exploration cost without paying unacceptable overhead on easy workloads? Second, when large RDF/XML ontologies dominate runtime, how much of the observed end-to-end behavior is actually due to parsing and materialization rather than to reasoning proper? These questions matter both for ontology-engineering workflows and for our longer-term goal of using reasoning as a validation component in distributed application settings. As shown later by our stage-level A/B results, the dominant bottleneck in the evaluated real-world RDF/XML ontologies lies in ingest/materialization rather than in branch exploration; speculative scheduling remains useful, but its clearest impact appears on branch-heavy synthetic and inconsistent workloads rather than as the primary source of the largest biomedical wall-clock gains.
+This paper studies that bottleneck through an implemented \dlfrag reasoning path. We focus on two practical questions. First, can speculative parallel tableaux reduce branch-exploration cost without paying unacceptable overhead on easy workloads? Second, when large RDF/XML ontologies dominate runtime, how much of the observed end-to-end behavior is actually due to parsing and materialization rather than to reasoning proper? These questions matter both for ontology-engineering workflows and for our longer-term goal of using reasoning as a validation component in distributed application settings. As shown later by our stage-level A/B results, the dominant bottleneck in the evaluated real-world RDF/XML ontologies lies in ingest/materialization rather than in branch exploration; speculative scheduling remains useful, but its clearest impact appears on branch-heavy synthetic and inconsistent workloads rather than as the primary source of the largest biomedical wall-clock gains.
 
 \subsection{Research Questions}
 \label{sec:questions}
@@ -106,12 +107,12 @@ SPACL contributes four elements. First, it combines branch-level speculative wor
 
 Tableau and hypertableau reasoners such as Pellet, Openllet, HermiT, and Konclude show that expressive OWL reasoning remains viable when branching, blocking, and caching are carefully engineered \cite{pellet,openllet,hermit,konclude,motik2009hypertableau}. ORE benchmark campaigns also provide a broader comparative backdrop for these systems, especially for Konclude and other mature OWL reasoners \cite{parsia2015ore}. At the other end of the design space, ELK demonstrates the throughput advantage of profile-restricted consequence-based reasoning \cite{elk}. This gives the central tension for our work: expressive reasoning remains useful, but branching and operational overhead often dominate runtime.
 
-Parallel reasoning research addresses that tension through shared-memory classification frameworks, work-stealing schedulers, parallel ABox reasoning, and distributed materialization systems \cite{quan2017parallel,quan2019framework,workstealing,steigmiller2020parallelised,liu2017spowl,gu2015cichlid,benitez2023nora}. These studies show that parallelism helps only when coordination cost is controlled. Conflict-driven learning offers another lever. In SAT/CSP it is standard; in DL systems, related reuse ideas appear in hypertableau optimizations and tableau--saturation hybrids \cite{marques1999grasp,glorian2020nacre,motik2009hypertableau,song2013complete,glimm2014coupling}. SPACL is positioned as a practical open-source combination of these strands for the implemented ALC/SHOIQ handling path exercised here.
+Parallel reasoning research addresses that tension through shared-memory classification frameworks, work-stealing schedulers, parallel ABox reasoning, and distributed materialization systems \cite{quan2017parallel,quan2019framework,workstealing,steigmiller2020parallelised,liu2017spowl,gu2015cichlid,benitez2023nora}. These studies show that parallelism helps only when coordination cost is controlled. Conflict-driven learning offers another lever. In SAT/CSP it is standard; in DL systems, related reuse ideas appear in hypertableau optimizations and tableau--saturation hybrids \cite{marques1999grasp,glorian2020nacre,motik2009hypertableau,song2013complete,glimm2014coupling}. SPACL is positioned as a practical open-source combination of these strands for the implemented \dlfrag handling path exercised here.
 
 \section{Formal Framework}
 \label{sec:formal}
 
-SPACL follows a tableau-style reasoning path for the implemented ALC/SHOIQ fragment exercised in this paper. Conjunction expands in place, existential and universal restrictions propagate as usual, and disjunction creates branch points. The main design choice is operational rather than axiomatic: how to schedule those branches, when to parallelize them, and when to prune them safely.
+SPACL follows a tableau-style reasoning path for the implemented \dlfrag fragment exercised in this paper. Conjunction expands in place, existential and universal restrictions propagate as usual, and disjunction creates branch points. The main design choice is operational rather than axiomatic: how to schedule those branches, when to parallelize them, and when to prune them safely.
 
 Speculative execution in SPACL is a schedule change, not a rule change. The implementation may explore selected disjunctive branches concurrently, but every branch is still evaluated by the same underlying rule-handling path. Learned nogoods are admitted only after contradiction is rechecked, so pruning is used only for branch contexts already verified unsatisfiable.
 
@@ -204,7 +205,7 @@ This is intentionally conservative. SPACL does not treat every contradictory tra
 \subsection{Correctness Scope}
 \label{sec:correctness}
 
-Our correctness claim is intentionally limited. Under an idealized model with fair exhaustive exploration of generated disjunctive branches and a complete sequential tableaux reference procedure for the same implemented ALC/SHOIQ handling path, speculative scheduling preserves soundness and transfers conditional completeness: reordering branches does not invalidate a satisfiable branch, and verified nogoods prune only branch contexts already checked unsatisfiable. The prototype evaluated here adds engineering bounds such as selected-disjunction scope, bounded speculative depth, and timeout limits, so the results in Section~\ref{sec:evaluation} are empirical evidence for the implementation rather than a full completeness proof for unrestricted SHOIQ reasoning.
+Our correctness claim is intentionally limited. Under an idealized model with fair exhaustive exploration of generated disjunctive branches and a complete sequential tableaux reference procedure for the same implemented \dlfrag handling path, speculative scheduling preserves soundness and transfers conditional completeness: reordering branches does not invalidate a satisfiable branch, and verified nogoods prune only branch contexts already checked unsatisfiable. The prototype evaluated here adds engineering bounds such as selected-disjunction scope, bounded speculative depth, and timeout limits, so the results in Section~\ref{sec:evaluation} are empirical evidence for the implementation rather than a full completeness proof for unrestricted SHOIQ reasoning.
 
 \section{The SPACL Algorithm}
 \label{sec:algorithm}
@@ -302,7 +303,7 @@ When the adaptive gate is open, SPACL creates branch-constrained work items from
 \subsection{Nogood Learning and Caching}
 \label{sec:nogood}
 
-When a speculative branch reaches contradiction, the implementation attempts to learn a branch-level nogood from the active branch constraints. A candidate core is greedily minimized and admitted only after contradiction is revalidated by the same checking path used for pruning. Workers consult thread-local nogood caches before synchronizing with the global store, which keeps most repeated checks off the shared hot path in the inconsistent-workload ablations reported later.
+When a speculative branch reaches contradiction, the implementation attempts to learn a branch-level nogood from the active branch constraints. A candidate core is greedily minimized and admitted only after contradiction is revalidated by the same checking path used for pruning. Concretely, the candidate core is replayed through the same contradiction checker used on the live branch state, and it is admitted only if contradiction is reproduced and the core remains a subset of the active branch constraints; otherwise it is discarded. Workers consult thread-local nogood caches before synchronizing with the global store, which keeps most repeated checks off the shared hot path in the inconsistent-workload ablations reported later.
 
 \subsection{Adaptive Threshold}
 \label{sec:adaptive}
@@ -312,7 +313,7 @@ The implemented branch estimate is given in Equation~\ref{eq:estimate}:
 \text{branches} = \max\left(1, \ |\text{DetectedDisjunctions}| + 2 \times |\text{DisjointAxioms}| + \frac{|\text{Classes}|}{10}\right).
 \label{eq:estimate}
 \end{equation}
-The divisor 10 keeps ontology-size contribution on the same order as the disjunction signal in pilot sweeps, so low-branch taxonomies do not trigger speculative execution prematurely. Calibration sweeps over synthetic union/complement workloads and warm-up biomedical traces showed that the robust operating region begins at $\tau \ge 2000$; the implementation therefore keeps a conservative default at $\tau = 2000$.
+The divisor 10 keeps ontology-size contribution on the same order as the disjunction signal in pilot sweeps, so low-branch taxonomies do not trigger speculative execution prematurely. Calibration was done by replaying synthetic union/complement controls together with warm-up DOID and GO-Basic traces under candidate $(\tau,\theta)$ pairs, then selecting a conservative operating point that suppresses low-branch overhead while still allowing activation on branch-heavy controls. These sweeps showed that the robust operating region begins at $\tau \ge 2000$; the implementation therefore keeps a conservative default at $\tau = 2000$.
 
 \section{Implementation}
 \label{sec:implementation}
@@ -322,7 +323,7 @@ The divisor 10 keeps ontology-size contribution on the same order as the disjunc
 
 SPACL is implemented in Rust 1.84.0. The main reasoner maintains a shared ontology representation, a global worker pool, and thread-local nogood caches backed by a bounded shared store. Rust and Crossbeam are used here for engineering reasons rather than as claims in themselves: the goal is to keep speculative scheduling and shared-state coordination explicit while avoiding garbage-collection pauses and coarse-grained locking on the hot path \cite{crossbeam}.
 
-The public implementation includes parsers for the syntaxes exercised in this study, with RDF/XML being the dominant path in the large-ontology experiments. Full OWL2 DL conformance across every syntax variant is outside the scope of this revision; the results reported below concern the implemented ALC/SHOIQ handling path exercised by the evaluated workloads.
+The public implementation includes parsers for the syntaxes exercised in this study, with RDF/XML being the dominant path in the large-ontology experiments. Full OWL2 DL conformance across every syntax variant is outside the scope of this revision; the results reported below concern the implemented \dlfrag handling path exercised by the evaluated workloads.
 
 \subsection{Structural RDF/XML Parser and Materialization}
 \label{sec:structural-parser}
@@ -388,6 +389,7 @@ These equations are explanatory bookkeeping relations for interpreting the measu
 \textbf{Benchmarks}: Criterion.rs synthetic microbenchmarks, plus Docker-containerized repeated-run ontology benchmarks for Standard, Large, and OWL2Bench core suites (3 clean runs each).
 
 \textbf{Workloads}: synthetic hierarchies (100--100{,}000 classes), synthetic disjunctive tests, \texttt{univ-bench.owl}, large biomedical ontologies (DOID, GO-Basic, UBERON), supplementary PATO and ChEBI cases, and OWL2Bench core profiles (DL/EL/QL/RL).
+\textbf{Ontology releases used in this run}: DOID \texttt{2026-02-02} (\texttt{doid/releases/2026-02-02/doid.owl}); GO-Basic \texttt{2026-01-23} (\texttt{go/releases/2026-01-23/go.owl}); UBERON \texttt{2025-12-04} (\texttt{uberon/releases/2025-12-04/uberon.owl}); PATO \texttt{2025-05-14} (\texttt{pato/releases/2025-05-14/pato.owl}); ChEBI release \texttt{248} with header date string \texttt{06:01:2026 14:33} (as encoded in \texttt{chebi.owl} metadata).
 
 \subsection{Benchmark Protocol}
 \label{sec:benchmark-protocol}
@@ -510,7 +512,7 @@ Across the three primary biomedical ontologies, parse/materialization was the do
 \subsection{Comparison Context}
 \label{sec:comparison}
 
-The comparison set mixes engines with different implementation languages and, in ELK's case, a narrower logic profile than the full ALC/SHOIQ path exercised by SPACL. Table~\ref{tab:comparison} summarizes this context so that wall-clock rankings are not overinterpreted as expressivity-equivalent wins.
+The comparison set mixes engines with different implementation languages and, in ELK's case, a narrower logic profile than the full \dlfrag path exercised by SPACL. Table~\ref{tab:comparison} summarizes this context so that wall-clock rankings are not overinterpreted as expressivity-equivalent wins.
 
 \begin{table}[htbp]
 \centering
@@ -521,7 +523,7 @@ The comparison set mixes engines with different implementation languages and, in
 \toprule
 \textbf{Reasoner} & \textbf{Lang} & \textbf{Parallel} & \textbf{Learning} & \textbf{Source} & \textbf{Profile} \\
 \midrule
-SPACL & Rust & yes & yes & open & ALC/SHOIQ \\
+SPACL & Rust & yes & yes & open & \dlfrag \\
 Konclude & C++ & yes & no & external binary & SROIQ \\
 Pellet & Java & no & no & open & SROIQ \\
 Openllet & Java & no & no & open & SROIQ \\
@@ -714,7 +716,7 @@ Three limitations matter most for interpreting the results. First, the primary c
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-SPACL combines speculative work stealing, verified nogood reuse, and a structural RDF/XML pipeline in one open implementation for the evaluated ALC/SHOIQ handling path. The empirical picture is mixed but coherent, and the paper should be read that way. On synthetic disjunctive workloads, the adaptive gate avoids pathological always-parallel overhead and permits net speedup once branch structure becomes large enough. On the main real-world biomedical panel (DOID, GO-Basic, UBERON), however, the dominant gain in the current evaluation comes from parser/materialization acceleration: stage-level A/B runs show about 97\% parse-only reduction, and SPACL yields the smallest successful median end-to-end wall-clock values on all three ontologies in the primary large-suite campaign. The OWL2Bench core-profile suite shows a consistent deployment-level direction, with SPACL completing all 12 runs and yielding the smallest successful median wall-clock values on the four tested profiles in this harness. The resulting scientific takeaway is that, in this evaluated setting, end-to-end OWL reasoning performance is determined jointly by branch-management policy and ontology-ingest design, with the ingest side dominating the largest real-world gains.
+SPACL combines speculative work stealing, verified nogood reuse, and a structural RDF/XML pipeline in one open-source implementation for the evaluated \dlfrag handling path. The empirical picture is mixed but coherent, and the paper should be read that way. On synthetic disjunctive workloads, the adaptive gate avoids pathological always-parallel overhead and permits net speedup once branch structure becomes large enough. On the main real-world biomedical panel (DOID, GO-Basic, UBERON), however, the dominant gain in the current evaluation comes from parser/materialization acceleration: stage-level A/B runs show about 97\% parse-only reduction, and SPACL yields the smallest successful median end-to-end wall-clock values on all three ontologies in the primary large-suite campaign. The OWL2Bench core-profile suite shows a consistent deployment-level direction, with SPACL completing all 12 runs and yielding the smallest successful median wall-clock values on the four tested profiles in this harness. The resulting scientific takeaway is that, in this evaluated setting, end-to-end OWL reasoning performance is determined jointly by branch-management policy and ontology-ingest design, with the ingest side dominating the largest real-world gains.
 
 These conclusions remain bounded by the current prototype and protocol. The main comparisons are single-machine, repeated-run wall-clock results under a containerized CLI harness; they do not imply identical logic-profile coverage across all competitors, nor do they replace matched kernel-level reasoning measurements. The primary practical result in the current evaluation is parser- and materialization-side acceleration on large RDF/XML ontologies, while the speculative-reasoning contribution is best supported by the branch-heavy synthetic and inconsistent-workload evidence. PATO, ChEBI, and Konclude are therefore reported as supplementary evidence rather than folded into the primary comparison basis. Future work is concrete in three directions: (1) expand to broader inconsistent real-world corpora and heavier ABox-centered workloads, (2) run cleaner deployment-neutral comparator campaigns with explicit variance/significance reporting, and (3) strengthen scheduler-focused ablations that isolate adaptive gating and nogood reuse under fixed ingest conditions. SPACL is available at \url{https://github.com/anusornc/SPACL}.
 
