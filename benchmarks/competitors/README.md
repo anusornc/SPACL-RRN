@@ -1,6 +1,20 @@
 # OWL2 Reasoner Competitor Benchmarks
 
-This directory contains Docker-based benchmarking infrastructure for comparing **Tableauxx** with major OWL reasoners using a single, status-checked harness.
+This directory contains Docker-based benchmarking infrastructure for comparing **SPACL (Tableauxx runtime)** with major OWL reasoners using a single, status-checked harness.
+
+## Prerequisites
+
+- Docker Engine (`docker` CLI must be usable by your account)
+- `jq`
+- GNU `timeout` (from `coreutils`)
+
+Quick check:
+
+```bash
+docker --version
+jq --version
+timeout --version | head -n 1
+```
 
 ## Competitors
 
@@ -21,6 +35,15 @@ This directory contains Docker-based benchmarking infrastructure for comparing *
 # Run complete benchmark suite
 cd benchmarks/competitors
 ./scripts/run_benchmarks.sh
+
+# Recommended first run: one-ontology smoke (fast validation)
+RUN_ID=smoke_$(date +%Y%m%d_%H%M%S) \
+ONTOLOGY_SUITE=standard \
+ONTOLOGY_REGEX='^disjunctive_simple\.owl$' \
+REASONERS_OVERRIDE=tableauxx \
+TIMEOUT_SECONDS=60 \
+SKIP_BUILD=0 \
+./scripts/run_benchmarks.sh all
 
 # Or step by step:
 ./scripts/run_benchmarks.sh prepare   # Stage suite ontologies into an isolated run dir
@@ -49,6 +72,13 @@ REPEAT_WARM=5 TIMEOUT_SECONDS=1800 ./scripts/profile_bin_cache.sh chebi.owl
 # Batch stage split across large suite
 ./scripts/run_stage_suite.sh
 CHEBI_TIMEOUT_SECONDS=2400 ./scripts/run_stage_suite.sh doid.owl go-basic.owl uberon.owl
+```
+
+If you hit Docker socket permission errors, run:
+
+```bash
+sudo usermod -aG docker "$USER"
+# then log out/login (or reboot), and retry
 ```
 
 ## Individual Reasoner Testing
@@ -125,8 +155,7 @@ Use `./scripts/profile_bin_cache.sh` only for `.owlbin` diagnostics; it is not p
 
 Structural parser mode (`OWL2_REASONER_STRUCTURAL_XML_PARSER=1`) with stage harness showed:
 
-- `doid.owl` parse-only: `27307 ms -> 11284 ms` (`-58.68%`)
- - `doid.owl` parse-only: `27307 ms -> 830 ms` (`-96.96%`)
+- `doid.owl` parse-only: `27307 ms -> 830 ms` (`-96.96%`)
   - `benchmarks/competitors/results/history/stages_doid_20260218_183604/stage_summary.csv`
   - `benchmarks/competitors/results/history/stages_doid_20260219_130432/stage_summary.csv`
 - `go-basic.owl` parse-only: `158306 ms -> 3472 ms` (`-97.81%`)
@@ -154,7 +183,7 @@ This prevents false-positive "success" rows when a reasoner fails to start.
 - **Pellet vs Openllet**: Both are benchmarked directly. Pellet uses legacy `2.3.3` artifacts (`pellet-owlapiv3`) from `maven.aksw.org`.
 - **Pellet availability caveat**: If `maven.aksw.org` is unreachable in a given environment, Pellet image build may fail and benchmark rows will become `not_available`.
 - **Konclude input format**: The current corpus is RDF/XML `.owl`; this Konclude CLI path reports parser errors (`OWL2/XML` expectation) and is therefore marked `failed` in result JSONs.
-- **`univ-bench.owl` in this repo**: The bundled file is truncated (49 lines) and behaves as a parser-failure robustness test for many OWLAPI-based reasoners, not a full-fidelity performance target.
+- **`univ-bench.owl` in this repo**: The bundled file is intentionally lightweight (`62` lines in current tree) and should be treated as a smoke/sanity input, not a full-fidelity performance target.
 - **FaCT++**: Standalone CLI availability is environment-dependent; use `INCLUDE_FACTPP=1` to attempt it.
 - **Timeouts**: Default timeout is 5 minutes per reasoner/ontology run.
 - **Hardware**: Results depend on host CPU/RAM and Docker limits.

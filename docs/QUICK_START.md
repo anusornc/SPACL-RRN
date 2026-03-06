@@ -1,5 +1,23 @@
 # Quick Start
 
+## 0. Prerequisites
+
+Required tools:
+
+- Rust toolchain (stable; tested with Rust `1.84+`)
+- Docker Engine (`docker` CLI usable by your account)
+- `jq`
+- GNU `timeout` (from `coreutils`)
+
+Quick check:
+
+```bash
+cargo --version
+docker --version
+jq --version
+timeout --version | head -n 1
+```
+
 ## 1. Build and test
 
 ```bash
@@ -50,7 +68,19 @@ cargo run --bin owl2-reasoner -- check benchmarks/ontologies/other/go-basic.owl
 
 ## 5. Run benchmark harness
 
-### Core competitor harness
+### 5.1 Minimal smoke benchmark (recommended first)
+
+```bash
+RUN_ID=smoke_$(date +%Y%m%d_%H%M%S) \
+ONTOLOGY_SUITE=standard \
+ONTOLOGY_REGEX='^disjunctive_simple\.owl$' \
+REASONERS_OVERRIDE=tableauxx \
+TIMEOUT_SECONDS=60 \
+SKIP_BUILD=0 \
+benchmarks/competitors/scripts/run_benchmarks.sh all
+```
+
+### 5.2 Core competitor harness
 
 ```bash
 # Small suite example
@@ -79,7 +109,22 @@ For authoritative benchmark commands and run IDs, use:
 
 - `docs/benchmarking/BENCHMARK_RUNBOOK.md`
 
-## 6. Build paper PDF
+## 6. Troubleshooting (common)
+
+Docker permission error:
+
+```text
+permission denied while trying to connect to the docker API socket
+```
+
+Fix:
+
+```bash
+sudo usermod -aG docker "$USER"
+# log out/login (or reboot), then retry
+```
+
+## 7. Build paper PDF
 
 ```bash
 cd paper/submission

@@ -3,6 +3,27 @@
 This document tracks how benchmarks are executed in this repository and which
 run artifacts are currently used for paper-level reporting.
 
+## 0) Environment Prerequisites
+
+- Docker Engine (`docker` CLI accessible by your user)
+- `jq`
+- GNU `timeout`
+
+Quick check:
+
+```bash
+docker --version
+jq --version
+timeout --version | head -n 1
+```
+
+If Docker socket permission fails (`permission denied ... /var/run/docker.sock`),
+add your user to Docker group and re-login:
+
+```bash
+sudo usermod -aG docker "$USER"
+```
+
 ## 1) Current Primary Benchmark Flow
 
 Core harness:
@@ -22,23 +43,39 @@ Status model:
 
 - `success`, `failed`, `timeout`, `not_available`
 
-## 2) Current Paper-Grade Runs
+## 2) Current Paper-Grade Artifacts
 
-Latest validated run IDs used in manuscript updates:
+Primary artifacts currently referenced for paper-level summaries:
 
-- Small Workload Suite:
-  - `small_workload_suite_real_20260221`
-  - Path: `benchmarks/competitors/results/history/small_workload_suite_real_20260221`
-- Large Head-to-Head:
-  - `large_sanity_real_20260221`
-  - Path: `benchmarks/competitors/results/history/large_sanity_real_20260221`
+- Head-to-head aggregate (standard + large):
+  - `headtohead_repeated_aggregate_20260226`
+  - Path: `benchmarks/competitors/results/history/headtohead_repeated_aggregate_20260226`
+- OWL2Bench clean 3-run aggregate:
+  - `owl2bench_univ_core_clean_aggregate_20260223`
+  - Path: `benchmarks/competitors/results/history/owl2bench_univ_core_clean_aggregate_20260223`
+- Stage-level parser A/B references:
+  - `stages_doid_20260219_130432`
+  - `stages_go_basic_20260219_130710`
+  - `stages_uberon_20260219_130942`
 
-Timeout policy used in those runs:
+Timeout policy used in these flows:
 
-- Small: `180s`
-- Large: `900s`
+- Standard / OWL2Bench core: `300s`
+- Large biomedical panel: `900s`
 
 ## 3) Re-run Commands (Canonical)
+
+Recommended smoke run first:
+
+```bash
+RUN_ID=smoke_$(date +%Y%m%d_%H%M%S) \
+ONTOLOGY_SUITE=standard \
+ONTOLOGY_REGEX='^disjunctive_simple\.owl$' \
+REASONERS_OVERRIDE=tableauxx \
+TIMEOUT_SECONDS=60 \
+SKIP_BUILD=0 \
+benchmarks/competitors/scripts/run_benchmarks.sh all
+```
 
 Small suite:
 
