@@ -13,6 +13,15 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Sync synthetic scalability figures from paper/figures when available.
+FIG_SRC_DIR="$SCRIPT_DIR/../figures"
+for fig in scalability.pdf speedup.pdf throughput.pdf; do
+    src="$FIG_SRC_DIR/$fig"
+    if [ -f "$src" ]; then
+        cp "$src" "$SCRIPT_DIR/$fig"
+    fi
+done
+
 # Check for clean flag
 if [ "$1" = "clean" ]; then
     echo "Cleaning auxiliary files..."
