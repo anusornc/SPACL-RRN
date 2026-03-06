@@ -41,6 +41,7 @@ Thumbs.db
 .env.*
 !.env.example
 CLAUDE.md
+.codex/
 
 # Docker
 .dockerignore.bak
