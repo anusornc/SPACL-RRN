@@ -31,6 +31,7 @@ Source Files:
   - references.bib        BibTeX bibliography (55 references)
   - elsarticle.cls        Elsevier document class
   - elsarticle-num.bst    Bibliographic style (numbered citations)
+  - export_docx.sh        DOCX export helper (Pandoc via Docker/local)
 
 Figures (PDF vector format):
   - scalability.pdf       Figure 1: Scalability comparison
@@ -57,6 +58,29 @@ Required packages (standard LaTeX distribution):
   - graphicx, booktabs, multirow
   - subcaption, xcolor, hyperref
   - tikz (for architecture diagram)
+
+================================================================================
+DOCX EXPORT INSTRUCTIONS
+================================================================================
+
+Preferred (uses Docker Pandoc image, no local install required):
+
+  ./export_docx.sh
+
+Optional custom output filename:
+
+  ./export_docx.sh manuscript_for_review.docx
+
+Direct command equivalent:
+
+  docker run --rm --user "$(id -u):$(id -g)" \
+    -v "$(pwd):/workdir" -w /workdir pandoc/core:latest \
+    manuscript.tex --from=latex --to=docx --resource-path=. \
+    -o manuscript.docx
+
+Important note:
+  Pandoc may keep some advanced LaTeX math macros as raw TeX in DOCX.
+  After export, review equations and algorithm blocks in Word before sharing.
 
 ================================================================================
 SUBMISSION INSTRUCTIONS FOR EDITORIAL MANAGER

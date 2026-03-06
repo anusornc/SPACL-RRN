@@ -55,6 +55,7 @@ Submission files and build script:
 
 - `paper/submission/manuscript.tex`
 - `paper/submission/compile.sh`
+- `paper/submission/export_docx.sh`
 
 ## Generated artifacts
 

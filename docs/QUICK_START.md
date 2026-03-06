@@ -139,3 +139,21 @@ sudo usermod -aG docker "$USER"
 cd paper/submission
 ./compile.sh
 ```
+
+## 8. Export paper DOCX
+
+```bash
+cd paper/submission
+./export_docx.sh
+```
+
+Optional custom output file:
+
+```bash
+cd paper/submission
+./export_docx.sh manuscript_for_review.docx
+```
+
+Note:
+- DOCX export uses Pandoc (Docker image `pandoc/core` if Docker is available).
+- Review equations/algorithm formatting in Word after export, because some LaTeX math macros can remain as TeX.

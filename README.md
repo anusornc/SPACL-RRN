@@ -129,12 +129,27 @@ Submission workspace:
 
 - `paper/submission/manuscript.tex`
 - `paper/submission/compile.sh`
+- `paper/submission/export_docx.sh`
 
 Build PDF:
 
 ```bash
 cd paper/submission
 ./compile.sh
+```
+
+Export DOCX:
+
+```bash
+cd paper/submission
+./export_docx.sh
+```
+
+Optional output name:
+
+```bash
+cd paper/submission
+./export_docx.sh manuscript_for_review.docx
 ```
 
 ## License
