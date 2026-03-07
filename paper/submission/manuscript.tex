@@ -424,16 +424,26 @@ Table~\ref{tab:scalability} summarizes the synthetic scalability results. These 
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.48\linewidth]{scalability.pdf}\hfill
-\includegraphics[width=0.48\linewidth]{speedup.pdf}
-
-\vspace{0.6em}
-\includegraphics[width=0.72\linewidth]{throughput.pdf}
-\caption{Synthetic scalability visual summary corresponding to Table~\ref{tab:scalability}. Top row: runtime trend (left) and speedup over the sequential baseline (right). Bottom row: throughput comparison.}
-\label{fig:scalability-panels}
+\includegraphics[width=0.82\linewidth]{scalability.pdf}
+\caption{Synthetic scalability runtime trend corresponding to Table~\ref{tab:scalability}.}
+\label{fig:scalability-runtime}
 \end{figure}
 
-The crossover appears around 1,000 classes, and Figure~\ref{fig:scalability-panels} shows the same transition visually: below that point, speculative overhead largely cancels any gain; above it, the branch structure is large enough for parallelism to amortize coordination cost. Throughput here denotes synthetic expansion operations per second in the microbenchmark harness. The right panel compares both sequential and SPACL throughput, while the throughput column in Table~\ref{tab:scalability} reports the SPACL throughput values used for compact tabular comparison. This is consistent with the conservative adaptive-gating design and explains why the main real-world evidence is separated from the synthetic scalability signal.
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.82\linewidth]{speedup.pdf}
+\caption{Synthetic speedup over the sequential baseline corresponding to Table~\ref{tab:scalability}.}
+\label{fig:scalability-speedup}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.82\linewidth]{throughput.pdf}
+\caption{Synthetic throughput comparison corresponding to Table~\ref{tab:scalability}.}
+\label{fig:scalability-throughput}
+\end{figure}
+
+The crossover appears around 1,000 classes, and Figures~\ref{fig:scalability-runtime}, \ref{fig:scalability-speedup}, and \ref{fig:scalability-throughput} show the same transition visually: below that point, speculative overhead largely cancels any gain; above it, the branch structure is large enough for parallelism to amortize coordination cost. Throughput here denotes synthetic expansion operations per second in the microbenchmark harness. Figure~\ref{fig:scalability-throughput} compares both sequential and SPACL throughput, while the throughput column in Table~\ref{tab:scalability} reports the SPACL throughput values used for compact tabular comparison. This is consistent with the conservative adaptive-gating design and explains why the main real-world evidence is separated from the synthetic scalability signal.
 
 \subsection{Adaptive Threshold Behavior}
 \label{sec:adaptive-opt}
