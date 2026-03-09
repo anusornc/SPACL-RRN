@@ -118,6 +118,15 @@ SKIP_BUILD=0 \
 benchmarks/competitors/scripts/run_rrn_policy_protocol.sh
 ```
 
+Train a first linear RRN policy file from exported snapshots:
+
+```bash
+cargo run --bin train_rrn_linear_model -- \
+  benchmarks/competitors/results/history/<RUN_ID>/branch_snapshots.jsonl \
+  benchmarks/models/rrn_linear_model.json \
+  heuristic
+```
+
 ### OWL2Bench wrapper
 
 ```bash

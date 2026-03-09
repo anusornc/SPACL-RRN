@@ -85,6 +85,7 @@ sudo usermod -aG docker "$USER"
 - `owl2-reasoner`: primary CLI for loading, checking, profiling, and converting ontologies
 - `owl2_validation`: lightweight validation/check/stats CLI
 - `epcis-reasoner`: EPCIS/traceability-oriented demo CLI
+- `train_rrn_linear_model`: offline utility to fit a first linear hybrid policy from snapshot JSONL
 
 Run help:
 
@@ -92,6 +93,7 @@ Run help:
 cargo run --bin owl2-reasoner -- help
 cargo run --bin owl2_validation -- help
 cargo run --bin epcis-reasoner -- help
+cargo run --bin train_rrn_linear_model -- --help
 ```
 
 ## Benchmarking

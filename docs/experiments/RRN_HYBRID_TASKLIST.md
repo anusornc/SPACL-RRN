@@ -40,6 +40,7 @@ Build and evaluate a neural-symbolic extension where an RRN policy guides SPACL 
 
 - [x] Define branch-decision training schema (`jsonl` branch snapshots)
 - [x] Export branch snapshots from benchmark runs
+- [x] Add offline trainer utility (`train_rrn_linear_model`)
 - [ ] Train first RRN baseline (offline)
 - [x] Add model loading/inference wrapper with fail-safe fallback
 

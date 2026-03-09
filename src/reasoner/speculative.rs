@@ -454,6 +454,33 @@ impl ExprFeatureVector {
     }
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct SnapshotOperandFeatures {
+    union_nodes: usize,
+    intersection_nodes: usize,
+    complement_nodes: usize,
+    some_values_nodes: usize,
+    all_values_nodes: usize,
+    atom_nodes: usize,
+    total_nodes: usize,
+    max_depth: usize,
+}
+
+impl From<ExprFeatureVector> for SnapshotOperandFeatures {
+    fn from(value: ExprFeatureVector) -> Self {
+        Self {
+            union_nodes: value.union_nodes,
+            intersection_nodes: value.intersection_nodes,
+            complement_nodes: value.complement_nodes,
+            some_values_nodes: value.some_values_nodes,
+            all_values_nodes: value.all_values_nodes,
+            atom_nodes: value.atom_nodes,
+            total_nodes: value.total_nodes,
+            max_depth: value.max_depth,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 struct RrnLinearModel {
     weights: RrnLinearWeights,
@@ -610,6 +637,7 @@ struct BranchSnapshotRecord {
     operand_count: usize,
     ordered_indices: Vec<usize>,
     operand_scores: Vec<f64>,
+    operand_features: Vec<SnapshotOperandFeatures>,
     reordered: bool,
     hybrid_model_used: bool,
     hybrid_fallback_used: bool,
@@ -1079,6 +1107,13 @@ impl SpeculativeTableauxReasoner {
         }
 
         if let Some(writer) = snapshot_writer {
+            let operand_features: Vec<SnapshotOperandFeatures> = ranking
+                .ordered_operands
+                .iter()
+                .map(|expr| {
+                    SnapshotOperandFeatures::from(ExprFeatureVector::from_expression(expr, 0))
+                })
+                .collect();
             let record = BranchSnapshotRecord {
                 branch_id: context.branch_id.0,
                 depth: context.depth,
@@ -1087,6 +1122,7 @@ impl SpeculativeTableauxReasoner {
                 operand_count: original.len(),
                 ordered_indices: ranking.ordered_indices.clone(),
                 operand_scores: ranking.scores.clone(),
+                operand_features,
                 reordered: ranking.reordered,
                 hybrid_model_used: ranking.used_model,
                 hybrid_fallback_used: ranking.used_fallback,
@@ -2050,6 +2086,10 @@ mod tests {
         let value: serde_json::Value = serde_json::from_str(first_line).expect("valid json");
         assert_eq!(value["branch_id"].as_u64(), Some(0));
         assert_eq!(value["operand_count"].as_u64(), Some(2));
+        assert_eq!(
+            value["operand_features"].as_array().map(|a| a.len()),
+            Some(2)
+        );
         assert_eq!(stats.lock().unwrap().branch_snapshots_written, 1);
     }
 

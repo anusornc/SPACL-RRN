@@ -47,6 +47,26 @@ Per run ID:
 - `benchmarks/competitors/results/history/<RUN_ID>/logs/*.log`
 - `benchmarks/competitors/results/history/<RUN_ID>/branch_snapshots.jsonl` (training export)
 
+## First offline training command (linear baseline)
+
+After collecting snapshots (prefer `SPACL_BRANCH_POLICY=heuristic` runs for distillation targets):
+
+```bash
+cargo run --bin train_rrn_linear_model -- \
+  benchmarks/competitors/results/history/<RUN_ID>/branch_snapshots.jsonl \
+  benchmarks/models/rrn_linear_model.json \
+  heuristic
+```
+
+Then evaluate with:
+
+```bash
+RUN_ID=rrn_model_eval_r1 \
+RRN_MODEL_PATH=benchmarks/models/rrn_linear_model.json \
+MODE_MATRIX='adaptive|1|baseline,adaptive|1|hybrid_rrn' \
+benchmarks/competitors/scripts/run_rrn_policy_protocol.sh
+```
+
 ## Fairness guardrails
 
 - Same workloads, timeout, and repeats across policy modes.
