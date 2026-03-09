@@ -14,6 +14,8 @@ This directory contains the active technical documentation for Tableauxx.
 - `docs/SPACL_ALGORITHM.md` - SPACL reasoning algorithm notes
 - `docs/HIERARCHICAL_CLASSIFICATION_IMPLEMENTATION.md` - hierarchy-path implementation details
 - `docs/LARGE_ONTOLOGY_OPTIMIZATION_PLAN.md` - large ontology optimization strategy
+- `docs/experiments/RRN_HYBRID_TASKLIST.md` - neural-symbolic RRN hybrid execution plan
+- `docs/experiments/RRN_PROTOCOL_LOCK_20260309.md` - frozen baseline hash and locked RRN benchmark knobs
 - `docs/experiments/TABLEAUXX_PARSER_ALGORITHM_REFERENCE.md` - parser pipeline reference
 - `docs/experiments/PARSER_SPEED_DECISION_LOG.md` - parser optimization decision log
 

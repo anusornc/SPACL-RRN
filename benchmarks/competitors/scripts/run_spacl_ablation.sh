@@ -12,6 +12,7 @@ REPEATS="${REPEATS:-3}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-300}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
 TASKSET_CPUS="${TASKSET_CPUS:-}"
+DEFAULT_BRANCH_POLICY="${SPACL_BRANCH_POLICY_DEFAULT:-baseline}"
 
 # Default workload mix:
 # - branch-heavy synthetic disjunctive cases
@@ -24,12 +25,12 @@ DEFAULT_WORKLOADS=(
   "tests/data/univ-bench.owl"
 )
 
-# mode|nogood_enabled
+# mode|nogood_enabled|branch_policy (branch_policy optional; defaults to baseline)
 DEFAULT_MODE_MATRIX=(
-  "sequential|0"
-  "adaptive|0"
-  "adaptive|1"
-  "always_parallel|0"
+  "sequential|0|baseline"
+  "adaptive|0|baseline"
+  "adaptive|1|baseline"
+  "always_parallel|0|baseline"
 )
 
 log() {
@@ -103,10 +104,11 @@ write_metadata() {
 - Modes: \`${#MODE_LIST[@]}\`
 
 This runner forces \`owl2-reasoner check\` to keep SPACL active. It does not use \`check-auto\`.
+Mode matrix format: \`mode|nogood|branch_policy\`.
 EOF
 
   {
-    echo "repeat,mode,nogood_enabled,workload,status,wall_time_ms,parse_time_ms,reason_time_ms,used_parallel,branches_created,work_items_expanded,branches_pruned,nogood_hits,local_cache_hits,global_cache_hits,steal_attempts,steal_successes,log_file"
+    echo "repeat,mode,nogood_enabled,branch_policy,workload,status,wall_time_ms,parse_time_ms,reason_time_ms,used_parallel,branches_created,work_items_expanded,branches_pruned,nogood_hits,local_cache_hits,global_cache_hits,steal_attempts,steal_successes,policy_reordered_splits,policy_fallbacks,hybrid_policy_calls,hybrid_model_calls,branch_snapshots_written,log_file"
   } > "$RUN_DIR/results.csv"
 }
 
@@ -125,12 +127,13 @@ run_one() {
   local repeat="$1"
   local mode="$2"
   local nogood="$3"
-  local workload_path="$4"
+  local branch_policy="$4"
+  local workload_path="$5"
   local workload_name log_file
   workload_name="$(basename "$workload_path")"
-  log_file="$RUN_DIR/logs/${repeat}_${mode}_nogood${nogood}_${workload_name}.log"
+  log_file="$RUN_DIR/logs/${repeat}_${mode}_nogood${nogood}_${branch_policy}_${workload_name}.log"
 
-  log "run repeat=$repeat mode=$mode nogood=$nogood workload=$workload_name"
+  log "run repeat=$repeat mode=$mode nogood=$nogood branch_policy=$branch_policy workload=$workload_name"
 
   local start_ns end_ns wall_ms status parse_ms reason_ms
   start_ns="$(date +%s%N)"
@@ -144,6 +147,9 @@ run_one() {
     env \
       OWL2_REASONER_LARGE_PARSE="${OWL2_REASONER_LARGE_PARSE:-1}" \
       SPACL_SCHED_MODE="$mode" \
+      SPACL_BRANCH_POLICY="$branch_policy" \
+      SPACL_RRN_MODEL_PATH="${SPACL_RRN_MODEL_PATH:-}" \
+      SPACL_BRANCH_SNAPSHOT_FILE="${SPACL_BRANCH_SNAPSHOT_FILE:-}" \
       SPACL_NOGOOD="$nogood" \
       SPACL_EMIT_STATS=1 \
       "${cmd_prefix[@]}" \
@@ -168,7 +174,10 @@ run_one() {
 
   local used_parallel branches_created work_items_expanded branches_pruned nogood_hits
   local local_cache_hits global_cache_hits steal_attempts steal_successes
+  local policy_reordered_splits policy_fallbacks hybrid_policy_calls hybrid_model_calls branch_snapshots_written
+  local reported_branch_policy
   used_parallel="$(extract_field "used_parallel" "$log_file")"
+  reported_branch_policy="$(extract_field "branch_policy" "$log_file")"
   branches_created="$(extract_field "branches_created" "$log_file")"
   work_items_expanded="$(extract_field "work_items_expanded" "$log_file")"
   branches_pruned="$(extract_field "branches_pruned" "$log_file")"
@@ -177,8 +186,14 @@ run_one() {
   global_cache_hits="$(extract_field "global_cache_hits" "$log_file")"
   steal_attempts="$(extract_field "steal_attempts" "$log_file")"
   steal_successes="$(extract_field "steal_successes" "$log_file")"
+  policy_reordered_splits="$(extract_field "policy_reordered_splits" "$log_file")"
+  policy_fallbacks="$(extract_field "policy_fallbacks" "$log_file")"
+  hybrid_policy_calls="$(extract_field "hybrid_policy_calls" "$log_file")"
+  hybrid_model_calls="$(extract_field "hybrid_model_calls" "$log_file")"
+  branch_snapshots_written="$(extract_field "branch_snapshots_written" "$log_file")"
 
   [[ -z "$used_parallel" ]] && used_parallel=""
+  [[ -z "$reported_branch_policy" ]] && reported_branch_policy="$branch_policy"
   [[ -z "$branches_created" ]] && branches_created=-1
   [[ -z "$work_items_expanded" ]] && work_items_expanded=-1
   [[ -z "$branches_pruned" ]] && branches_pruned=-1
@@ -187,11 +202,17 @@ run_one() {
   [[ -z "$global_cache_hits" ]] && global_cache_hits=-1
   [[ -z "$steal_attempts" ]] && steal_attempts=-1
   [[ -z "$steal_successes" ]] && steal_successes=-1
+  [[ -z "$policy_reordered_splits" ]] && policy_reordered_splits=-1
+  [[ -z "$policy_fallbacks" ]] && policy_fallbacks=-1
+  [[ -z "$hybrid_policy_calls" ]] && hybrid_policy_calls=-1
+  [[ -z "$hybrid_model_calls" ]] && hybrid_model_calls=-1
+  [[ -z "$branch_snapshots_written" ]] && branch_snapshots_written=-1
 
-  printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+  printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
     "$repeat" \
     "$mode" \
     "$nogood" \
+    "$reported_branch_policy" \
     "$workload_name" \
     "$status" \
     "$wall_ms" \
@@ -206,6 +227,11 @@ run_one() {
     "$global_cache_hits" \
     "$steal_attempts" \
     "$steal_successes" \
+    "$policy_reordered_splits" \
+    "$policy_fallbacks" \
+    "$hybrid_policy_calls" \
+    "$hybrid_model_calls" \
+    "$branch_snapshots_written" \
     "logs/$(basename "$log_file")" \
     >> "$RUN_DIR/results.csv"
 }
@@ -217,13 +243,13 @@ main() {
   build_binary
   write_metadata
 
-  local repeat mode_entry mode nogood workload
+  local repeat mode_entry mode nogood branch_policy workload
   for ((repeat = 1; repeat <= REPEATS; repeat++)); do
     for mode_entry in "${MODE_LIST[@]}"; do
-      mode="${mode_entry%%|*}"
-      nogood="${mode_entry##*|}"
+      IFS='|' read -r mode nogood branch_policy <<< "$mode_entry"
+      [[ -z "${branch_policy:-}" ]] && branch_policy="$DEFAULT_BRANCH_POLICY"
       for workload in "${WORKLOAD_LIST[@]}"; do
-        run_one "$repeat" "$mode" "$nogood" "$workload"
+        run_one "$repeat" "$mode" "$nogood" "$branch_policy" "$workload"
       done
     done
   done

@@ -7,6 +7,19 @@
 The official submission is in the `submission/` directory:
 
 ```
+
+Hybrid companion track for neural-symbolic RRN experiments:
+
+```
+paper/submission_rrn/
+├── manuscript.tex          # Split manuscript track for SPACL+RRN study
+├── references.bib          # Bibliography (working copy)
+├── elsarticle.cls
+├── elsarticle-num.bst
+├── compile.sh
+├── export_docx.sh
+└── README.md
+```
 paper/submission/
 ├── manuscript.tex          # Main LaTeX manuscript
 ├── manuscript.pdf          # Compiled PDF

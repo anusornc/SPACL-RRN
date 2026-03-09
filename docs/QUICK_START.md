@@ -66,6 +66,13 @@ OWL2_REASONER_LARGE_PARSE=1 OWL2_REASONER_AUTO_CACHE=1 \
 cargo run --bin owl2-reasoner -- check benchmarks/ontologies/other/go-basic.owl
 ```
 
+SPACL policy controls (for ablations/hybrid track):
+
+- `SPACL_SCHED_MODE=adaptive|sequential|always_parallel`
+- `SPACL_BRANCH_POLICY=baseline|heuristic|hybrid_rrn`
+- `SPACL_RRN_MODEL_PATH=/path/to/model.json` (optional)
+- `SPACL_BRANCH_SNAPSHOT_FILE=/path/to/branch_snapshots.jsonl` (optional training export)
+
 ## 5. Run benchmark harness
 
 ### 5.1 Minimal smoke benchmark (recommended first)
@@ -99,6 +106,16 @@ REASONERS_OVERRIDE=tableauxx,hermit,konclude,openllet,elk,jfact,pellet \
 TIMEOUT_SECONDS=180 \
 SKIP_BUILD=0 \
 benchmarks/competitors/scripts/run_benchmarks.sh all
+```
+
+### 5.3 Locked RRN policy protocol
+
+```bash
+RUN_ID=rrn_policy_r1 \
+REPEATS=3 \
+TIMEOUT_SECONDS=900 \
+SKIP_BUILD=0 \
+benchmarks/competitors/scripts/run_rrn_policy_protocol.sh
 ```
 
 ### OWL2Bench wrapper
@@ -157,3 +174,10 @@ cd paper/submission
 Note:
 - DOCX export uses Pandoc (Docker image `pandoc/core` if Docker is available).
 - Review equations/algorithm formatting in Word after export, because some LaTeX math macros can remain as TeX.
+
+## 9. Build hybrid RRN paper track
+
+```bash
+cd paper/submission_rrn
+./compile.sh
+```

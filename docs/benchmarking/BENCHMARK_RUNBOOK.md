@@ -178,7 +178,23 @@ Filtering note:
 - Running `prepare.sh` on OWL2Bench repository root may include many non-core test files.
 - For paper-facing OWL2Bench profile claims, use `OWL2BENCH_SOURCE_DIR=/tmp/owl2bench/OWL2Bench`.
 
-## 5) Governance Notes
+## 5) RRN Hybrid Policy Protocol
+
+For locked branch-policy comparisons (baseline vs heuristic vs hybrid_rrn), use:
+
+- `benchmarks/competitors/scripts/run_rrn_policy_protocol.sh`
+
+Protocol lock reference:
+
+- `docs/experiments/RRN_PROTOCOL_LOCK_20260309.md`
+
+Key SPACL policy env variables now supported by the harness:
+
+- `SPACL_BRANCH_POLICY=baseline|heuristic|hybrid_rrn`
+- `SPACL_RRN_MODEL_PATH=/path/to/model.json` (optional; hybrid falls back safely if absent)
+- `SPACL_BRANCH_SNAPSHOT_FILE=/path/to/branch_snapshots.jsonl` (optional training export)
+
+## 6) Governance Notes
 
 - Do not publish runs that include synthetic/fake timing rows.
 - Keep raw run artifacts in `benchmarks/competitors/results/history/<run_id>`.

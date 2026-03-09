@@ -25,7 +25,7 @@ use std::time::Instant;
 
 use owl2_reasoner::{
     detect_profile, select_consistency_reasoner, serializer::BinaryOntologyFormat,
-    util::ontology_io::load_ontology_with_env, ConsistencyReasoner, Ontology,
+    util::ontology_io::load_ontology_with_env, BranchPolicyMode, ConsistencyReasoner, Ontology,
     OntologyCharacteristics, SchedulingMode, SimpleReasoner, SpeculativeConfig,
     SpeculativeTableauxReasoner,
 };
@@ -65,9 +65,37 @@ fn scheduling_mode_from_env() -> Result<SchedulingMode, String> {
     }
 }
 
+fn branch_policy_from_env() -> Result<BranchPolicyMode, String> {
+    match env::var("SPACL_BRANCH_POLICY") {
+        Ok(value) => match value.trim().to_ascii_lowercase().as_str() {
+            "" | "baseline" | "default" => Ok(BranchPolicyMode::Baseline),
+            "heuristic" | "ranked" => Ok(BranchPolicyMode::Heuristic),
+            "hybrid_rrn" | "hybrid-rrn" | "rrn" => Ok(BranchPolicyMode::HybridRrn),
+            other => Err(format!(
+                "unsupported SPACL_BRANCH_POLICY='{}' (expected baseline|heuristic|hybrid_rrn)",
+                other
+            )),
+        },
+        Err(_) => Ok(BranchPolicyMode::Baseline),
+    }
+}
+
 fn speculative_config_from_env() -> Result<SpeculativeConfig, String> {
     let mut config = SpeculativeConfig::default();
     config.scheduling_mode = scheduling_mode_from_env()?;
+    config.branch_policy = branch_policy_from_env()?;
+    if let Ok(path) = env::var("SPACL_RRN_MODEL_PATH") {
+        let path = path.trim();
+        if !path.is_empty() {
+            config.rrn_model_path = Some(path.to_string());
+        }
+    }
+    if let Ok(path) = env::var("SPACL_BRANCH_SNAPSHOT_FILE") {
+        let path = path.trim();
+        if !path.is_empty() {
+            config.branch_snapshot_path = Some(path.to_string());
+        }
+    }
     if env::var("SPACL_NOGOOD").is_ok() {
         config.enable_learning = env_truthy("SPACL_NOGOOD");
     }
@@ -80,8 +108,9 @@ fn emit_spacl_stats(reasoner: &SpeculativeTableauxReasoner) {
     }
     let stats = reasoner.get_stats();
     eprintln!(
-        "[spacl] mode={} used_parallel={} branches_created={} work_items_expanded={} branches_pruned={} nogood_hits={} local_cache_hits={} global_cache_hits={} steal_attempts={} steal_successes={}",
+        "[spacl] mode={} branch_policy={} used_parallel={} branches_created={} work_items_expanded={} branches_pruned={} nogood_hits={} local_cache_hits={} global_cache_hits={} steal_attempts={} steal_successes={} policy_reordered_splits={} policy_fallbacks={} hybrid_policy_calls={} hybrid_model_calls={} branch_snapshots_written={}",
         stats.scheduling_mode,
+        stats.branch_policy,
         stats.used_parallel,
         stats.branches_created,
         stats.work_items_expanded,
@@ -90,7 +119,12 @@ fn emit_spacl_stats(reasoner: &SpeculativeTableauxReasoner) {
         stats.local_cache_hits,
         stats.global_cache_hits,
         stats.steal_attempts,
-        stats.steal_successes
+        stats.steal_successes,
+        stats.policy_reordered_splits,
+        stats.policy_fallbacks,
+        stats.hybrid_policy_calls,
+        stats.hybrid_model_calls,
+        stats.branch_snapshots_written
     );
 }
 
@@ -130,6 +164,9 @@ fn print_usage() {
     println!("  OWL2_REASONER_EXPERIMENTAL_XML_STRICT=1  Fail if unsupported experimental terms are skipped");
     println!("  OWL2_REASONER_BIN_FORMAT=v1   Write legacy .owlbin format (default v2)");
     println!("  SPACL_SCHED_MODE=adaptive|sequential|always_parallel");
+    println!("  SPACL_BRANCH_POLICY=baseline|heuristic|hybrid_rrn");
+    println!("  SPACL_RRN_MODEL_PATH=<path>   JSON model for hybrid_rrn branch ranking");
+    println!("  SPACL_BRANCH_SNAPSHOT_FILE=<path>   Export branch-level policy snapshots (.jsonl)");
     println!("  SPACL_NOGOOD=0|1             Disable/enable nogood learning for ablations");
     println!("  SPACL_EMIT_STATS=1           Emit one-line SPACL telemetry after reasoning");
     println!();

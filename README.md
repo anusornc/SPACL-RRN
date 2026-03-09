@@ -99,6 +99,8 @@ cargo run --bin epcis-reasoner -- help
 Primary benchmark harness:
 
 - `benchmarks/competitors/scripts/run_benchmarks.sh`
+- `benchmarks/competitors/scripts/run_spacl_ablation.sh`
+- `benchmarks/competitors/scripts/run_rrn_policy_protocol.sh` (locked RRN/branch-policy matrix)
 
 External OWL2Bench wrapper:
 
@@ -109,6 +111,7 @@ External OWL2Bench wrapper:
 Operational benchmark guide:
 
 - `docs/benchmarking/BENCHMARK_RUNBOOK.md`
+- `docs/experiments/RRN_PROTOCOL_LOCK_20260309.md`
 
 ## Documentation map
 
@@ -130,6 +133,9 @@ Submission workspace:
 - `paper/submission/manuscript.tex`
 - `paper/submission/compile.sh`
 - `paper/submission/export_docx.sh`
+- `paper/submission_rrn/manuscript.tex` (separate hybrid RRN paper track)
+- `paper/submission_rrn/compile.sh`
+- `paper/submission_rrn/export_docx.sh`
 
 Build PDF:
 

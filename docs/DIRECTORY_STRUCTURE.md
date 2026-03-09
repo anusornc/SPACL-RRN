@@ -41,6 +41,8 @@ Main Rust codebase:
 Benchmark infrastructure:
 
 - `benchmarks/competitors/` - competitor harness (`run_benchmarks.sh`) and run history
+- `benchmarks/competitors/scripts/run_spacl_ablation.sh` - SPACL scheduler/policy ablations
+- `benchmarks/competitors/scripts/run_rrn_policy_protocol.sh` - locked RRN policy protocol
 - `benchmarks/external/owl2bench/` - external OWL2Bench wrapper
 - `benchmarks/ontologies/` - benchmark ontology sets
 
@@ -56,6 +58,9 @@ Submission files and build script:
 - `paper/submission/manuscript.tex`
 - `paper/submission/compile.sh`
 - `paper/submission/export_docx.sh`
+- `paper/submission_rrn/manuscript.tex`
+- `paper/submission_rrn/compile.sh`
+- `paper/submission_rrn/export_docx.sh`
 
 ## Generated artifacts
 
