@@ -73,6 +73,23 @@ SPACL policy controls (for ablations/hybrid track):
 - `SPACL_RRN_MODEL_PATH=/path/to/model.json` (optional)
 - `SPACL_BRANCH_SNAPSHOT_FILE=/path/to/branch_snapshots.jsonl` (optional training export)
 
+Model usage choices in practice:
+
+- Use a provided model:
+  - `SPACL_BRANCH_POLICY=hybrid_rrn`
+  - `SPACL_RRN_MODEL_PATH=benchmarks/models/rrn_linear_model_v3_pairwise.json`
+- Use a provided non-neural comparator model:
+  - `SPACL_BRANCH_POLICY=hybrid_rrn`
+  - `SPACL_RRN_MODEL_PATH=benchmarks/models/rrn_gbdt_stump_model_v2.json`
+- Train and use your own model:
+  - export snapshots with `SPACL_BRANCH_SNAPSHOT_FILE=...`
+  - train with `train_rrn_linear_model` or `train_rrn_gbdt_model`
+  - point `SPACL_RRN_MODEL_PATH` to your custom model
+- Use hybrid without model file:
+  - set `SPACL_BRANCH_POLICY=hybrid_rrn`
+  - leave `SPACL_RRN_MODEL_PATH` empty
+  - runtime falls back to deterministic heuristic ranking
+
 ## 5. Run benchmark harness
 
 ### 5.1 Minimal smoke benchmark (recommended first)
@@ -151,6 +168,19 @@ RRN_PAIRWISE_MAX_PAIRS_PER_RECORD=128 \
 cargo run --bin train_rrn_linear_model -- \
   benchmarks/models/rrn_train_subset_r2_100k.jsonl \
   benchmarks/models/rrn_linear_model_v3_pairwise.json \
+  heuristic
+```
+
+Train a GBDT-stump comparator model from the same snapshot export:
+
+```bash
+RRN_GBDT_TREES=16 \
+RRN_GBDT_LR=0.05 \
+RRN_GBDT_MAX_THRESHOLDS=24 \
+RRN_GBDT_MIN_LEAF=32 \
+cargo run --bin train_rrn_gbdt_model -- \
+  benchmarks/models/rrn_train_subset_r2_100k.jsonl \
+  benchmarks/models/rrn_gbdt_stump_model_v2.json \
   heuristic
 ```
 

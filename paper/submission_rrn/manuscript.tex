@@ -105,6 +105,8 @@ Tableau and hypertableau reasoners such as Pellet, Openllet, HermiT, and Konclud
 
 Parallel reasoning research addresses that tension through shared-memory classification frameworks, work-stealing schedulers, parallel ABox reasoning, and distributed materialization systems \cite{quan2017parallel,quan2019framework,workstealing,steigmiller2020parallelised,liu2017spowl,gu2015cichlid,benitez2023nora}. These studies show that parallelism helps only when coordination cost is controlled. Conflict-driven learning offers another lever. In SAT/CSP it is standard; in DL systems, related reuse ideas appear in hypertableau optimizations and tableau--saturation hybrids \cite{marques1999grasp,glorian2020nacre,motik2009hypertableau,song2013complete,glimm2014coupling}. SPACL is positioned as a practical open-source combination of these strands for the implemented \dlfrag handling path exercised here.
 
+For hybrid guidance, we position RRN as a neural-symbolic policy candidate rather than as an entailment replacement. Recursive Reasoning Networks have been studied for ontology reasoning in neural settings \cite{hohenecker2020ontology}; in this companion track we borrow only the guidance intuition (learned relational prioritization) while keeping symbolic tableaux decisions authoritative. We also include a non-neural tree-ensemble ranking comparator (gradient boosting over decision stumps \cite{friedman2001greedy}) to reduce model-choice bias in policy-level conclusions.
+
 \section{Formal Framework}
 \label{sec:formal}
 
@@ -504,7 +506,7 @@ Always-parallel & 14424.697 & 0 \\
 \subsection{Hybrid Branch-Prioritization Results}
 \label{sec:hybrid-results}
 
-We next evaluate the companion RRN policy path under strict policy-isolation controls. In all runs below, final consistency decisions remain symbolic; only branch ordering differs. The comparison target is the deterministic heuristic policy versus \texttt{hybrid\_rrn} with a pairwise-trained linear model (\texttt{rrn\_linear\_model\_v3\_pairwise.json}) learned from branch-snapshot traces.
+We next evaluate the companion RRN policy path under strict policy-isolation controls. In all runs below, final consistency decisions remain symbolic; only branch ordering differs. The primary comparison target is the deterministic heuristic policy versus \texttt{hybrid\_rrn} with a pairwise-trained linear model (\texttt{rrn\_linear\_model\_v3\_pairwise.json}) learned from branch-snapshot traces.
 
 Two confirmation passes were executed with identical workloads (\texttt{mixed\_operands\_8}, \texttt{mixed\_operands\_16}), repeat count (\(n=5\)), and gate settings (\(\tau=4\), \(\theta=1\mu s\)); only CPU pinning changed (Pass A: \texttt{taskset 0--11}, Pass B: \texttt{taskset 12--23}). Table~\ref{tab:hybrid-confirmation} reports median and P95 wall-clock values from the raw run CSVs.
 
@@ -531,6 +533,31 @@ Across repeat-matched pairs (2 workloads \(\times\) 5 repeats), hybrid won 9/10 
 \texttt{spacl\_synthetic\_ablation\_20260310\_063405},
 \texttt{spacl\_synthetic\_ablation\_20260310\_064158}, and
 \texttt{spacl\_synthetic\_ablation\_20260310\_064702}
+under \path{benchmarks/competitors/results/history/}.
+
+To test model-family sensitivity, we ran a locked comparator pass with identical controls (same two workloads, same repeats, same gate overrides) across three policies: heuristic, hybrid+linear-v3, and hybrid+GBDT-stump-v2. Table~\ref{tab:hybrid-model-comparator} summarizes medians and P95 values from the raw CSV artifacts. The non-neural comparator is exploratory: it reduces bias in model-selection narrative, but it is not introduced as a replacement claim.
+
+\begin{table}[htbp]
+\centering
+\caption{Hybrid model-family comparator on locked mixed-operand controls (5 repeats; lower is better)}
+\label{tab:hybrid-model-comparator}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{l|r|r|r|r}
+\toprule
+\textbf{Policy} & \textbf{mixed\_operands\_8 Median} & \textbf{mixed\_operands\_8 P95} & \textbf{mixed\_operands\_16 Median} & \textbf{mixed\_operands\_16 P95} \\
+\midrule
+Heuristic & 4064.497 & 28538.353 & 6262.586 & 30039.719 \\
+Hybrid + linear-v3 (pairwise) & \textbf{2331.282} & \textbf{4461.202} & \textbf{4012.926} & \textbf{28945.686} \\
+Hybrid + GBDT-stump-v2 & 10576.917 & 27794.777 & 7139.843 & 7573.800 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+In repeat-matched comparisons on this locked pass, linear-v3 and heuristic split wins (5/10 each), while GBDT-stump-v2 also split 5/10 against heuristic but lost 6/10 against linear-v3. We therefore keep linear-v3 as the primary learned policy in this manuscript and report tree-based guidance as exploratory negative/neutral evidence. Additional reproducibility artifacts for this comparator are:
+\texttt{spacl\_synthetic\_ablation\_20260310\_094758},
+\texttt{spacl\_synthetic\_ablation\_20260310\_095023}, and
+\texttt{spacl\_synthetic\_ablation\_20260310\_095728}
 under \path{benchmarks/competitors/results/history/}.
 
 \subsection{Real-World Ontology Evaluation}
@@ -760,7 +787,7 @@ The inconsistent disjunctive case is the one that matters here: runtime drops by
 \subsection{Limitations}
 \label{sec:limitations}
 
-Five limitations matter most for interpreting the results. First, the primary comparisons are deployment-level wall-clock measurements, so startup, parsing, and runtime-environment effects are part of the reported numbers. Second, the comparison set spans different logic-profile coverage, especially for ELK. Third, the current head-to-head suites are dominated by consistent ontologies, so nogood-learning gains are best read from dedicated inconsistent-workload ablations rather than from the primary benchmark tables. Fourth, the hybrid-policy evidence in Section~\ref{sec:hybrid-results} is presently limited to branch-active synthetic controls; we do not claim the same magnitude on real RDF/XML corpora yet. Fifth, runtime variance remains high in branch-heavy settings, and some runs approach practical wall-clock plateaus; therefore we report medians together with spread metrics (P95/IQR) and avoid overgeneralizing from single-run improvements.
+Six limitations matter most for interpreting the results. First, the primary comparisons are deployment-level wall-clock measurements, so startup, parsing, and runtime-environment effects are part of the reported numbers. Second, the comparison set spans different logic-profile coverage, especially for ELK. Third, the current head-to-head suites are dominated by consistent ontologies, so nogood-learning gains are best read from dedicated inconsistent-workload ablations rather than from the primary benchmark tables. Fourth, the hybrid-policy evidence in Section~\ref{sec:hybrid-results} is presently limited to branch-active synthetic controls; we do not claim the same magnitude on real RDF/XML corpora yet. Fifth, runtime variance remains high in branch-heavy settings, and some runs approach practical wall-clock plateaus; therefore we report medians together with spread metrics (P95/IQR) and avoid overgeneralizing from single-run improvements. Sixth, our current learned-policy family remains narrow (linear pairwise and compact GBDT stumps); we have not yet established that richer graph-neural variants provide a stable deployment advantage over these simpler policies under the same protocol lock.
 
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
@@ -769,7 +796,7 @@ SPACL combines speculative work stealing, verified nogood reuse, and a structura
 
 These conclusions remain bounded by the current prototype and protocol. The main comparisons are single-machine, repeated-run wall-clock results under a containerized CLI harness; they do not imply identical logic-profile coverage across all competitors, nor do they replace matched kernel-level reasoning measurements. The primary practical result in the current evaluation is parser- and materialization-side acceleration on large RDF/XML ontologies, while the speculative-reasoning contribution is best supported by the branch-heavy synthetic and inconsistent-workload evidence. PATO, ChEBI, and Konclude are therefore reported as supplementary evidence rather than folded into the primary comparison basis. Future work is concrete in three directions: (1) expand to broader inconsistent real-world corpora and heavier ABox-centered workloads, (2) run cleaner deployment-neutral comparator campaigns with explicit variance/significance reporting, and (3) strengthen scheduler-focused ablations that isolate adaptive gating and nogood reuse under fixed ingest conditions. SPACL is available at \url{https://github.com/anusornc/SPACL}.
 
-For the hybrid companion objective, the current result is a bounded but positive direction: on branch-active mixed-operand workloads, pairwise-trained \texttt{hybrid\_rrn} shows repeat-matched improvements over the heuristic policy in two independent CPU-pinned confirmation passes. We therefore position the hybrid policy as promising but not yet final: the next required step is to extend the same protocol discipline to broader workloads and report whether this direction persists beyond policy-isolation synthetic controls.
+For the hybrid companion objective, the current result is a bounded but positive direction: on branch-active mixed-operand workloads, pairwise-trained \texttt{hybrid\_rrn} shows repeat-matched improvements over the heuristic policy in two independent CPU-pinned confirmation passes, and remains the best-performing learned policy among the tested model families in the locked comparator pass. At the same time, the comparator evidence also shows that not all learned rankers help (the tested GBDT variant did not beat linear-v3), so we position hybrid guidance as promising but not yet final. The next required step is to extend the same protocol discipline to broader workloads and report whether this direction persists beyond policy-isolation synthetic controls.
 
 \section*{Acknowledgments}
 \label{sec:ack}

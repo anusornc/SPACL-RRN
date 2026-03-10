@@ -192,6 +192,10 @@ name = "train_rrn_linear_model"
 path = "scripts/train_rrn_linear_model.rs"
 
 [[bin]]
+name = "train_rrn_gbdt_model"
+path = "scripts/train_rrn_gbdt_model.rs"
+
+[[bin]]
 name = "owl2-reasoner"
 path = "src/bin/owl2-reasoner.rs"
 

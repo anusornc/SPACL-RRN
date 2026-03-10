@@ -238,3 +238,35 @@ Result summary from raw CSV:
 - repeat-matched wins: hybrid `9/10`
 
 This confirms the improved direction of the pairwise-trained model on branch-reordered mixed workloads under a second CPU pinning setup.
+
+## 2026-03-10 non-neural comparator pass (GBDT-stump)
+
+To test whether a stronger non-neural ranker outperforms linear-v3, we added a
+GBDT-stump trainer and evaluated two models from the same snapshot source:
+
+- training source: `benchmarks/models/rrn_train_subset_r2_100k.jsonl`
+- model v1: `benchmarks/models/rrn_gbdt_stump_model_v1.json` (64 trees)
+- model v2: `benchmarks/models/rrn_gbdt_stump_model_v2.json` (16 trees, larger leaf)
+
+Evaluation protocol (same as pairwise pass):
+
+- workloads: `mixed_operands_8,mixed_operands_16`
+- repeats: `5`
+- mode: `adaptive`
+- gate overrides: `SPACL_SYNTH_PARALLEL_THRESHOLD=4`, `SPACL_SYNTH_COST_THRESHOLD_US=1`
+
+Run IDs:
+
+- heuristic: `spacl_synthetic_ablation_20260310_094758`
+- hybrid + linear v3: `spacl_synthetic_ablation_20260310_095023`
+- hybrid + GBDT v1: `spacl_synthetic_ablation_20260310_095209`
+- hybrid + GBDT v2: `spacl_synthetic_ablation_20260310_095728`
+
+Outcome from raw CSV artifacts:
+
+- linear-v3 remains strongest overall in this pass (lower medians on both mixed workloads).
+- GBDT v1 shows unstable high-variance behavior and is worse than linear-v3.
+- GBDT v2 is more stable than v1 but still does not beat linear-v3 on median outcome.
+
+Decision: keep linear-v3 as primary hybrid model in the manuscript; include
+GBDT as exploratory comparator with conservative interpretation.

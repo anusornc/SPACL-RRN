@@ -165,7 +165,7 @@ fn print_usage() {
     println!("  OWL2_REASONER_BIN_FORMAT=v1   Write legacy .owlbin format (default v2)");
     println!("  SPACL_SCHED_MODE=adaptive|sequential|always_parallel");
     println!("  SPACL_BRANCH_POLICY=baseline|heuristic|hybrid_rrn");
-    println!("  SPACL_RRN_MODEL_PATH=<path>   JSON model for hybrid_rrn branch ranking");
+    println!("  SPACL_RRN_MODEL_PATH=<path>   JSON model (linear or gbdt_stump_v1) for hybrid_rrn branch ranking");
     println!("  SPACL_BRANCH_SNAPSHOT_FILE=<path>   Export branch-level policy snapshots (.jsonl)");
     println!("  SPACL_NOGOOD=0|1             Disable/enable nogood learning for ablations");
     println!("  SPACL_EMIT_STATS=1           Emit one-line SPACL telemetry after reasoning");

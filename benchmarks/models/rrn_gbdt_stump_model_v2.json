@@ -1,0 +1,113 @@
+{
+  "model_type": "gbdt_stump_v1",
+  "base_score": 2.4694137421687974,
+  "learning_rate": 0.05,
+  "stumps": [
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -1.1543998452747537,
+      "right_value": 39.030586257828546
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -1.0966798529951083,
+      "right_value": 37.07905694493558
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -1.0418458603575251,
+      "right_value": 35.22510409768927
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.9897535673324945,
+      "right_value": 33.46384889280681
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -1.1606931035944612,
+      "right_value": 25.77534437015386
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.9021482786433344,
+      "right_value": 30.5018892296634
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -1.0575510344817363,
+      "right_value": 23.484883315305648
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.8223104798248818,
+      "right_value": 27.802550602413145
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.7811949558380293,
+      "right_value": 26.41242307229387
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -0.9244982109736932,
+      "right_value": 20.530198450971323
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -0.878273300417523,
+      "right_value": 19.50368852842119
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.6829314945297033,
+      "right_value": 23.090107569704433
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.64878491981266,
+      "right_value": 21.93560219122394
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -0.7677738146885159,
+      "right_value": 17.049842383545993
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.5911316848753307,
+      "right_value": 19.98632996248145
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -0.6998285397058591,
+      "right_value": 15.540991460368035
+    }
+  ],
+  "training_samples": 294495,
+  "source_policy_mode": "heuristic",
+  "trees_requested": 16,
+  "trees_trained": 16,
+  "max_thresholds_per_feature": 24,
+  "min_leaf_size": 32,
+  "ranking_records": 100000,
+  "ranking_pairs": 51610,
+  "pairwise_accuracy": 0.6556868823871342,
+  "mse": 11.45390580216097
+}

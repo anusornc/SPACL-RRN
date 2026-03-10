@@ -2,7 +2,7 @@
 
 Status: active  
 Branch: `exp/hybrid-rrn-paper`  
-Last updated: 2026-03-09 (evening)
+Last updated: 2026-03-10
 
 ## Goal
 
@@ -41,6 +41,7 @@ Build and evaluate a neural-symbolic extension where an RRN policy guides SPACL 
 - [x] Define branch-decision training schema (`jsonl` branch snapshots)
 - [x] Export branch snapshots from benchmark runs
 - [x] Add offline trainer utility (`train_rrn_linear_model`)
+- [x] Add offline tree-comparator trainer (`train_rrn_gbdt_model`)
 - [x] Train first RRN baseline (offline)
 - [x] Add model loading/inference wrapper with fail-safe fallback
 
@@ -102,3 +103,4 @@ Build and evaluate a neural-symbolic extension where an RRN policy guides SPACL 
 - Strict 2026-03-10 matrix and summary were generated from raw CSV artifacts only (no hardcoded/fake metric rows), using `benchmarks/competitors/scripts/summarize_policy_matrix.sh`.
 - Pairwise-trained `v3` model shows improved direction on mixed workloads (repeat-matched win count `9/10` against heuristic on `mixed_operands_8,16`), but variance is still high and requires another confirmation pass.
 - Second confirmation pass on a different CPU set (`taskset -c 12-23`) kept the same `9/10` repeat-matched win direction for hybrid-v3 vs heuristic on `mixed_operands_8,16`.
+- 2026-03-10 comparator pass added non-neural GBDT-stump policies (`v1`, `v2`): neither beat linear-v3 on the same mixed-workload matrix; keep linear-v3 as primary hybrid model and report GBDT as exploratory comparator.

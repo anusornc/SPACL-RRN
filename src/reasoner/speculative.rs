@@ -288,7 +288,7 @@ pub enum BranchPolicyMode {
     Baseline,
     /// Use deterministic structural heuristic ranking
     Heuristic,
-    /// Placeholder for learned policy integration; currently falls back safely
+    /// Learned ranking policy loaded from model file; safely falls back when unavailable
     HybridRrn,
 }
 
@@ -311,7 +311,7 @@ pub struct SpeculativeConfig {
     pub scheduling_mode: SchedulingMode,
     /// Branch-priority policy for disjunction operand ordering
     pub branch_policy: BranchPolicyMode,
-    /// Optional path to an RRN policy model file used in `hybrid_rrn` mode
+    /// Optional path to a learned policy model (linear or gbdt_stump_v1) used in `hybrid_rrn` mode
     pub rrn_model_path: Option<String>,
     /// Optional JSONL output path for branch-level policy snapshots
     pub branch_snapshot_path: Option<String>,
@@ -387,6 +387,20 @@ impl Default for RrnLinearWeights {
             depth_weight: 0.7,
             node_weight: 0.1,
         }
+    }
+}
+
+impl RrnLinearWeights {
+    fn score(&self, fv: &ExprFeatureVector) -> f64 {
+        self.bias
+            + self.union_weight * fv.union_nodes as f64
+            + self.intersection_weight * fv.intersection_nodes as f64
+            + self.complement_weight * fv.complement_nodes as f64
+            + self.some_values_weight * fv.some_values_nodes as f64
+            + self.all_values_weight * fv.all_values_nodes as f64
+            + self.atom_weight * fv.atom_nodes as f64
+            + self.depth_weight * fv.max_depth as f64
+            + self.node_weight * fv.total_nodes as f64
     }
 }
 
@@ -481,31 +495,114 @@ impl From<ExprFeatureVector> for SnapshotOperandFeatures {
     }
 }
 
-#[derive(Debug, Clone)]
-struct RrnLinearModel {
-    weights: RrnLinearWeights,
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+struct RrnGbdtStump {
+    feature: String,
+    threshold: f64,
+    left_value: f64,
+    right_value: f64,
 }
 
-impl RrnLinearModel {
+impl Default for RrnGbdtStump {
+    fn default() -> Self {
+        Self {
+            feature: "total_nodes".to_string(),
+            threshold: 0.0,
+            left_value: 0.0,
+            right_value: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+struct RrnGbdtModel {
+    model_type: String,
+    base_score: f64,
+    learning_rate: f64,
+    stumps: Vec<RrnGbdtStump>,
+}
+
+impl Default for RrnGbdtModel {
+    fn default() -> Self {
+        Self {
+            model_type: "gbdt_stump_v1".to_string(),
+            base_score: 0.0,
+            learning_rate: 0.1,
+            stumps: Vec::new(),
+        }
+    }
+}
+
+impl RrnGbdtModel {
+    fn feature_value(feature: &str, fv: &ExprFeatureVector) -> f64 {
+        match feature {
+            "union_nodes" | "union" => fv.union_nodes as f64,
+            "intersection_nodes" | "intersection" => fv.intersection_nodes as f64,
+            "complement_nodes" | "complement" => fv.complement_nodes as f64,
+            "some_values_nodes" | "some_values" | "some" => fv.some_values_nodes as f64,
+            "all_values_nodes" | "all_values" | "all" => fv.all_values_nodes as f64,
+            "atom_nodes" | "atom" => fv.atom_nodes as f64,
+            "max_depth" | "depth" => fv.max_depth as f64,
+            "total_nodes" | "node_count" | "nodes" => fv.total_nodes as f64,
+            _ => 0.0,
+        }
+    }
+
+    fn score(&self, fv: &ExprFeatureVector) -> f64 {
+        let mut score = self.base_score;
+        for stump in &self.stumps {
+            let x = Self::feature_value(&stump.feature, fv);
+            let delta = if x <= stump.threshold {
+                stump.left_value
+            } else {
+                stump.right_value
+            };
+            score += self.learning_rate * delta;
+        }
+        score
+    }
+}
+
+#[derive(Debug, Clone)]
+enum RrnPolicyModel {
+    Linear(RrnLinearWeights),
+    Gbdt(RrnGbdtModel),
+}
+
+impl RrnPolicyModel {
     fn from_path(path: &str) -> Result<Self, String> {
         let raw = std::fs::read_to_string(path)
             .map_err(|err| format!("failed reading RRN model file '{}': {}", path, err))?;
-        let weights: RrnLinearWeights = serde_json::from_str(&raw)
+        let value: serde_json::Value = serde_json::from_str(&raw)
             .map_err(|err| format!("failed parsing RRN model '{}': {}", path, err))?;
-        Ok(Self { weights })
+        let model_type = value
+            .get("model_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("linear")
+            .to_string();
+        if model_type.eq_ignore_ascii_case("gbdt_stump_v1") {
+            let model: RrnGbdtModel = serde_json::from_value(value)
+                .map_err(|err| format!("failed parsing GBDT policy model '{}': {}", path, err))?;
+            Ok(Self::Gbdt(model))
+        } else {
+            let weights: RrnLinearWeights = serde_json::from_value(value).map_err(|err| {
+                format!(
+                    "failed parsing linear policy model '{}': {} (model_type='{}')",
+                    path, err, model_type
+                )
+            })?;
+            Ok(Self::Linear(weights))
+        }
     }
 
     fn score_expression(&self, expr: &ClassExpression) -> f64 {
         let fv = ExprFeatureVector::from_expression(expr, 0);
-        self.weights.bias
-            + self.weights.union_weight * fv.union_nodes as f64
-            + self.weights.intersection_weight * fv.intersection_nodes as f64
-            + self.weights.complement_weight * fv.complement_nodes as f64
-            + self.weights.some_values_weight * fv.some_values_nodes as f64
-            + self.weights.all_values_weight * fv.all_values_nodes as f64
-            + self.weights.atom_weight * fv.atom_nodes as f64
-            + self.weights.depth_weight * fv.max_depth as f64
-            + self.weights.node_weight * fv.total_nodes as f64
+        match self {
+            RrnPolicyModel::Linear(weights) => weights.score(&fv),
+            RrnPolicyModel::Gbdt(model) => model.score(&fv),
+        }
     }
 }
 
@@ -522,7 +619,7 @@ struct PolicyRanking {
 #[derive(Debug, Clone)]
 struct BranchPolicyEngine {
     mode: BranchPolicyMode,
-    rrn_model: Option<RrnLinearModel>,
+    rrn_model: Option<RrnPolicyModel>,
 }
 
 impl BranchPolicyEngine {
@@ -537,7 +634,7 @@ impl BranchPolicyEngine {
         let rrn_model = config
             .rrn_model_path
             .as_deref()
-            .and_then(|path| RrnLinearModel::from_path(path).ok());
+            .and_then(|path| RrnPolicyModel::from_path(path).ok());
         Self {
             mode: config.branch_policy,
             rrn_model,

@@ -1,0 +1,401 @@
+{
+  "model_type": "gbdt_stump_v1",
+  "base_score": 2.4694137421687974,
+  "learning_rate": 0.08,
+  "stumps": [
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -1.1543998452747537,
+      "right_value": 39.030586257828546
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -1.0620478576408154,
+      "right_value": 35.90813935720335
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.9770840290268996,
+      "right_value": 33.03548820863389
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -1.1193445213286997,
+      "right_value": 24.857122366758198
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.8401017756799599,
+      "right_value": 28.40407936260255
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -0.9625888175724463,
+      "right_value": 21.37607105875728
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.722314771283306,
+      "right_value": 24.421667328890035
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -0.8277965304657039,
+      "right_value": 18.382758177082877
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.6210333365453344,
+      "right_value": 20.997313288410716
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -0.7118901411005198,
+      "right_value": 15.808841703178185
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.5339446736320718,
+      "right_value": 18.05282088908493
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -0.6122233559272547,
+      "right_value": 13.595555777468359
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.4590600569644856,
+      "right_value": 15.520950755759285
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -0.5265206828964551,
+      "right_value": 11.692368876486215
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.39466942390432214,
+      "right_value": 13.343885185181453
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -0.4528254743449486,
+      "right_value": 10.055830007794455
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.33930232812488653,
+      "right_value": 11.471907969739975
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -0.3894552501515635,
+      "right_value": 8.648576577534936
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.291694364266799,
+      "right_value": 9.862269205958341
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -0.3349632809952923,
+      "right_value": 7.438481276725662
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.25075829725849524,
+      "right_value": 8.47820916734562
+    },
+    {
+      "feature": "max_depth",
+      "threshold": 0.5,
+      "left_value": -0.38269223701974836,
+      "right_value": 4.840990281665658
+    },
+    {
+      "feature": "atom_nodes",
+      "threshold": 1.5,
+      "left_value": -0.2706659304067273,
+      "right_value": 6.010639284390155
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.20502111525232972,
+      "right_value": 6.931822068671167
+    },
+    {
+      "feature": "max_depth",
+      "threshold": 0.5,
+      "left_value": -0.3140218944029477,
+      "right_value": 3.9723223833445642
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.179220339243375,
+      "right_value": 6.059490512510939
+    },
+    {
+      "feature": "intersection_nodes",
+      "threshold": 0.5,
+      "left_value": -0.1702648399966361,
+      "right_value": 5.756702542387522
+    },
+    {
+      "feature": "max_depth",
+      "threshold": 0.5,
+      "left_value": -0.2609413285112778,
+      "right_value": 3.3008624508702886
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.15046323817747523,
+      "right_value": 5.08720476734585
+    },
+    {
+      "feature": "intersection_nodes",
+      "threshold": 0.5,
+      "left_value": -0.1429928162197978,
+      "right_value": 4.8346276817599385
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.13287563727004628,
+      "right_value": 4.492562991335761
+    },
+    {
+      "feature": "intersection_nodes",
+      "threshold": 0.5,
+      "left_value": -0.12639556687928197,
+      "right_value": 4.273469973056832
+    },
+    {
+      "feature": "max_depth",
+      "threshold": 0.5,
+      "left_value": -0.19584784154725432,
+      "right_value": 2.4774411548147093
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.11147731613708367,
+      "right_value": 3.7690796833972096
+    },
+    {
+      "feature": "intersection_nodes",
+      "threshold": 0.5,
+      "left_value": -0.10609473204133235,
+      "right_value": 3.5870929881365585
+    },
+    {
+      "feature": "max_depth",
+      "threshold": 0.5,
+      "left_value": -0.1627742503696857,
+      "right_value": 2.0590659750068814
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.09356881266281505,
+      "right_value": 3.1635881004808213
+    },
+    {
+      "feature": "intersection_nodes",
+      "threshold": 0.5,
+      "left_value": -0.08910305300603201,
+      "right_value": 3.012599499572378
+    },
+    {
+      "feature": "max_depth",
+      "threshold": 0.5,
+      "left_value": -0.13513856108647665,
+      "right_value": 1.7094793089991327
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.07857972664077009,
+      "right_value": 2.6568028498599228
+    },
+    {
+      "feature": "intersection_nodes",
+      "threshold": 0.5,
+      "left_value": -0.07487971095770181,
+      "right_value": 2.531704269957767
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.06938674816160369,
+      "right_value": 2.3459856395107317
+    },
+    {
+      "feature": "intersection_nodes",
+      "threshold": 0.5,
+      "left_value": -0.06619595367370713,
+      "right_value": 2.2381039727070124
+    },
+    {
+      "feature": "max_depth",
+      "threshold": 0.5,
+      "left_value": -0.10120410504512396,
+      "right_value": 1.280214338297519
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.05823711326096272,
+      "right_value": 1.9690133205249243
+    },
+    {
+      "feature": "intersection_nodes",
+      "threshold": 0.5,
+      "left_value": -0.05561052006824827,
+      "right_value": 1.8802074595365033
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.05141951464711387,
+      "right_value": 1.7385083773042425
+    },
+    {
+      "feature": "intersection_nodes",
+      "threshold": 0.5,
+      "left_value": -0.049165730865096166,
+      "right_value": 1.6623073082672577
+    },
+    {
+      "feature": "max_depth",
+      "threshold": 0.5,
+      "left_value": -0.07595314633370426,
+      "right_value": 0.9607940995324625
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.0431241136435034,
+      "right_value": 1.4580385160611635
+    },
+    {
+      "feature": "intersection_nodes",
+      "threshold": 0.5,
+      "left_value": -0.04128514958417458,
+      "right_value": 1.3958626195463346
+    },
+    {
+      "feature": "max_depth",
+      "threshold": 0.5,
+      "left_value": -0.06312415356885903,
+      "right_value": 0.7985095708928661
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.03618223324036737,
+      "right_value": 1.2233315703064098
+    },
+    {
+      "feature": "intersection_nodes",
+      "threshold": 0.5,
+      "left_value": -0.0346884658424849,
+      "right_value": 1.172826870828694
+    },
+    {
+      "feature": "max_depth",
+      "threshold": 0.5,
+      "left_value": -0.05240456535661122,
+      "right_value": 0.6629086432062451
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.030372617589153758,
+      "right_value": 1.0269068170259985
+    },
+    {
+      "feature": "intersection_nodes",
+      "threshold": 0.5,
+      "left_value": -0.029165879554069955,
+      "right_value": 0.9861066617282672
+    },
+    {
+      "feature": "intersection_nodes",
+      "threshold": 0.5,
+      "left_value": -0.026832609189861807,
+      "right_value": 0.9072181287900989
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.0257691188760618,
+      "right_value": 0.8712612195930296
+    },
+    {
+      "feature": "max_depth",
+      "threshold": 0.5,
+      "left_value": -0.039240982111774694,
+      "right_value": 0.49639160314645475
+    },
+    {
+      "feature": "union_nodes",
+      "threshold": 0.5,
+      "left_value": -0.022533055351172632,
+      "right_value": 0.7618489937736986
+    },
+    {
+      "feature": "intersection_nodes",
+      "threshold": 0.5,
+      "left_value": -0.021636524420209257,
+      "right_value": 0.731537028669551
+    },
+    {
+      "feature": "max_depth",
+      "threshold": 0.5,
+      "left_value": -0.03256813716122418,
+      "right_value": 0.4119812743433916
+    },
+    {
+      "feature": "intersection_nodes",
+      "threshold": 0.5,
+      "left_value": -0.01893079544473756,
+      "right_value": 0.640055564428579
+    }
+  ],
+  "training_samples": 294495,
+  "source_policy_mode": "heuristic",
+  "trees_requested": 64,
+  "trees_trained": 64,
+  "max_thresholds_per_feature": 32,
+  "min_leaf_size": 8,
+  "ranking_records": 100000,
+  "ranking_pairs": 51610,
+  "pairwise_accuracy": 1.0,
+  "mse": 0.19093340835273429
+}

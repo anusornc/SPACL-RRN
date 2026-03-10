@@ -86,6 +86,7 @@ sudo usermod -aG docker "$USER"
 - `owl2_validation`: lightweight validation/check/stats CLI
 - `epcis-reasoner`: EPCIS/traceability-oriented demo CLI
 - `train_rrn_linear_model`: offline utility to fit a first linear hybrid policy from snapshot JSONL
+- `train_rrn_gbdt_model`: offline utility to fit a GBDT-stump hybrid policy from snapshot JSONL
 
 Run help:
 
@@ -94,6 +95,50 @@ cargo run --bin owl2-reasoner -- help
 cargo run --bin owl2_validation -- help
 cargo run --bin epcis-reasoner -- help
 cargo run --bin train_rrn_linear_model -- --help
+cargo run --bin train_rrn_gbdt_model -- --help
+```
+
+## Hybrid Model Options (Deployment)
+
+For `SPACL_BRANCH_POLICY=hybrid_rrn`, users have four practical choices:
+
+1. Use a provided linear model file (fastest start)
+2. Use a provided GBDT-stump model file (non-neural comparator)
+3. Train a custom model from their own workload snapshots
+4. Use hybrid mode without a model path (safe fallback to heuristic)
+
+Examples:
+
+```bash
+# 1) Provided model
+SPACL_BRANCH_POLICY=hybrid_rrn \
+SPACL_RRN_MODEL_PATH=benchmarks/models/rrn_linear_model_v3_pairwise.json \
+cargo run --bin owl2-reasoner -- check tests/data/univ-bench.owl
+
+# 2) Train your own model, then use it
+cargo run --bin train_rrn_linear_model -- \
+  /path/to/branch_snapshots.jsonl \
+  /path/to/custom_rrn_model.json \
+  heuristic
+
+SPACL_BRANCH_POLICY=hybrid_rrn \
+SPACL_RRN_MODEL_PATH=/path/to/custom_rrn_model.json \
+cargo run --bin owl2-reasoner -- check tests/data/univ-bench.owl
+
+# 3) Alternative: train a GBDT-stump comparator model
+cargo run --bin train_rrn_gbdt_model -- \
+  /path/to/branch_snapshots.jsonl \
+  /path/to/custom_rrn_gbdt_model.json \
+  heuristic
+
+SPACL_BRANCH_POLICY=hybrid_rrn \
+SPACL_RRN_MODEL_PATH=/path/to/custom_rrn_gbdt_model.json \
+cargo run --bin owl2-reasoner -- check tests/data/univ-bench.owl
+
+# 4) No model path -> hybrid falls back to heuristic
+SPACL_BRANCH_POLICY=hybrid_rrn \
+SPACL_RRN_MODEL_PATH= \
+cargo run --bin owl2-reasoner -- check tests/data/univ-bench.owl
 ```
 
 ## Benchmarking
