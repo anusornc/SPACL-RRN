@@ -67,7 +67,7 @@ This companion manuscript track studies a hybrid neural-symbolic extension of SP
 
 The current branch separates two concerns. First, it keeps the existing SPACL pipeline and parser/materialization path unchanged when hybrid guidance is disabled. Second, it introduces an optional policy layer for branch ordering, together with telemetry and fallback controls that preserve deterministic baseline behavior.
 
-This manuscript track focuses on protocol design and reproducibility boundaries for the hybrid study: identical ontology suites, timeout policy, and hardware across baseline and hybrid modes; repeated-run reporting with median/P95 wall time; and ablations that isolate guidance impact from parser and ingest effects. Full hybrid benchmark outcomes are reported only after the model pipeline and locked harness runs are completed in this branch.
+This manuscript track focuses on protocol design and reproducibility boundaries for the hybrid study: identical ontology suites, timeout policy, and hardware across baseline and hybrid modes; repeated-run reporting with median/P95 wall time; and ablations that isolate guidance impact from parser and ingest effects. In the current branch-active synthetic policy study, a pairwise-trained hybrid model improves repeat-matched outcomes over the heuristic policy in both pinned-CPU confirmation passes (9/10 wins per pass on mixed-operand workloads), while variance remains high and claims are therefore bounded to policy-isolation workloads.
 \end{abstract}
 
 \begin{keyword}
@@ -501,6 +501,38 @@ Always-parallel & 14424.697 & 0 \\
 \end{tabular}
 \end{table}
 
+\subsection{Hybrid Branch-Prioritization Results}
+\label{sec:hybrid-results}
+
+We next evaluate the companion RRN policy path under strict policy-isolation controls. In all runs below, final consistency decisions remain symbolic; only branch ordering differs. The comparison target is the deterministic heuristic policy versus \texttt{hybrid\_rrn} with a pairwise-trained linear model (\texttt{rrn\_linear\_model\_v3\_pairwise.json}) learned from branch-snapshot traces.
+
+Two confirmation passes were executed with identical workloads (\texttt{mixed\_operands\_8}, \texttt{mixed\_operands\_16}), repeat count (\(n=5\)), and gate settings (\(\tau=4\), \(\theta=1\mu s\)); only CPU pinning changed (Pass A: \texttt{taskset 0--11}, Pass B: \texttt{taskset 12--23}). Table~\ref{tab:hybrid-confirmation} reports median and P95 wall-clock values from the raw run CSVs.
+
+\begin{table}[htbp]
+\centering
+\caption{Hybrid pairwise-policy confirmation passes (median/P95 wall-clock in ms; lower is better)}
+\label{tab:hybrid-confirmation}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{l|l|r|r|r|r}
+\toprule
+\textbf{Pass (CPU Set)} & \textbf{Workload} & \textbf{Heuristic Median} & \textbf{Hybrid Median} & \textbf{Heuristic P95} & \textbf{Hybrid P95} \\
+\midrule
+Pass A (\texttt{0--11}) & mixed\_operands\_8  & 16467.947 & \textbf{6968.183}  & 27567.529 & \textbf{26817.147} \\
+Pass A (\texttt{0--11}) & mixed\_operands\_16 & \textbf{15700.232} & 15813.491 & 30040.955 & \textbf{30039.441} \\
+Pass B (\texttt{12--23}) & mixed\_operands\_8  & 30102.014 & \textbf{3791.560}  & 31721.619 & \textbf{8285.933} \\
+Pass B (\texttt{12--23}) & mixed\_operands\_16 & 19175.384 & \textbf{13027.817} & 30042.235 & \textbf{27718.849} \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+Across repeat-matched pairs (2 workloads \(\times\) 5 repeats), hybrid won 9/10 comparisons in Pass A and 9/10 in Pass B. The model path was active in all hybrid runs (\texttt{hybrid\_model\_calls} \(>\) 0, \texttt{policy\_fallbacks} \(=\) 0). Reproducibility artifacts for this subsection are:
+\texttt{spacl\_synthetic\_ablation\_20260310\_063022},
+\texttt{spacl\_synthetic\_ablation\_20260310\_063405},
+\texttt{spacl\_synthetic\_ablation\_20260310\_064158}, and
+\texttt{spacl\_synthetic\_ablation\_20260310\_064702}
+under \path{benchmarks/competitors/results/history/}.
+
 \subsection{Real-World Ontology Evaluation}
 \label{sec:realworld}
 
@@ -728,7 +760,7 @@ The inconsistent disjunctive case is the one that matters here: runtime drops by
 \subsection{Limitations}
 \label{sec:limitations}
 
-Three limitations matter most for interpreting the results. First, the primary comparisons are deployment-level wall-clock measurements, so startup, parsing, and runtime-environment effects are part of the reported numbers. Second, the comparison set spans different logic-profile coverage, especially for ELK. Third, the current head-to-head suites are dominated by consistent ontologies, so nogood-learning gains are best read from the dedicated inconsistent-workload ablation rather than from the primary benchmark tables.
+Five limitations matter most for interpreting the results. First, the primary comparisons are deployment-level wall-clock measurements, so startup, parsing, and runtime-environment effects are part of the reported numbers. Second, the comparison set spans different logic-profile coverage, especially for ELK. Third, the current head-to-head suites are dominated by consistent ontologies, so nogood-learning gains are best read from dedicated inconsistent-workload ablations rather than from the primary benchmark tables. Fourth, the hybrid-policy evidence in Section~\ref{sec:hybrid-results} is presently limited to branch-active synthetic controls; we do not claim the same magnitude on real RDF/XML corpora yet. Fifth, runtime variance remains high in branch-heavy settings, and some runs approach practical wall-clock plateaus; therefore we report medians together with spread metrics (P95/IQR) and avoid overgeneralizing from single-run improvements.
 
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
@@ -736,6 +768,8 @@ Three limitations matter most for interpreting the results. First, the primary c
 SPACL combines speculative work stealing, verified nogood reuse, and a structural RDF/XML pipeline in one open-source implementation for the evaluated \dlfrag handling path. The empirical picture is mixed but coherent, and the paper should be read that way. On synthetic disjunctive workloads, the adaptive gate avoids pathological always-parallel overhead and permits net speedup once branch structure becomes large enough. On the main real-world biomedical panel (DOID, GO-Basic, UBERON), however, the dominant gain in the current evaluation comes from parser/materialization acceleration: stage-level A/B runs show about 97\% parse-only reduction, and SPACL yields the smallest successful median end-to-end wall-clock values on all three ontologies in the primary large-suite campaign. The OWL2Bench core-profile suite shows a consistent deployment-level direction, with SPACL completing all 12 runs and yielding the smallest successful median wall-clock values on the four tested profiles in this harness. The resulting scientific takeaway is that, in this evaluated setting, end-to-end OWL reasoning performance is determined jointly by branch-management policy and ontology-ingest design, with the ingest side dominating the largest real-world gains.
 
 These conclusions remain bounded by the current prototype and protocol. The main comparisons are single-machine, repeated-run wall-clock results under a containerized CLI harness; they do not imply identical logic-profile coverage across all competitors, nor do they replace matched kernel-level reasoning measurements. The primary practical result in the current evaluation is parser- and materialization-side acceleration on large RDF/XML ontologies, while the speculative-reasoning contribution is best supported by the branch-heavy synthetic and inconsistent-workload evidence. PATO, ChEBI, and Konclude are therefore reported as supplementary evidence rather than folded into the primary comparison basis. Future work is concrete in three directions: (1) expand to broader inconsistent real-world corpora and heavier ABox-centered workloads, (2) run cleaner deployment-neutral comparator campaigns with explicit variance/significance reporting, and (3) strengthen scheduler-focused ablations that isolate adaptive gating and nogood reuse under fixed ingest conditions. SPACL is available at \url{https://github.com/anusornc/SPACL}.
+
+For the hybrid companion objective, the current result is a bounded but positive direction: on branch-active mixed-operand workloads, pairwise-trained \texttt{hybrid\_rrn} shows repeat-matched improvements over the heuristic policy in two independent CPU-pinned confirmation passes. We therefore position the hybrid policy as promising but not yet final: the next required step is to extend the same protocol discipline to broader workloads and report whether this direction persists beyond policy-isolation synthetic controls.
 
 \section*{Acknowledgments}
 \label{sec:ack}

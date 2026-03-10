@@ -5,8 +5,8 @@ use std::time::Instant;
 
 use chrono::Local;
 use owl2_reasoner::{
-    Class, ClassExpression, DisjointClassesAxiom, Ontology, SchedulingMode, SpeculativeConfig,
-    SpeculativeTableauxReasoner, SubClassOfAxiom,
+    BranchPolicyMode, Class, ClassExpression, DisjointClassesAxiom, Ontology, SchedulingMode,
+    SpeculativeConfig, SpeculativeTableauxReasoner, SubClassOfAxiom,
 };
 
 #[derive(Clone)]
@@ -30,6 +30,18 @@ fn env_usize(key: &str, default: usize) -> usize {
         .unwrap_or(default)
 }
 
+fn branch_policy_from_env() -> BranchPolicyMode {
+    match std::env::var("SPACL_BRANCH_POLICY") {
+        Ok(value) => match value.trim().to_ascii_lowercase().as_str() {
+            "" | "baseline" | "default" => BranchPolicyMode::Baseline,
+            "heuristic" | "ranked" => BranchPolicyMode::Heuristic,
+            "hybrid_rrn" | "hybrid-rrn" | "rrn" => BranchPolicyMode::HybridRrn,
+            _ => BranchPolicyMode::Baseline,
+        },
+        Err(_) => BranchPolicyMode::Baseline,
+    }
+}
+
 fn apply_env_overrides(config: &mut SpeculativeConfig) {
     if let Ok(value) = std::env::var("SPACL_SYNTH_PARALLEL_THRESHOLD") {
         if let Ok(parsed) = value.trim().parse::<usize>() {
@@ -49,6 +61,19 @@ fn apply_env_overrides(config: &mut SpeculativeConfig) {
     if let Ok(value) = std::env::var("SPACL_SYNTH_COST_PER_NESTING_US") {
         if let Ok(parsed) = value.trim().parse::<usize>() {
             config.cost_per_nesting_us = parsed;
+        }
+    }
+    config.branch_policy = branch_policy_from_env();
+    if let Ok(path) = std::env::var("SPACL_RRN_MODEL_PATH") {
+        let path = path.trim();
+        if !path.is_empty() {
+            config.rrn_model_path = Some(path.to_string());
+        }
+    }
+    if let Ok(path) = std::env::var("SPACL_BRANCH_SNAPSHOT_FILE") {
+        let path = path.trim();
+        if !path.is_empty() {
+            config.branch_snapshot_path = Some(path.to_string());
         }
     }
 }
@@ -166,6 +191,81 @@ fn create_reused_conflict_ontology(num_unions: usize) -> Ontology {
     ontology
 }
 
+fn create_mixed_operand_ontology(num_unions: usize) -> Ontology {
+    let mut ontology = Ontology::new();
+
+    for i in 0..num_unions {
+        let head = Class::new(format!("http://example.org/M{}", i));
+        ontology.add_class(head.clone()).unwrap();
+
+        let atomic = Class::new(format!("http://example.org/M{}_A", i));
+        let b = Class::new(format!("http://example.org/M{}_B", i));
+        let c = Class::new(format!("http://example.org/M{}_C", i));
+        let d = Class::new(format!("http://example.org/M{}_D", i));
+        let e = Class::new(format!("http://example.org/M{}_E", i));
+        let f = Class::new(format!("http://example.org/M{}_F", i));
+        let g = Class::new(format!("http://example.org/M{}_G", i));
+        let h = Class::new(format!("http://example.org/M{}_H", i));
+        let j = Class::new(format!("http://example.org/M{}_J", i));
+        let k = Class::new(format!("http://example.org/M{}_K", i));
+
+        for class in [&atomic, &b, &c, &d, &e, &f, &g, &h, &j, &k] {
+            ontology.add_class((*class).clone()).unwrap();
+        }
+
+        let op_atomic = ClassExpression::Class(atomic);
+        let op_intersection = ClassExpression::ObjectIntersectionOf(
+            vec![
+                Box::new(ClassExpression::Class(b)),
+                Box::new(ClassExpression::Class(c)),
+            ]
+            .into(),
+        );
+        let op_complement = ClassExpression::ObjectComplementOf(Box::new(ClassExpression::Class(d)));
+        let op_union = ClassExpression::ObjectUnionOf(
+            vec![
+                Box::new(ClassExpression::Class(e)),
+                Box::new(ClassExpression::Class(f)),
+                Box::new(ClassExpression::ObjectComplementOf(Box::new(
+                    ClassExpression::Class(g),
+                ))),
+            ]
+            .into(),
+        );
+        let op_nested = ClassExpression::ObjectIntersectionOf(
+            vec![
+                Box::new(ClassExpression::ObjectUnionOf(
+                    vec![
+                        Box::new(ClassExpression::Class(h)),
+                        Box::new(ClassExpression::Class(j)),
+                    ]
+                    .into(),
+                )),
+                Box::new(ClassExpression::Class(k)),
+            ]
+            .into(),
+        );
+
+        ontology
+            .add_subclass_axiom(SubClassOfAxiom::new(
+                ClassExpression::Class(head),
+                ClassExpression::ObjectUnionOf(
+                    vec![
+                        Box::new(op_atomic),
+                        Box::new(op_intersection),
+                        Box::new(op_complement),
+                        Box::new(op_union),
+                        Box::new(op_nested),
+                    ]
+                    .into(),
+                ),
+            ))
+            .unwrap();
+    }
+
+    ontology
+}
+
 fn workloads() -> Vec<Workload> {
     let requested = env_list("SPACL_SYNTH_ABLATION_WORKLOADS");
     let selected = |name: &str| match &requested {
@@ -235,6 +335,24 @@ fn workloads() -> Vec<Workload> {
             ontology: create_reused_conflict_ontology(16),
         });
     }
+    if selected("mixed_operands_16") {
+        workloads.push(Workload {
+            name: "mixed_operands_16".to_string(),
+            ontology: create_mixed_operand_ontology(16),
+        });
+    }
+    if selected("mixed_operands_8") {
+        workloads.push(Workload {
+            name: "mixed_operands_8".to_string(),
+            ontology: create_mixed_operand_ontology(8),
+        });
+    }
+    if selected("mixed_operands_32") {
+        workloads.push(Workload {
+            name: "mixed_operands_32".to_string(),
+            ontology: create_mixed_operand_ontology(32),
+        });
+    }
 
     workloads
 }
@@ -283,7 +401,7 @@ fn main() {
     let mut csv = BufWriter::new(File::create(output_dir.join("results.csv")).unwrap());
     writeln!(
         csv,
-        "workload,mode,nogood_enabled,repeat,wall_time_ms,reasoning_time_ms,used_parallel,disjunctions_detected,estimated_branch_count,branches_created,work_items_expanded,branches_pruned,nogood_hits,local_cache_hits,global_cache_hits,steal_attempts,steal_successes"
+        "workload,mode,nogood_enabled,branch_policy,repeat,wall_time_ms,reasoning_time_ms,used_parallel,disjunctions_detected,estimated_branch_count,branches_created,work_items_expanded,branches_pruned,nogood_hits,local_cache_hits,global_cache_hits,steal_attempts,steal_successes,policy_reordered_splits,policy_fallbacks,hybrid_policy_calls,hybrid_model_calls,branch_snapshots_written"
     )
     .unwrap();
     csv.flush().unwrap();
@@ -329,10 +447,11 @@ fn main() {
 
                 writeln!(
                     csv,
-                    "{},{},{},{},{:.3},{},{},{},{},{},{},{},{},{},{},{},{}",
+                    "{},{},{},{},{},{:.3},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
                     workload.name,
                     mode.name,
                     mode.nogood_enabled,
+                    stats.branch_policy,
                     repeat,
                     wall_ms,
                     stats.reasoning_time_ms,
@@ -346,7 +465,12 @@ fn main() {
                     stats.local_cache_hits,
                     stats.global_cache_hits,
                     stats.steal_attempts,
-                    stats.steal_successes
+                    stats.steal_successes,
+                    stats.policy_reordered_splits,
+                    stats.policy_fallbacks,
+                    stats.hybrid_policy_calls,
+                    stats.hybrid_model_calls,
+                    stats.branch_snapshots_written
                 )
                 .unwrap();
                 csv.flush().unwrap();

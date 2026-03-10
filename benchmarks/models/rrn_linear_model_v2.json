@@ -1,0 +1,15 @@
+{
+  "bias": -6.877549187093753,
+  "union_weight": 10.415782204013714,
+  "intersection_weight": -0.7990002632660693,
+  "complement_weight": -6.245633780932627,
+  "some_values_weight": 0.0,
+  "all_values_weight": 0.0,
+  "atom_weight": 2.213060876046894,
+  "depth_weight": 3.371148159815195,
+  "node_weight": 5.584209035766015,
+  "training_samples": 294495,
+  "source_policy_mode": "heuristic",
+  "epochs": 30,
+  "learning_rate": 0.00005
+}

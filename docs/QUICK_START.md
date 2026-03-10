@@ -118,12 +118,39 @@ SKIP_BUILD=0 \
 benchmarks/competitors/scripts/run_rrn_policy_protocol.sh
 ```
 
+If this run produces `branch_snapshots_written=0`, switch to branch-active synthetic
+workloads for training export:
+
+```bash
+SPACL_BRANCH_POLICY=heuristic \
+SPACL_BRANCH_SNAPSHOT_FILE=benchmarks/competitors/results/history/rrn_synth_snapshot_r1/branch_snapshots.jsonl \
+SPACL_SYNTH_ABLATION_WORKLOADS='mixed_operands_16,mixed_operands_32,reused_conflict_12' \
+SPACL_SYNTH_ABLATION_MODES='adaptive' \
+SPACL_SYNTH_ABLATION_REPEATS=3 \
+SPACL_SYNTH_ABLATION_WARMUPS=1 \
+SPACL_SYNTH_PARALLEL_THRESHOLD=4 \
+SPACL_SYNTH_COST_THRESHOLD_US=1 \
+cargo run --quiet --bin run_spacl_synthetic_ablation
+```
+
 Train a first linear RRN policy file from exported snapshots:
 
 ```bash
 cargo run --bin train_rrn_linear_model -- \
   benchmarks/competitors/results/history/<RUN_ID>/branch_snapshots.jsonl \
   benchmarks/models/rrn_linear_model.json \
+  heuristic
+```
+
+Train with pairwise ranking objective (recommended for branch ordering):
+
+```bash
+RRN_TRAIN_OBJECTIVE=pairwise \
+RRN_TRAIN_EPOCHS=30 \
+RRN_PAIRWISE_MAX_PAIRS_PER_RECORD=128 \
+cargo run --bin train_rrn_linear_model -- \
+  benchmarks/models/rrn_train_subset_r2_100k.jsonl \
+  benchmarks/models/rrn_linear_model_v3_pairwise.json \
   heuristic
 ```
 

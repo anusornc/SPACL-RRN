@@ -1,0 +1,19 @@
+{
+  "bias": 0.0,
+  "union_weight": 0.6860477261907602,
+  "intersection_weight": 2.849265668769909,
+  "complement_weight": -1.1627436350981917,
+  "some_values_weight": 0.0,
+  "all_values_weight": 0.0,
+  "atom_weight": 1.2461338097886097,
+  "depth_weight": 2.372569759862442,
+  "node_weight": 3.61870356965112,
+  "training_samples": 294495,
+  "source_policy_mode": "heuristic",
+  "epochs": 30,
+  "learning_rate": 0.00005,
+  "objective": "pairwise",
+  "ranking_records": 100000,
+  "ranking_pairs": 1548300,
+  "pairwise_accuracy": 1.0
+}

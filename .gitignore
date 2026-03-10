@@ -94,9 +94,11 @@ benchmarks/competitors/results/**/*.pdf
 *.lof
 *.pdf
 paper/**/*.pdf
+paper/submission_rrn/*.spl
 
 # Large test data (keep small ones)
 tests/data/hierarchy_100000.owl
 tests/data/*.owlbin
 benchmarks/ontologies/**/*.owlbin
 benchmarks/competitors/ontologies/*.owlbin
+benchmarks/models/*.jsonl

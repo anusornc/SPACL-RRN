@@ -194,6 +194,23 @@ Key SPACL policy env variables now supported by the harness:
 - `SPACL_RRN_MODEL_PATH=/path/to/model.json` (optional; hybrid falls back safely if absent)
 - `SPACL_BRANCH_SNAPSHOT_FILE=/path/to/branch_snapshots.jsonl` (optional training export)
 
+Branch-activity note:
+
+- Some `.owl` suites can complete with `used_parallel=false` and zero branch snapshots.
+- For policy-training data, use branch-active synthetic workloads via:
+  - `cargo run --quiet --bin run_spacl_synthetic_ablation`
+  - recommended workload mix: `mixed_operands_16,mixed_operands_32,reused_conflict_12`
+  - recommended gate overrides: `SPACL_SYNTH_PARALLEL_THRESHOLD=4`, `SPACL_SYNTH_COST_THRESHOLD_US=1`
+
+Policy-matrix summary helper (computes mean/median/P95/Q1/Q3/IQR directly from raw CSVs):
+
+- `benchmarks/competitors/scripts/summarize_policy_matrix.sh`
+
+Trainer objective controls:
+
+- `RRN_TRAIN_OBJECTIVE=regression|pairwise`
+- `RRN_PAIRWISE_MAX_PAIRS_PER_RECORD=<n>` (used when objective is `pairwise`)
+
 ## 6) Governance Notes
 
 - Do not publish runs that include synthetic/fake timing rows.
