@@ -247,3 +247,23 @@ Note:
 cd paper/submission_rrn
 ./compile.sh
 ```
+
+## 10. Branch safety for two-paper workflow
+
+Before editing, always confirm branch:
+
+```bash
+git branch --show-current
+git status --short --branch
+```
+
+Branch roles:
+
+- `main`: stable line for submitted primary paper
+- `paper1/submitted-freeze`: immutable submitted snapshot
+- `paper1/reviewer-r1`: reviewer-revision branch for primary paper
+- `exp/hybrid-rrn-paper`: hybrid paper and hybrid experiment track
+
+Full checklist:
+
+- `docs/BRANCH_WORKFLOW.md`

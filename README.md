@@ -166,6 +166,7 @@ Start here:
 
 - `docs/README.md`
 - `docs/QUICK_START.md`
+- `docs/BRANCH_WORKFLOW.md`
 - `docs/PROJECT_STRUCTURE.md`
 - `docs/DIRECTORY_STRUCTURE.md`
 

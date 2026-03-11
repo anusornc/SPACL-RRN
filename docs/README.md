@@ -5,6 +5,7 @@ This directory contains the active technical documentation for Tableauxx.
 ## Start here
 
 - `docs/QUICK_START.md` - first commands to build, test, run, benchmark
+- `docs/BRANCH_WORKFLOW.md` - branch safety rules for dual-paper development
 - `docs/PROJECT_STRUCTURE.md` - source-level architecture (`src/*`)
 - `docs/DIRECTORY_STRUCTURE.md` - repository-level layout and ownership
 - `docs/benchmarking/BENCHMARK_RUNBOOK.md` - benchmark protocol, run IDs, reproducibility
