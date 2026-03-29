@@ -98,48 +98,95 @@ cargo run --bin train_rrn_linear_model -- --help
 cargo run --bin train_rrn_gbdt_model -- --help
 ```
 
-## Hybrid Model Options (Deployment)
+## Hybrid RRN Model Training & Usage
 
-For `SPACL_BRANCH_POLICY=hybrid_rrn`, users have four practical choices:
+The `exp/hybrid-rrn-paper` branch includes a complete training pipeline for learned branch-priority policies.
 
-1. Use a provided linear model file (fastest start)
-2. Use a provided GBDT-stump model file (non-neural comparator)
-3. Train a custom model from their own workload snapshots
-4. Use hybrid mode without a model path (safe fallback to heuristic)
+### Quick Start: Use Pre-trained Models
 
-Examples:
+Pre-trained models are ready to use out of the box (no training required):
 
 ```bash
-# 1) Provided model
+# Linear model (trained on 294K samples, 65.6% pairwise accuracy)
 SPACL_BRANCH_POLICY=hybrid_rrn \
 SPACL_RRN_MODEL_PATH=benchmarks/models/rrn_linear_model_v3_pairwise.json \
 cargo run --bin owl2-reasoner -- check tests/data/univ-bench.owl
 
-# 2) Train your own model, then use it
-cargo run --bin train_rrn_linear_model -- \
-  /path/to/branch_snapshots.jsonl \
-  /path/to/custom_rrn_model.json \
-  heuristic
-
+# GBDT stump model (alternative, non-neural comparator)
 SPACL_BRANCH_POLICY=hybrid_rrn \
-SPACL_RRN_MODEL_PATH=/path/to/custom_rrn_model.json \
-cargo run --bin owl2-reasoner -- check tests/data/univ-bench.owl
-
-# 3) Alternative: train a GBDT-stump comparator model
-cargo run --bin train_rrn_gbdt_model -- \
-  /path/to/branch_snapshots.jsonl \
-  /path/to/custom_rrn_gbdt_model.json \
-  heuristic
-
-SPACL_BRANCH_POLICY=hybrid_rrn \
-SPACL_RRN_MODEL_PATH=/path/to/custom_rrn_gbdt_model.json \
-cargo run --bin owl2-reasoner -- check tests/data/univ-bench.owl
-
-# 4) No model path -> hybrid falls back to heuristic
-SPACL_BRANCH_POLICY=hybrid_rrn \
-SPACL_RRN_MODEL_PATH= \
+SPACL_RRN_MODEL_PATH=benchmarks/models/rrn_gbdt_stump_model_v2.json \
 cargo run --bin owl2-reasoner -- check tests/data/univ-bench.owl
 ```
+
+### Full Training Pipeline (3 Steps)
+
+**Step 1: Generate Training Data**
+
+Generate snapshots from synthetic workloads:
+
+```bash
+SPACL_BRANCH_POLICY=heuristic \
+SPACL_BRANCH_SNAPSHOT_FILE=/tmp/snapshots.jsonl \
+SPACL_SYNTH_ABLATION_WORKLOADS='mixed_operands_16,mixed_operands_32' \
+SPACL_SYNTH_ABLATION_MODES='adaptive' \
+SPACL_SYNTH_ABLATION_REPEATS=5 \
+cargo run --bin run_spacl_synthetic_ablation
+```
+
+Or from real ontologies:
+
+```bash
+SPACL_BRANCH_SNAPSHOT_DIR=/tmp/snapshots/ \
+SPACL_BRANCH_POLICY=heuristic \
+cargo run --bin owl2-reasoner -- \
+  --input my_ontology.owl \
+  --classify \
+  --export-snapshots
+```
+
+**Step 2: Train Custom Model**
+
+Train a linear model:
+
+```bash
+cargo run --bin train_rrn_linear_model -- \
+  /tmp/snapshots.jsonl \
+  benchmarks/models/my_custom_model.json \
+  heuristic
+```
+
+Or train a GBDT stump model (more powerful):
+
+```bash
+cargo run --bin train_rrn_gbdt_model -- \
+  /tmp/snapshots.jsonl \
+  benchmarks/models/my_custom_gbdt_model.json \
+  heuristic
+```
+
+**Step 3: Use Trained Model**
+
+```bash
+SPACL_BRANCH_POLICY=hybrid_rrn \
+SPACL_RRN_MODEL_PATH=benchmarks/models/my_custom_model.json \
+cargo run --bin owl2-reasoner -- check my_ontology.owl
+```
+
+### Model Options Summary
+
+| Option | Training Required | Best For |
+|--------|-------------------|----------|
+| Pre-trained linear model | No | Quick start, general use |
+| Pre-trained GBDT model | No | Alternative heuristic |
+| Custom trained model | Yes | Domain-specific optimization |
+| No model (fallback) | No | Safe default, uses heuristic |
+
+### Additional Resources
+
+- Training protocol: `docs/experiments/RRN_PROTOCOL_LOCK_20260309.md`
+- Model comparison: `docs/experiments/RRN_MODEL_COMPARATOR_20260310.md`
+- Branch architecture: `docs/MODULE_ARCHITECTURE_EXP_HYBRID_RRN.md`
+- Branch comparison: `docs/BRANCH_COMPARISON.md`
 
 ## Benchmarking
 
@@ -170,9 +217,21 @@ Start here:
 - `docs/PROJECT_STRUCTURE.md`
 - `docs/DIRECTORY_STRUCTURE.md`
 
+Architecture documentation:
+
+- `docs/MODULE_ARCHITECTURE_MAIN.md` - Main branch architecture
+- `docs/MODULE_ARCHITECTURE_EXP_HYBRID_RRN.md` - Experimental branch (with RRN)
+- `docs/BRANCH_COMPARISON.md` - Side-by-side branch comparison
+
 Domain and deployment docs:
 
 - `docs/BLOCKCHAIN_TRANSACTION_PROFILE_GUIDE.md`
+
+RRN Hybrid documentation:
+
+- `docs/experiments/RRN_PROTOCOL_LOCK_20260309.md` - Training protocol
+- `docs/experiments/RRN_MODEL_COMPARATOR_20260310.md` - Model comparison results
+- `docs/experiments/RRN_HYBRID_TASKLIST.md` - Implementation tasklist
 
 ## Paper
 
