@@ -174,7 +174,7 @@ cargo run --bin owl2-reasoner -- classify ontology.owl
 RUN_ID=smoke_$(date +%Y%m%d_%H%M%S) \
 ONTOLOGY_SUITE=standard \
 ONTOLOGY_REGEX='^disjunctive_simple\.owl$' \
-REASONERS_OVERRIDE=tableauxx \
+REASONERS_OVERRIDE=spacl \
 TIMEOUT_SECONDS=60 \
 ./benchmarks/competitors/scripts/run_benchmarks.sh all
 ```
@@ -240,12 +240,10 @@ MIT License - See [LICENSE](LICENSE) file.
 ## Related Repositories
 
 - **SPACL (Main Algorithm)**: [github.com/anusornc/SPACL](https://github.com/anusornc/SPACL)
-- **Development Repository**: [github.com/anusornc/tableauxx](https://github.com/anusornc/tableauxx)
 
 ---
 
 ## Support
 
 - Issues: [GitHub Issues](https://github.com/anusornc/SPACL-RRN/issues)
-- Paper: [Submission Manuscript](paper/submission_rrn/manuscript.pdf)
 - Documentation: [docs/](docs/)

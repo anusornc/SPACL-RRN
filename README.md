@@ -1,7 +1,7 @@
-# SPACL (Tableauxx Repository)
+# SPACL
 
-This repository contains the SPACL OWL reasoner implementation and benchmarking toolkit in Rust.
-Repository/package names still use `tableauxx` in some paths and scripts for historical compatibility.
+SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning) is a high-performance OWL2 DL reasoning engine implemented in Rust.
+
 It supports multi-format ontology loading, profile-aware reasoning, and reproducible head-to-head benchmarking.
 
 ## Prerequisites
@@ -26,8 +26,8 @@ From the latest clean OWL2Bench core 3-run aggregate in this repository:
 
 - Run set: `owl2bench_univ_core_clean_20260223`, `_r2`, `_r3`
 - Aggregate: `benchmarks/competitors/results/history/owl2bench_univ_core_clean_aggregate_20260223`
-- SPACL/Tableauxx: `12/12` success, median wall time `2107.5 ms`, P95 `2707 ms`
-- In this harness, SPACL/Tableauxx is median winner on all 4 core profiles (`DL`, `EL`, `QL`, `RL`)
+- SPACL: `12/12` success, median wall time `2107.5 ms`, P95 `2707 ms`
+- In this harness, SPACL is median winner on all 4 core profiles (`DL`, `EL`, `QL`, `RL`)
 
 See details in `docs/benchmarking/BENCHMARK_RUNBOOK.md`.
 
@@ -58,7 +58,7 @@ Before full competitor runs, verify your environment with a one-ontology smoke r
 RUN_ID=smoke_$(date +%Y%m%d_%H%M%S) \
 ONTOLOGY_SUITE=standard \
 ONTOLOGY_REGEX='^disjunctive_simple\.owl$' \
-REASONERS_OVERRIDE=tableauxx \
+REASONERS_OVERRIDE=spacl \
 TIMEOUT_SECONDS=60 \
 SKIP_BUILD=0 \
 benchmarks/competitors/scripts/run_benchmarks.sh all
@@ -71,7 +71,7 @@ run_dir="$(readlink -f benchmarks/competitors/results/latest)"
 jq -r '.status' "$run_dir"/*.json | sort | uniq -c
 ```
 
-Expected: at least one `success` row for `tableauxx`.
+Expected: at least one `success` row for `spacl`.
 
 If Docker permission fails (e.g., `permission denied while trying to connect to the docker API socket`), add your user to Docker group and re-login:
 
@@ -213,57 +213,23 @@ Start here:
 
 - `docs/README.md`
 - `docs/QUICK_START.md`
-- `docs/BRANCH_WORKFLOW.md`
 - `docs/PROJECT_STRUCTURE.md`
 - `docs/DIRECTORY_STRUCTURE.md`
 
 Architecture documentation:
 
-- `docs/MODULE_ARCHITECTURE_MAIN.md` - Main branch architecture
-- `docs/MODULE_ARCHITECTURE_EXP_HYBRID_RRN.md` - Experimental branch (with RRN)
-- `docs/BRANCH_COMPARISON.md` - Side-by-side branch comparison
+- `docs/MODULE_ARCHITECTURE_EXP_HYBRID_RRN.md` - SPACL architecture with RRN
 
-Domain and deployment docs:
+Benchmark guide:
 
-- `docs/BLOCKCHAIN_TRANSACTION_PROFILE_GUIDE.md`
+- `docs/benchmarking/BENCHMARK_RUNBOOK.md`
+- `docs/experiments/RRN_PROTOCOL_LOCK_20260309.md`
 
 RRN Hybrid documentation:
 
 - `docs/experiments/RRN_PROTOCOL_LOCK_20260309.md` - Training protocol
 - `docs/experiments/RRN_MODEL_COMPARATOR_20260310.md` - Model comparison results
 - `docs/experiments/RRN_HYBRID_TASKLIST.md` - Implementation tasklist
-
-## Paper
-
-Submission workspace:
-
-- `paper/submission/manuscript.tex`
-- `paper/submission/compile.sh`
-- `paper/submission/export_docx.sh`
-- `paper/submission_rrn/manuscript.tex` (separate hybrid RRN paper track)
-- `paper/submission_rrn/compile.sh`
-- `paper/submission_rrn/export_docx.sh`
-
-Build PDF:
-
-```bash
-cd paper/submission
-./compile.sh
-```
-
-Export DOCX:
-
-```bash
-cd paper/submission
-./export_docx.sh
-```
-
-Optional output name:
-
-```bash
-cd paper/submission
-./export_docx.sh manuscript_for_review.docx
-```
 
 ## License
 
