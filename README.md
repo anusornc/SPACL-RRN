@@ -1,6 +1,10 @@
 # SPACL
 
+**SPACL-RRN Research Track**
+
 SPACL (Speculative Parallel Tableaux with Adaptive Conflict Learning) is a high-performance OWL2 DL reasoning engine implemented in Rust.
+
+This branch (`exp/hybrid-rrn-paper`) includes the **Hybrid RRN** extension: learned branch-priority policies using machine learning models.
 
 It supports multi-format ontology loading, profile-aware reasoning, and reproducible head-to-head benchmarking.
 
