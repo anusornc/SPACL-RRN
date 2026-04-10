@@ -1,8 +1,0 @@
-case,parallel_threshold,cost_threshold_us,cost_per_operand_us,cost_per_nesting_us,sequential_ms,forced_parallel_ms,adaptive_ms,best_baseline_ms,regret,used_parallel,disjunctions_detected,estimated_branch_count,estimated_cost_us,branch_threshold,cost_gate_threshold_us,branch_gate_passed,cost_gate_passed,branches_created,branches_pruned,nogood_hits
-synthetic_union_1x4,50,5,25,15,0.002,4.092,0.009,0.002,3.488791,false,1,1,140,50,240,false,false,0,0,0
-synthetic_union_2x8,50,5,25,15,0.001,0.515,0.044,0.001,41.223273,false,2,1,560,50,240,false,true,0,0,0
-synthetic_complement_4x4,50,5,25,15,0.001,1.821,0.076,0.001,57.776085,false,4,2,800,50,240,false,true,0,0,0
-synthetic_union_16x16,50,5,25,15,0.003,30028.408,4.648,0.003,1438.907430,false,16,27,8960,50,240,false,true,0,0,0
-synthetic_complement_16x8,50,5,25,15,0.059,30029.118,1.872,0.059,31.988621,false,16,14,6400,50,240,false,true,0,0,0
-hierarchy_100,50,5,25,15,0.459,0.293,0.318,0.293,1.086111,false,0,10,0,50,240,false,false,0,0,0
-univ_bench,50,5,25,15,0.005,0.004,0.003,0.004,0.764096,false,0,1,0,50,240,false,false,0,0,0

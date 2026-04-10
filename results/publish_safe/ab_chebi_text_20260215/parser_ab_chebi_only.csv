@@ -1,2 +1,0 @@
-ontology,baseline_status,baseline_wall_ms,baseline_reported_ms,baseline_reasoning_result,experimental_status,experimental_wall_ms,experimental_reported_ms,experimental_reasoning_result,speedup_base_over_exp,speedup_note
-chebi.owl,timeout,1802495,1802495,unknown,success,1518932,1516851,consistent,1.187,lower_bound_due_to_timeout

@@ -1,3 +1,0 @@
-Epoch 1: COMPLETED
-Epoch 2: COMPLETED
-Epoch 3: COMPLETED
