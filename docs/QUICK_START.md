@@ -216,54 +216,11 @@ sudo usermod -aG docker "$USER"
 # log out/login (or reboot), then retry
 ```
 
-## 7. Build paper PDF
+## 7. Public release boundary
 
-```bash
-cd paper/submission
-./compile.sh
-```
+This quick start is intended for the public SPACL-RRN code and benchmark workflow.
+Private manuscript workspaces, submission checklists, provenance notes, and
+internal paper artifacts are intentionally excluded from public release branches.
 
-## 8. Export paper DOCX
-
-```bash
-cd paper/submission
-./export_docx.sh
-```
-
-Optional custom output file:
-
-```bash
-cd paper/submission
-./export_docx.sh manuscript_for_review.docx
-```
-
-Note:
-- DOCX export uses Pandoc (Docker image `pandoc/core` if Docker is available).
-- Review equations/algorithm formatting in Word after export, because some LaTeX math macros can remain as TeX.
-
-## 9. Build hybrid RRN paper track
-
-```bash
-cd paper/submission_rrn
-./compile.sh
-```
-
-## 10. Branch safety for two-paper workflow
-
-Before editing, always confirm branch:
-
-```bash
-git branch --show-current
-git status --short --branch
-```
-
-Branch roles:
-
-- `main`: stable line for submitted primary paper
-- `paper1/submitted-freeze`: immutable submitted snapshot
-- `paper1/reviewer-r1`: reviewer-revision branch for primary paper
-- `exp/hybrid-rrn-paper`: hybrid paper and hybrid experiment track
-
-Full checklist:
-
-- `docs/BRANCH_WORKFLOW.md`
+Before syncing private development changes to this public repo, use the public
+sync checklist and RRN fileset docs from the private source-of-truth repository.
